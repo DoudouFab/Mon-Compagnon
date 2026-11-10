@@ -13,6 +13,7 @@ export interface TableLiveEventCallbacks {
   onPeerJoined?: (clientName: string, role: string, hero?: Character) => void;
   onPeerLeft?: (clientName: string, role: string) => void;
   onRoomState?: (state: any) => void;
+  onHeroesChanged?: (heroesMap: Record<string, Character>) => void; // Ajouté pour notifier l'UI des héros
 }
 
 // Configuration Firebase intégrée avec vos identifiants
@@ -75,6 +76,20 @@ class RealtimeTableManager {
 
         if (roomData) {
           this.callbacks.onRoomState?.(roomData);
+
+          // Si des héros sont présents dans la salle, on prévient l'interface (pour le MJ)
+          if (roomData.heroes) {
+            this.callbacks.onHeroesChanged?.(roomData.heroes);
+            
+            // Optionnel : si le client connecté est le MJ, on peut notifier l'arrivée/MAJ de chaque héros
+            if (this.currentRole === 'mj') {
+              Object.values(roomData.heroes).forEach((h: any) => {
+                if (h && h.name) {
+                  this.callbacks.onPeerJoined?.(h.name, 'pj', h);
+                }
+              });
+            }
+          }
 
           // Si un nouveau dé a été lancé par quelqu'un d'autre
           if (roomData.lastRoll) {
