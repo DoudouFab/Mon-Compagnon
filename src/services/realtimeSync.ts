@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { getDatabase, ref, set, onValue, off, update, get } from "firebase/database";
+import { getDatabase, ref, set, onValue, update, get, remove, onDisconnect } from "firebase/database";
 import { Character, Combatant } from '../types/chroniques';
 
 export type LiveConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'error';
@@ -31,12 +31,20 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
+// Firebase refuse les valeurs "undefined" : on nettoie la fiche avant écriture.
+const clean = <T,>(o: T): T => JSON.parse(JSON.stringify(o));
+// Clé stable d'un héros dans la base (certains personnages n'ont pas d'id).
+const heroKey = (h: Character): string =>
+  h.id || 'h_' + (h.name || 'sans_nom').toLowerCase().replace(/[^a-z0-9]+/g, '_');
+
 class RealtimeTableManager {
   private currentRoom: string = '';
   private currentRole: 'mj' | 'pj' = 'pj';
   private callbacks: TableLiveEventCallbacks = {};
   private cachedHero: Character | null = null;
   private dbUnsubscribe: (() => void) | null = null;
+  private presenceUnsub: (() => void) | null = null;
+  private knownHeroKeys = new Set<string>();
 
   public get room(): string {
     return this.currentRoom;
@@ -63,6 +71,8 @@ class RealtimeTableManager {
       this.dbUnsubscribe();
       this.dbUnsubscribe = null;
     }
+    this.stopPresence();
+    this.knownHeroKeys = new Set<string>();
 
     this.callbacks.onStatusChange?.('connecting', `Connexion à la table ${code}...`);
 
@@ -74,21 +84,20 @@ class RealtimeTableManager {
         const roomData = snapshot.val();
         this.callbacks.onStatusChange?.('connected', `Connecté en direct à la table ${code}`);
 
+        // Toujours prévenir l'interface, même salle vide : le MJ voit ainsi « 0 joueur en ligne ».
+        this.callbacks.onHeroesChanged?.((roomData && roomData.heroes) || {});
+
         if (roomData) {
           this.callbacks.onRoomState?.(roomData);
 
-          // Si des héros sont présents dans la salle, on prévient l'interface (pour le MJ)
-          if (roomData.heroes) {
-            this.callbacks.onHeroesChanged?.(roomData.heroes);
-            
-            // Optionnel : si le client connecté est le MJ, on peut notifier l'arrivée/MAJ de chaque héros
-            if (this.currentRole === 'mj') {
-              Object.values(roomData.heroes).forEach((h: any) => {
-                if (h && h.name) {
-                  this.callbacks.onPeerJoined?.(h.name, 'pj', h);
-                }
-              });
-            }
+          // Le MJ est averti une seule fois par nouveau héros (et non à chaque mise à jour de la salle)
+          if (roomData.heroes && this.currentRole === 'mj') {
+            Object.entries(roomData.heroes).forEach(([k, h]: [string, any]) => {
+              if (h && h.name && !this.knownHeroKeys.has(k)) {
+                this.knownHeroKeys.add(k);
+                this.callbacks.onPeerJoined?.(h.name, 'pj', h);
+              }
+            });
           }
 
           // Si un nouveau dé a été lancé par quelqu'un d'autre
@@ -106,7 +115,10 @@ class RealtimeTableManager {
         this.callbacks.onStatusChange?.('error', 'Liaison serveur indisponible.');
       });
 
-      this.dbUnsubscribe = () => off(roomRef, 'value', unsubscribe);
+      this.dbUnsubscribe = unsubscribe; // onValue renvoie directement la fonction de désabonnement
+
+      // Joueur : publier sa fiche dès la connexion (présence « en ligne »)
+      if (this.currentRole === 'pj') this.startPresence();
 
       // Annoncer l'arrivée du pair (MJ ou PJ) dans la salle
       const clientName = this.cachedHero?.name || (this.currentRole === 'mj' ? 'Meneur de Jeu' : 'Joueur');
@@ -117,10 +129,37 @@ class RealtimeTableManager {
     }
   }
 
+  // Publie la fiche du joueur à la connexion, la retire s'il part, et la republie après une coupure réseau.
+  private startPresence() {
+    this.stopPresence();
+    const hero = this.cachedHero;
+    if (!hero || !this.currentRoom) return;
+    const heroRef = ref(db, `tables/${this.currentRoom}/heroes/${heroKey(hero)}`);
+    this.presenceUnsub = onValue(ref(db, '.info/connected'), (snap) => {
+      if (snap.val() === true && this.cachedHero) {
+        onDisconnect(heroRef)
+          .remove()
+          .then(() => set(heroRef, clean(this.cachedHero)))
+          .catch((e) => console.error('[Firebase Presence Error]', e));
+      }
+    });
+  }
+
+  private stopPresence() {
+    if (this.presenceUnsub) {
+      this.presenceUnsub();
+      this.presenceUnsub = null;
+    }
+  }
+
   public disconnect() {
     if (this.dbUnsubscribe) {
       this.dbUnsubscribe();
       this.dbUnsubscribe = null;
+    }
+    this.stopPresence();
+    if (this.currentRole === 'pj' && this.cachedHero && this.currentRoom) {
+      remove(ref(db, `tables/${this.currentRoom}/heroes/${heroKey(this.cachedHero)}`)).catch(() => {});
     }
     const clientName = this.cachedHero?.name || (this.currentRole === 'mj' ? 'Meneur de Jeu' : 'Joueur');
     this.callbacks.onPeerLeft?.(clientName, this.currentRole);
@@ -147,10 +186,11 @@ class RealtimeTableManager {
     this.cachedHero = hero;
     if (!this.currentRoom) return;
 
-    const heroRef = ref(db, `tables/${this.currentRoom}/heroes/${hero.id}`);
-    set(heroRef, hero).then(() => {
+    const heroRef = ref(db, `tables/${this.currentRoom}/heroes/${heroKey(hero)}`);
+    set(heroRef, clean(hero)).then(() => {
       this.callbacks.onHeroUpdated?.(hero);
     }).catch(err => console.error(err));
+    if (this.currentRole === 'pj' && !this.presenceUnsub) this.startPresence();
   }
 
   public dmPatchHero(heroId: string, patch: Partial<Character>) {
