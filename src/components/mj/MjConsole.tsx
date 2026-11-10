@@ -192,13 +192,14 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
       onHeroesChanged: (heroesMap: any) => {
         console.info('[MJ] onHeroesChanged reçu', heroesMap);
         if (disposed) return;
-        const values: any[] = !heroesMap
+        const hm: any = heroesMap;
+        const values: any[] = !hm
           ? []
-          : heroesMap instanceof Map
-          ? Array.from(heroesMap.values())
-          : Array.isArray(heroesMap)
-          ? heroesMap
-          : Object.values(heroesMap);
+          : hm instanceof Map
+          ? Array.from((hm as Map<any, any>).values())
+          : Array.isArray(hm)
+          ? hm
+          : Object.values(hm);
         const incoming = values.filter((h) => h && typeof h === 'object' && h.name) as Character[];
         setRtStats((s) => ({ events: s.events + 1, last: new Date().toLocaleTimeString('fr-FR') }));
         setOnlineHeroes(incoming);
@@ -269,7 +270,7 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
             : Array.isArray(v)
             ? `tableau(${v.length})`
             : v instanceof Map
-            ? `Map(${v.size})`
+            ? `Map(${(v as Map<any, any>).size})`
             : v && typeof v === 'object'
             ? 'objet'
             : v;
