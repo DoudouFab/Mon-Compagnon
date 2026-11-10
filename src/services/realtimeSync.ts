@@ -1,3 +1,5 @@
+import { initializeApp } from "firebase/app";
+import { getDatabase, ref, set, onValue, off, update, get } from "firebase/database";
 import { Character, Combatant } from '../types/chroniques';
 
 export type LiveConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'error';
@@ -13,14 +15,27 @@ export interface TableLiveEventCallbacks {
   onRoomState?: (state: any) => void;
 }
 
+// Configuration Firebase intégrée avec vos identifiants
+const firebaseConfig = {
+  apiKey: "AIzaSyAPBHhNIAN4XfV0ApCgvxTsxNsHAEZE-wU",
+  authDomain: "mon-compagnon-jdr-by-doudou.firebaseapp.com",
+  databaseURL: "https://mon-compagnon-jdr-by-doudou-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "mon-compagnon-jdr-by-doudou",
+  storageBucket: "mon-compagnon-jdr-by-doudou.firebasestorage.app",
+  messagingSenderId: "1060857747832",
+  appId: "1:1060857747832:web:a152f52cd7605df734d08d",
+  measurementId: "G-7JRC2QNJRL"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
 class RealtimeTableManager {
-  private ws: WebSocket | null = null;
   private currentRoom: string = '';
   private currentRole: 'mj' | 'pj' = 'pj';
   private callbacks: TableLiveEventCallbacks = {};
-  private reconnectTimer: any = null;
-  private isIntentionalDisconnect: boolean = false;
   private cachedHero: Character | null = null;
+  private dbUnsubscribe: (() => void) | null = null;
 
   public get room(): string {
     return this.currentRoom;
@@ -41,157 +56,120 @@ class RealtimeTableManager {
     this.currentRoom = code;
     this.currentRole = role;
     this.cachedHero = hero || null;
-    this.isIntentionalDisconnect = false;
 
-    if (this.reconnectTimer) {
-      clearTimeout(this.reconnectTimer);
-      this.reconnectTimer = null;
-    }
-
-    if (this.ws) {
-      try {
-        this.ws.close();
-      } catch {}
-      this.ws = null;
+    // Nettoyer une éventuelle écoute précédente
+    if (this.dbUnsubscribe) {
+      this.dbUnsubscribe();
+      this.dbUnsubscribe = null;
     }
 
     this.callbacks.onStatusChange?.('connecting', `Connexion à la table ${code}...`);
 
     try {
-      const isHttps = typeof window !== 'undefined' && window.location.protocol === 'https:';
-      const wsProtocol = isHttps ? 'wss:' : 'ws:';
-      const host = typeof window !== 'undefined' ? window.location.host : 'localhost:3000';
-      const wsUrl = `${wsProtocol}//${host}`;
+      const roomRef = ref(db, 'tables/' + this.currentRoom);
 
-      this.ws = new WebSocket(wsUrl);
-
-      this.ws.onopen = () => {
+      // S'inscrire aux changements en temps réel sur Firebase
+      const unsubscribe = onValue(roomRef, (snapshot) => {
+        const roomData = snapshot.val();
         this.callbacks.onStatusChange?.('connected', `Connecté en direct à la table ${code}`);
-        // Send join payload
-        this.send({
-          type: 'join',
-          roomCode: this.currentRoom,
-          role: this.currentRole,
-          hero: this.cachedHero,
-          clientName: this.cachedHero?.name || (this.currentRole === 'mj' ? 'Meneur de Jeu' : 'Joueur'),
-        });
-      };
 
-      this.ws.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          this.handleIncomingMessage(data);
-        } catch (e) {
-          console.error('[WS Client Parse Error]', e);
+        if (roomData) {
+          this.callbacks.onRoomState?.(roomData);
+
+          // Si un nouveau dé a été lancé par quelqu'un d'autre
+          if (roomData.lastRoll) {
+            this.callbacks.onDiceRolled?.(roomData.lastRoll);
+          }
+
+          // Si le combat a été mis à jour
+          if (roomData.combatants) {
+            this.callbacks.onCombatUpdated?.(roomData.combatants);
+          }
         }
-      };
-
-      this.ws.onerror = (e) => {
-        console.warn('[WS Client Error]', e);
+      }, (error) => {
+        console.error('[Firebase Sync Error]', error);
         this.callbacks.onStatusChange?.('error', 'Liaison serveur indisponible.');
-      };
+      });
 
-      this.ws.onclose = () => {
-        if (!this.isIntentionalDisconnect) {
-          this.callbacks.onStatusChange?.('disconnected', 'Déconnecté de la table.');
-          // Auto retry after 4s
-          this.reconnectTimer = setTimeout(() => {
-            if (!this.isIntentionalDisconnect && this.currentRoom) {
-              this.connect(this.currentRoom, this.currentRole, this.cachedHero);
-            }
-          }, 4000);
-        } else {
-          this.callbacks.onStatusChange?.('disconnected', 'Session fermée.');
-        }
-      };
+      this.dbUnsubscribe = () => off(roomRef, 'value', unsubscribe);
+
+      // Annoncer l'arrivée du pair (MJ ou PJ) dans la salle
+      const clientName = this.cachedHero?.name || (this.currentRole === 'mj' ? 'Meneur de Jeu' : 'Joueur');
+      this.callbacks.onPeerJoined?.(clientName, this.currentRole, this.cachedHero || undefined);
+
     } catch (err: any) {
       this.callbacks.onStatusChange?.('error', err?.message || 'Erreur de connexion');
     }
   }
 
   public disconnect() {
-    this.isIntentionalDisconnect = true;
-    if (this.reconnectTimer) {
-      clearTimeout(this.reconnectTimer);
-      this.reconnectTimer = null;
+    if (this.dbUnsubscribe) {
+      this.dbUnsubscribe();
+      this.dbUnsubscribe = null;
     }
-    if (this.ws) {
-      try {
-        this.ws.close();
-      } catch {}
-      this.ws = null;
-    }
+    const clientName = this.cachedHero?.name || (this.currentRole === 'mj' ? 'Meneur de Jeu' : 'Joueur');
+    this.callbacks.onPeerLeft?.(clientName, this.currentRole);
+
     this.currentRoom = '';
     this.callbacks.onStatusChange?.('disconnected', 'Déconnecté');
   }
 
   public send(payload: any) {
-    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-      try {
-        this.ws.send(JSON.stringify({ ...payload, roomCode: this.currentRoom }));
-      } catch (e) {
-        console.error('[WS Send Error]', e);
-      }
-    }
+    if (!this.currentRoom) return;
+    
+    // Méthode utilitaire générique pour envoyer des données sur Firebase
+    const roomRef = ref(db, 'tables/' + this.currentRoom);
+    update(roomRef, {
+      [payload.type]: payload,
+      lastUpdate: Date.now()
+    }).catch((e) => {
+      console.error('[Firebase Send Error]', e);
+    });
   }
 
-  // Action methods
+  // Action methods adaptées pour Firebase
   public updateHero(hero: Character) {
     this.cachedHero = hero;
-    this.send({
-      type: 'hero_update',
-      hero,
-    });
+    if (!this.currentRoom) return;
+
+    const heroRef = ref(db, `tables/${this.currentRoom}/heroes/${hero.id}`);
+    set(heroRef, hero).then(() => {
+      this.callbacks.onHeroUpdated?.(hero);
+    }).catch(err => console.error(err));
   }
 
   public dmPatchHero(heroId: string, patch: Partial<Character>) {
-    this.send({
-      type: 'dm_patch_hero',
-      heroId,
-      patch,
-    });
+    if (!this.currentRoom) return;
+
+    const heroRef = ref(db, `tables/${this.currentRoom}/heroes/${heroId}`);
+    update(heroRef, patch).then(async () => {
+      // Récupérer le héro mis à jour pour déclencher le callback
+      const snapshot = await get(heroRef);
+      if (snapshot.exists()) {
+        const updatedHero = snapshot.val();
+        this.callbacks.onHeroPatchedByDm?.(heroId, patch, updatedHero);
+      }
+    }).catch(err => console.error(err));
   }
 
   public syncCombat(combatants: Combatant[]) {
-    this.send({
-      type: 'combat_sync',
-      combatants,
-    });
+    if (!this.currentRoom) return;
+
+    const combatRef = ref(db, `tables/${this.currentRoom}/combatants`);
+    set(combatRef, combatants).then(() => {
+      this.callbacks.onCombatUpdated?.(combatants);
+    }).catch(err => console.error(err));
   }
 
   public rollDice(roll: any) {
-    this.send({
-      type: 'dice_roll',
-      roll,
-    });
-  }
+    if (!this.currentRoom) return;
 
-  private handleIncomingMessage(msg: any) {
-    switch (msg.type) {
-      case 'room_state':
-        this.callbacks.onRoomState?.(msg.roomData);
-        break;
-      case 'hero_updated':
-        this.callbacks.onHeroUpdated?.(msg.hero);
-        break;
-      case 'hero_patched_by_dm':
-        this.callbacks.onHeroPatchedByDm?.(msg.heroId, msg.patch, msg.hero);
-        break;
-      case 'combat_updated':
-        this.callbacks.onCombatUpdated?.(msg.combatants);
-        break;
-      case 'dice_rolled':
-        this.callbacks.onDiceRolled?.(msg.roll);
-        break;
-      case 'peer_joined':
-        this.callbacks.onPeerJoined?.(msg.clientName, msg.role, msg.hero);
-        break;
-      case 'peer_left':
-        this.callbacks.onPeerLeft?.(msg.clientName, msg.role);
-        break;
-      default:
-        break;
-    }
+    const roomRef = ref(db, 'tables/' + this.currentRoom);
+    update(roomRef, {
+      lastRoll: { ...roll, timestamp: Date.now() }
+    }).then(() => {
+      this.callbacks.onDiceRolled?.(roll);
+    }).catch(err => console.error(err));
   }
 }
 
