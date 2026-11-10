@@ -1,52 +1,39 @@
-name: Déploiement automatique GitHub Pages
+name: Déployer sur GitHub Pages
 
 on:
   push:
-    branches:
-      - main
-      - master
-  workflow_dispatch:
+    branches: [ main ] # ou master selon votre branche principale
 
 permissions:
   contents: read
   pages: write
   id-token: write
 
-concurrency:
-  group: 'pages'
-  cancel-in-progress: true
-
 jobs:
-  build-and-deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+  build:
     runs-on: ubuntu-latest
     steps:
-      - name: Récupération du code
+      - name: 📥 Récupération du code
         uses: actions/checkout@v4
 
-      - name: Configuration de Node.js
+      - name: ⚙️ Configuration de Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 18
 
-      - name: Installation des dépendances
+      - name: 📦 Installation des dépendances et Build
         run: |
-          npm install --legacy-peer-deps
-          npm install firebase --legacy-peer-deps
+          npm install
+          npm run build # ou le script correspondant à votre projet (ex: vite build)
 
-      - name: Compilation de l'application
-        run: npm run build
-
-      - name: Configuration de GitHub Pages
-        uses: actions/configure-pages@v4
-
-      - name: Téléversement de l'artefact dist
+      - name: 📤 Téléversement de l'artefact pour GitHub Pages
         uses: actions/upload-pages-artifact@v3
         with:
-          path: './dist'
+          path: ./dist # Remplacer './dist' par le dossier de build de votre projet (ex: 'build', 'out', etc.)
 
-      - name: Déploiement sur GitHub Pages
-        id: deployment
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: 🚀 Déploiement sur GitHub Pages
         uses: actions/deploy-pages@v4
