@@ -165,7 +165,7 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
   const [newCombatantIsPj, setNewCombatantIsPj] = useState(false);
   const [newCombatantNotes, setNewCombatantNotes] = useState('');
 
-  // Intégration de l'écoute Realtime pour actualiser le groupe MJ avec les joueurs connectés
+  // Liaison Realtime pour écouter l'arrivée des PJ en direct
   React.useEffect(() => {
     realtimeTable.setCallbacks({
       onHeroesChanged: (heroesMap) => {
@@ -982,42 +982,58 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                 </label>
               </div>
             </div>
+
+            {/* Filter bar for group */}
+            <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-[#30251a]">
+              <div className="relative flex-1 min-w-[200px]">
+                <Search className="w-3.5 h-3.5 text-[#9e907d] absolute left-3 top-2.5" />
+                <input
+                  type="text"
+                  placeholder="Filtrer par nom..."
+                  value={pjSearch}
+                  onChange={(e) => setPjSearch(e.target.value)}
+                  className="w-full pl-9 pr-3 py-1.5 bg-[#231c15] border border-[#3d3023] rounded-lg text-xs text-[#ede3d1] outline-none"
+                />
+              </div>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {tableData.pjs.map((pj, idx) => {
-              const hpMax = pj.hpMaxManual || pj.hpMaxAuto || pj.hpBase || 10;
-              return (
-                <div key={pj.id || idx} className="bg-[#181410] border border-[#3d3023] rounded-xl p-4 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h4 className="font-serif-co text-base font-bold text-[#f3d48d]">{pj.name}</h4>
-                      <span className="text-xs text-[#9e907d]">
-                        {pj.profil} Niv. {pj.level} • {pj.race}
-                      </span>
+            {tableData.pjs
+              .filter((pj) => !pjSearch || pj.name.toLowerCase().includes(pjSearch.toLowerCase()))
+              .map((pj, idx) => {
+                const hpMax = pj.hpMaxManual || pj.hpMaxAuto || pj.hpBase || 10;
+                return (
+                  <div key={pj.id || idx} className="bg-[#181410] border border-[#3d3023] rounded-xl p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h4 className="font-serif-co text-base font-bold text-[#f3d48d]">{pj.name}</h4>
+                        <span className="text-xs text-[#9e907d]">
+                          {pj.profil} Niv. {pj.level} • {pj.race}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => sendPjToCombat(pj)}
+                          className="px-2.5 py-1 bg-[#231c15] hover:bg-[#32271d] border border-[#3d3023] text-xs text-[#f3d48d] rounded-lg flex items-center gap-1"
+                        >
+                          <Swords className="w-3 h-3" /> Combat
+                        </button>
+                        <button
+                          onClick={() => setSelectedCharacterModal(pj)}
+                          className="px-2.5 py-1 bg-[#231c15] hover:bg-[#32271d] border border-[#3d3023] text-xs text-[#ede3d1] rounded-lg"
+                        >
+                          Fiche
+                        </button>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-1">
-                      <button
-                        onClick={() => sendPjToCombat(pj)}
-                        className="px-2.5 py-1 bg-[#231c15] hover:bg-[#32271d] border border-[#3d3023] text-xs text-[#f3d48d] rounded-lg flex items-center gap-1"
-                      >
-                        <Swords className="w-3 h-3" /> Combat
-                      </button>
-                      <button
-                        onClick={() => setSelectedCharacterModal(pj)}
-                        className="px-2.5 py-1 bg-[#231c15] hover:bg-[#32271d] border border-[#3d3023] text-xs text-[#ede3d1] rounded-lg"
-                      >
-                        Fiche
-                      </button>
+                    <div className="flex items-center justify-between text-xs text-[#9e907d] pt-2 border-t border-[#30251a]">
+                      <span>PV : <b className="text-[#ede3d1]">{pj.hp} / {hpMax}</b></span>
+                      <span>DEF : <b className="text-[#ede3d1]">{10 + getMod((pj.base.DEX || 10) + (pj.rb.DEX || 0))}</b></span>
                     </div>
                   </div>
-                  <div className="flex items-center justify-between text-xs text-[#9e907d] pt-2 border-t border-[#30251a]">
-                    <span>PV : <b className="text-[#ede3d1]">{pj.hp} / {hpMax}</b></span>
-                    <span>DEF : <b className="text-[#ede3d1]">{10 + getMod((pj.base.DEX || 10) + (pj.rb.DEX || 0))}</b></span>
-                  </div>
-                </div>
-              );
-            })}
+                );
+              })}
           </div>
 
           {tableData.pjs.length === 0 && (
@@ -1033,29 +1049,41 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
         <div className="space-y-4">
           <div className="bg-[#181410] border border-[#3d3023] rounded-xl p-4 space-y-3">
             <h3 className="font-serif-co text-lg font-bold text-[#f3d48d]">Bestiaire Officiel DRS (53 Monstres)</h3>
-            <p className="text-xs text-[#9e907d]">Cliquez sur un monstre pour l'ajouter directement à la piste de combat en cours.</p>
+            <div className="relative">
+              <Search className="w-3.5 h-3.5 text-[#9e907d] absolute left-3 top-2.5" />
+              <input
+                type="text"
+                placeholder="Rechercher un monstre..."
+                value={bestSearch}
+                onChange={(e) => setBestSearch(e.target.value)}
+                className="w-full pl-9 pr-3 py-1.5 bg-[#231c15] border border-[#3d3023] rounded-lg text-xs text-[#ede3d1] outline-none"
+              />
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            {BESTIAIRE.map((m, idx) => (
-              <div key={idx} className="bg-[#181410] border border-[#3d3023] rounded-xl p-3.5 space-y-2 flex flex-col justify-between">
-                <div>
-                  <div className="flex items-center justify-between">
-                    <h4 className="font-serif-co font-bold text-sm text-[#ede3d1]">{m.n}</h4>
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#381616] text-[#ff9d9d] border border-[#6d2525]">
-                      NC {m.nc}
-                    </span>
+            {BESTIAIRE
+              .filter((m) => !bestSearch || (m.n + (m.traits || '')).toLowerCase().includes(bestSearch.toLowerCase()))
+              .map((m, idx) => (
+                <div key={idx} className="bg-[#181410] border border-[#3d3023] rounded-xl p-3.5 space-y-2 flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-serif-co font-bold text-sm text-[#ede3d1]">{m.n}</h4>
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#381616] text-[#ff9d9d] border border-[#6d2525]">
+                        NC {m.nc}
+                      </span>
+                    </div>
+                    <p className="text-xs text-[#9e907d] mt-1">PV: {m.pv} • DEF: {m.def} • Init: {m.init}</p>
+                    <p className="text-xs text-[#ede3d1] mt-2 line-clamp-2">{m.traits || m.att}</p>
                   </div>
-                  <p className="text-xs text-[#9e907d] mt-1">PV: {m.pv} • DEF: {m.def} • Init: {m.init}</p>
+                  <button
+                    onClick={() => addMonsterToCombat(m)}
+                    className="w-full mt-2 py-1.5 bg-[#231c15] hover:bg-[#32271d] border border-[#3d3023] text-xs font-semibold text-[#f3d48d] rounded-lg flex items-center justify-center gap-1.5"
+                  >
+                    <Swords className="w-3.5 h-3.5" /> Ajouter au combat
+                  </button>
                 </div>
-                <button
-                  onClick={() => addMonsterToCombat(m)}
-                  className="w-full mt-2 py-1.5 bg-[#231c15] hover:bg-[#32271d] border border-[#3d3023] text-xs font-semibold text-[#f3d48d] rounded-lg flex items-center justify-center gap-1.5"
-                >
-                  <Swords className="w-3.5 h-3.5" /> Ajouter au combat
-                </button>
-              </div>
-            ))}
+              ))}
           </div>
         </div>
       )}
@@ -1148,30 +1176,45 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
 
       {/* ==================== 7. ÉQUIPEMENTS ==================== */}
       {activeTab === 'equipements' && (
-        <div className="bg-[#181410] border border-[#3d3023] rounded-xl p-4 space-y-3">
-          <h3 className="font-serif-co text-lg font-bold text-[#f3d48d]">Catalogue des Équipements</h3>
-          <p className="text-xs text-[#9e907d]">Retrouvez ici toutes les armes, armures et objets d'aventure officiels.</p>
+        <div className="space-y-4">
+          <div className="bg-[#181410] border border-[#3d3023] rounded-xl p-4 space-y-3">
+            <h3 className="font-serif-co text-lg font-bold text-[#f3d48d]">Catalogue des Équipements</h3>
+            <div className="relative">
+              <Search className="w-3.5 h-3.5 text-[#9e907d] absolute left-3 top-2.5" />
+              <input
+                type="text"
+                placeholder="Rechercher un équipement..."
+                value={eqSearch}
+                onChange={(e) => setEqSearch(e.target.value)}
+                className="w-full pl-9 pr-3 py-1.5 bg-[#231c15] border border-[#3d3023] rounded-lg text-xs text-[#ede3d1] outline-none"
+              />
+            </div>
+          </div>
           <div className="space-y-2">
-            {EQUIPEMENTS.map((eq, i) => (
-              <div key={i} className="p-3 bg-[#231c15] border border-[#3d3023] rounded-lg flex items-center justify-between text-xs">
-                <div>
-                  <b className="text-[#ede3d1]">{eq.n}</b>
-                  <span className="text-[#9e907d] ml-2">({eq.cat})</span>
+            {EQUIPEMENTS
+              .filter((eq) => !eqSearch || (eq.n + (eq.cat || '')).toLowerCase().includes(eqSearch.toLowerCase()))
+              .map((eq, i) => (
+                <div key={i} className="p-3 bg-[#181410] border border-[#3d3023] rounded-xl flex items-center justify-between text-xs">
+                  <div>
+                    <b className="text-[#ede3d1]">{eq.n}</b>
+                    <span className="text-[#9e907d] ml-2">({eq.cat})</span>
+                  </div>
+                  <span className="text-[#d4a84a] font-mono">{eq.pc ? `${eq.pc} pc` : 'Standard'}</span>
                 </div>
-                <span className="text-[#d4a84a] font-mono">{eq.pc ? `${eq.pc} pc` : 'Standard'}</span>
-              </div>
-            ))}
+              ))}
           </div>
         </div>
       )}
 
       {/* ==================== 8. RÈGLES & ÉTATS ==================== */}
       {activeTab === 'regles' && (
-        <div className="bg-[#181410] border border-[#3d3023] rounded-xl p-4 space-y-3">
-          <h3 className="font-serif-co text-lg font-bold text-[#f3d48d]">Règles Officielles &amp; États Préjudiciables</h3>
+        <div className="space-y-4">
+          <div className="bg-[#181410] border border-[#3d3023] rounded-xl p-4 space-y-3">
+            <h3 className="font-serif-co text-lg font-bold text-[#f3d48d]">Règles Officielles &amp; États Préjudiciables</h3>
+          </div>
           <div className="space-y-3">
             {ETATS.map((et, i) => (
-              <div key={i} className="p-3 bg-[#231c15] border border-[#3d3023] rounded-lg space-y-1">
+              <div key={i} className="p-3 bg-[#181410] border border-[#3d3023] rounded-xl space-y-1">
                 <b className="text-[#f3d48d] text-sm">{et.n}</b>
                 <p className="text-xs text-[#ede3d1]">{et.desc}</p>
               </div>
@@ -1182,11 +1225,13 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
 
       {/* ==================== 9. RACES ==================== */}
       {activeTab === 'races' && (
-        <div className="bg-[#181410] border border-[#3d3023] rounded-xl p-4 space-y-3">
-          <h3 className="font-serif-co text-lg font-bold text-[#f3d48d]">Races Jouables</h3>
+        <div className="space-y-4">
+          <div className="bg-[#181410] border border-[#3d3023] rounded-xl p-4 space-y-3">
+            <h3 className="font-serif-co text-lg font-bold text-[#f3d48d]">Races Jouables</h3>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {RACES.map((r, i) => (
-              <div key={i} className="p-3 bg-[#231c15] border border-[#3d3023] rounded-lg space-y-1">
+              <div key={i} className="p-3 bg-[#181410] border border-[#3d3023] rounded-xl space-y-1">
                 <b className="text-[#ede3d1]">{r.n}</b>
                 <p className="text-xs text-[#9e907d]">{r.desc}</p>
               </div>
@@ -1197,11 +1242,13 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
 
       {/* ==================== 10. PROFILS ==================== */}
       {activeTab === 'profils' && (
-        <div className="bg-[#181410] border border-[#3d3023] rounded-xl p-4 space-y-3">
-          <h3 className="font-serif-co text-lg font-bold text-[#f3d48d]">Profils de Personnages</h3>
+        <div className="space-y-4">
+          <div className="bg-[#181410] border border-[#3d3023] rounded-xl p-4 space-y-3">
+            <h3 className="font-serif-co text-lg font-bold text-[#f3d48d]">Profils de Personnages</h3>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {PROFILS.map((p, i) => (
-              <div key={i} className="p-3 bg-[#231c15] border border-[#3d3023] rounded-lg space-y-1">
+              <div key={i} className="p-3 bg-[#181410] border border-[#3d3023] rounded-xl space-y-1">
                 <b className="text-[#ede3d1]">{p.n}</b>
                 <p className="text-xs text-[#9e907d]">{p.desc}</p>
               </div>
@@ -1212,12 +1259,13 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
 
       {/* ==================== 11. VOIES & RANGS ==================== */}
       {activeTab === 'voies' && (
-        <div className="bg-[#181410] border border-[#3d3023] rounded-xl p-4 space-y-3">
-          <h3 className="font-serif-co text-lg font-bold text-[#f3d48d]">Voies &amp; Capacités</h3>
-          <p className="text-xs text-[#9e907d]">Catalogue complet des voies de profils et de leurs rangs.</p>
+        <div className="space-y-4">
+          <div className="bg-[#181410] border border-[#3d3023] rounded-xl p-4 space-y-3">
+            <h3 className="font-serif-co text-lg font-bold text-[#f3d48d]">Voies &amp; Capacités</h3>
+          </div>
           <div className="space-y-3">
             {Object.entries(VOIES_CATALOG).map(([key, voie]: [string, any], idx) => (
-              <div key={idx} className="p-3 bg-[#231c15] border border-[#3d3023] rounded-lg space-y-1">
+              <div key={idx} className="p-3 bg-[#181410] border border-[#3d3023] rounded-xl space-y-1">
                 <b className="text-[#f3d48d] text-sm">{voie.n || key}</b>
                 <p className="text-xs text-[#9e907d]">{voie.desc || 'Voie de profil'}</p>
               </div>
@@ -1228,15 +1276,29 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
 
       {/* ==================== 12. GRIMOIRE DRS ==================== */}
       {activeTab === 'grimoire' && (
-        <div className="bg-[#181410] border border-[#3d3023] rounded-xl p-4 space-y-3">
-          <h3 className="font-serif-co text-lg font-bold text-[#f3d48d]">Grimoire DRS (Sorts)</h3>
+        <div className="space-y-4">
+          <div className="bg-[#181410] border border-[#3d3023] rounded-xl p-4 space-y-3">
+            <h3 className="font-serif-co text-lg font-bold text-[#f3d48d]">Grimoire DRS (Sorts)</h3>
+            <div className="relative">
+              <Search className="w-3.5 h-3.5 text-[#9e907d] absolute left-3 top-2.5" />
+              <input
+                type="text"
+                placeholder="Rechercher un sort..."
+                value={grimSearch}
+                onChange={(e) => setGrimSearch(e.target.value)}
+                className="w-full pl-9 pr-3 py-1.5 bg-[#231c15] border border-[#3d3023] rounded-lg text-xs text-[#ede3d1] outline-none"
+              />
+            </div>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-            {SORTS_CATALOG.map((s, i) => (
-              <div key={i} className="p-2.5 bg-[#231c15] border border-[#3d3023] rounded-lg text-xs space-y-0.5">
-                <b className="text-[#f3d48d]">{s.n}</b>
-                <p className="text-[#9e907d]">{s.portee} • {s.duree}</p>
-              </div>
-            ))}
+            {SORTS_CATALOG
+              .filter((s) => !grimSearch || (s.n + (s.portee || '')).toLowerCase().includes(grimSearch.toLowerCase()))
+              .map((s, i) => (
+                <div key={i} className="p-2.5 bg-[#181410] border border-[#3d3023] rounded-xl text-xs space-y-0.5">
+                  <b className="text-[#f3d48d]">{s.n}</b>
+                  <p className="text-[#9e907d]">{s.portee} • {s.duree}</p>
+                </div>
+              ))}
           </div>
         </div>
       )}
