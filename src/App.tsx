@@ -24,6 +24,8 @@ import { THARNEA_MONSTERS, THARNEA_ARTIFACTS } from './data/tharneaSupplement';
 import { ShareModal } from './components/ShareModal';
 import { CharacterRosterHub } from './components/pj/CharacterRosterHub';
 import { MjPasswordModal } from './components/common/MjPasswordModal';
+import { LiveTableModal } from './components/common/LiveTableModal';
+import { realtimeTable, LiveConnectionStatus } from './services/realtimeSync';
 import { Character, Combatant } from './types/chroniques';
 
 export default function App() {
@@ -52,6 +54,22 @@ export default function App() {
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [isMjPasswordModalOpen, setIsMjPasswordModalOpen] = useState(false);
   const [notification, setNotification] = useState<string | null>(null);
+
+  // Live Table state (real-time cross-device sync)
+  const [isLiveTableOpen, setIsLiveTableOpen] = useState(false);
+  const [liveRoomCode, setLiveRoomCode] = useState<string>(() => {
+    try {
+      if (typeof window !== 'undefined') {
+        const params = new URLSearchParams(window.location.search);
+        const queryTable = params.get('table');
+        if (queryTable) return queryTable.trim().toUpperCase();
+        return localStorage.getItem('cof_live_room') || '';
+      }
+    } catch {}
+    return '';
+  });
+  const [liveStatus, setLiveStatus] = useState<LiveConnectionStatus>('disconnected');
+  const [connectedHeroes, setConnectedHeroes] = useState<Character[]>([]);
 
   // Pack Extension Tharnéa / Codex de l'Obscure toggle state
   const [isTharneaActive, setIsTharneaActive] = useState<boolean>(() => {
@@ -219,6 +237,9 @@ export default function App() {
   };
 
   const handleUpdateCurrentPj = (updated: Character) => {
+    if (liveStatus === 'connected') {
+      realtimeTable.updateHero(updated);
+    }
     setPlayerRoster((prev) => {
       const idx = prev.findIndex((p) => p.id === updated.id);
       let nextRoster: Character[];
@@ -495,6 +516,89 @@ export default function App() {
     setNotification(msg);
   };
 
+  // Real-time Live Table Callbacks
+  useEffect(() => {
+    realtimeTable.setCallbacks({
+      onStatusChange: (status, msg) => {
+        setLiveStatus(status);
+        if (msg) showToast(msg);
+      },
+      onHeroUpdated: (hero) => {
+        setConnectedHeroes((prev) => {
+          const idx = prev.findIndex((h) => h.id === hero.id);
+          if (idx >= 0) {
+            const next = [...prev];
+            next[idx] = hero;
+            return next;
+          }
+          return [...prev, hero];
+        });
+        setTableData((prev: any) => {
+          const pjs = [...prev.pjs];
+          const idx = pjs.findIndex(
+            (p: Character) => (p.id && p.id === hero.id) || p.name.toLowerCase() === hero.name.toLowerCase()
+          );
+          if (idx >= 0) pjs[idx] = hero;
+          else pjs.push(hero);
+
+          const combatants = prev.combatants.map((c: Combatant) => {
+            if (c.pjRefId === hero.id || c.n.toLowerCase() === hero.name.toLowerCase()) {
+              return { ...c, hp: hero.hp, hpMax: hero.hpMaxAuto || c.hpMax };
+            }
+            return c;
+          });
+          return { ...prev, pjs, combatants };
+        });
+        showToast(`🟢 ${hero.name} mis à jour en direct (${hero.hp} PV) !`);
+      },
+      onHeroPatchedByDm: (heroId, patch, updatedHero) => {
+        if (currentPj && (currentPj.id === heroId || currentPj.name.toLowerCase() === updatedHero.name.toLowerCase())) {
+          handleUpdateCurrentPj(updatedHero);
+          showToast(`✨ Fiche mise à jour en direct par le Meneur de Jeu !`);
+        }
+      },
+      onPeerJoined: (name, role, hero) => {
+        if (hero) {
+          setConnectedHeroes((prev) => {
+            if (prev.some((h) => h.id === hero.id)) return prev;
+            return [...prev, hero];
+          });
+        }
+        showToast(`👋 ${name} a rejoint la table en direct.`);
+      },
+      onPeerLeft: (name) => {
+        showToast(`🚪 ${name} a quitté la table.`);
+      },
+      onRoomState: (state) => {
+        if (state && Array.isArray(state.heroes)) {
+          setConnectedHeroes(state.heroes);
+          if (appMode === 'mj' && state.heroes.length > 0) {
+            setTableData((prev: any) => {
+              const pjs = [...prev.pjs];
+              state.heroes.forEach((h: Character) => {
+                const idx = pjs.findIndex((p: Character) => p.id === h.id || p.name.toLowerCase() === h.name.toLowerCase());
+                if (idx >= 0) pjs[idx] = h;
+                else pjs.push(h);
+              });
+              return { ...prev, pjs };
+            });
+          }
+        }
+      },
+    });
+  }, [currentPj, appMode]);
+
+  // Persist live room code and auto-connect if URL parameter provided
+  useEffect(() => {
+    try {
+      if (liveRoomCode) {
+        localStorage.setItem('cof_live_room', liveRoomCode);
+      } else {
+        localStorage.removeItem('cof_live_room');
+      }
+    } catch {}
+  }, [liveRoomCode]);
+
   // Sync PJ into MJ table
   const handleSendPjToMj = () => {
     if (!currentPj) return;
@@ -618,6 +722,9 @@ export default function App() {
         onOpenShareModal={() => setIsShareModalOpen(true)}
         onOpenRoster={() => setShowRosterHub(true)}
         rosterCount={playerRoster.length}
+        onOpenLiveTable={() => setIsLiveTableOpen(true)}
+        liveStatus={liveStatus}
+        liveRoomCode={liveRoomCode}
       />
 
       {/* Toast Notification Banner */}
@@ -737,6 +844,20 @@ export default function App() {
         isOpen={isMjPasswordModalOpen}
         onClose={() => setIsMjPasswordModalOpen(false)}
         onSuccess={handlePasswordSuccess}
+      />
+
+      {/* Real-time Live Table Modal */}
+      <LiveTableModal
+        isOpen={isLiveTableOpen}
+        onClose={() => setIsLiveTableOpen(false)}
+        appMode={appMode}
+        currentPj={currentPj}
+        onUpdatePj={handleUpdateCurrentPj}
+        liveRoomCode={liveRoomCode}
+        setLiveRoomCode={setLiveRoomCode}
+        liveStatus={liveStatus}
+        connectedHeroes={connectedHeroes}
+        showToast={showToast}
       />
     </div>
   );

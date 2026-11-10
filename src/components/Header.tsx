@@ -13,6 +13,7 @@ import {
   Lock,
   Unlock,
   Share2,
+  Radio,
 } from 'lucide-react';
 import { Character } from '../types/chroniques';
 
@@ -32,6 +33,9 @@ interface HeaderProps {
   onOpenShareModal: () => void;
   onOpenRoster?: () => void;
   rosterCount?: number;
+  onOpenLiveTable?: () => void;
+  liveStatus?: 'disconnected' | 'connecting' | 'connected' | 'error';
+  liveRoomCode?: string;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -50,6 +54,9 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenShareModal,
   onOpenRoster,
   rosterCount,
+  onOpenLiveTable,
+  liveStatus = 'disconnected',
+  liveRoomCode = '',
 }) => {
   const openOtherInNewTab = () => {
     const targetHash = appMode === 'pj' ? '#mj001' : '#pj';
@@ -255,6 +262,23 @@ export const Header: React.FC<HeaderProps> = ({
               <span className="hidden sm:inline">
                 {appMode === 'pj' ? 'Ouvrir MJ séparé' : 'Ouvrir PJ séparé'}
               </span>
+            </button>
+          )}
+
+          {onOpenLiveTable && (
+            <button
+              onClick={onOpenLiveTable}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm cursor-pointer border ${
+                liveStatus === 'connected'
+                  ? 'bg-[#152e1b] hover:bg-[#1d4025] text-[#86efac] border-[#22c55e]'
+                  : liveStatus === 'connecting'
+                  ? 'bg-[#2b2110] text-[#fde68a] border-[#eab308] animate-pulse'
+                  : 'bg-[#231c15] hover:bg-[#32271d] text-[#d4a84a] border-[#d4a84a]/50'
+              }`}
+              title="Gérer la synchronisation temps réel en direct de la table de jeu"
+            >
+              <Radio className={`w-3.5 h-3.5 ${liveStatus === 'connected' ? 'text-green-400 animate-pulse' : 'text-[#d4a84a]'}`} />
+              <span>{liveStatus === 'connected' ? `En Direct (${liveRoomCode})` : 'Table en Direct'}</span>
             </button>
           )}
 

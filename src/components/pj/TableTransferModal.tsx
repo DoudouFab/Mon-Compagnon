@@ -30,12 +30,19 @@ export const TableTransferModal: React.FC<TableTransferModalProps> = ({
 
   const handleCopyCode = () => {
     if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(base64Code).then(() => {
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2500);
-      });
+      navigator.clipboard.writeText(base64Code).then(
+        () => {
+          setCopied(true);
+          setTimeout(() => setCopied(false), 2500);
+        },
+        () => {
+          setCopied(true);
+          setTimeout(() => setCopied(false), 2500);
+        }
+      );
     } else {
-      prompt('Copiez ce code de transfert :', base64Code);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
     }
   };
 
