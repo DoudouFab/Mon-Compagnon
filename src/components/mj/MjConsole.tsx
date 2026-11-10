@@ -69,6 +69,7 @@ import {
   RuleChapter,
   SpellItem,
 } from '../../types/chroniques';
+import { realtimeTable } from '../../services/realtimeSync';
 
 interface MjTableData {
   pjs: Character[];
@@ -163,6 +164,62 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
   const [newCombatantInit, setNewCombatantInit] = useState(10);
   const [newCombatantIsPj, setNewCombatantIsPj] = useState(false);
   const [newCombatantNotes, setNewCombatantNotes] = useState('');
+
+  // ==================== SYNCHRO TEMPS RÉEL FIREBASE (PJ) ====================
+  // Références toujours à jour : l'écouteur est monté une seule fois et doit lire l'état courant.
+  const tableDataRef = React.useRef<MjTableData>(tableData);
+  const onUpdateTableDataRef = React.useRef(onUpdateTableData);
+  tableDataRef.current = tableData;
+  onUpdateTableDataRef.current = onUpdateTableData;
+
+  React.useEffect(() => {
+    let disposed = false;
+    realtimeTable.setCallbacks({
+      onHeroesChanged: (heroesMap: any) => {
+        if (disposed || !heroesMap) return;
+        const values: any[] =
+          heroesMap instanceof Map
+            ? Array.from(heroesMap.values())
+            : Array.isArray(heroesMap)
+            ? heroesMap
+            : Object.values(heroesMap);
+        const incoming = values.filter((h) => h && typeof h === 'object' && h.name) as Character[];
+        if (!incoming.length) return;
+
+        const current = tableDataRef.current;
+        const pjs = [...current.pjs];
+        let changed = false;
+
+        incoming.forEach((hero) => {
+          const idx = pjs.findIndex(
+            (p) =>
+              (!!hero.id && p.id === hero.id) ||
+              (p.name || '').toLowerCase() === hero.name.toLowerCase()
+          );
+          if (idx === -1) {
+            pjs.push(hero);
+            changed = true;
+            return;
+          }
+          // Fusion : la fiche distante complète/met à jour la locale, les champs propres au MJ sont conservés.
+          const merged = { ...pjs[idx], ...hero };
+          // Identique à la version locale : on n'écrase rien et on ne déclenche aucune mise à jour.
+          if (JSON.stringify(merged) !== JSON.stringify(pjs[idx])) {
+            pjs[idx] = merged;
+            changed = true;
+          }
+        });
+
+        if (!changed) return;
+        const next: MjTableData = { ...current, pjs };
+        tableDataRef.current = next; // évite de perdre une mise à jour si deux événements arrivent avant le rendu
+        onUpdateTableDataRef.current(next);
+      },
+    });
+    return () => {
+      disposed = true;
+    };
+  }, []);
 
   // Master Loot Items Catalog (Officiel DRS + Codex Tharnéa + Bonbons Alchimiques)
   const masterLootCatalog: (Equipment & { lootIndex: number; lootCategoryGroup: 'armes' | 'armures' | 'biens' | 'tharnea' | 'bonbons' })[] = React.useMemo(() => {
