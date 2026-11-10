@@ -165,7 +165,7 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
   const [newCombatantIsPj, setNewCombatantIsPj] = useState(false);
   const [newCombatantNotes, setNewCombatantNotes] = useState('');
 
-  // Liaison Realtime pour écouter l'arrivée des PJ en direct
+  // Intégration de l'écoute Realtime pour actualiser le groupe MJ avec les joueurs connectés
   React.useEffect(() => {
     realtimeTable.setCallbacks({
       onHeroesChanged: (heroesMap) => {
@@ -509,6 +509,37 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
       }
     };
     reader.readAsText(file);
+  };
+
+  const handleImportPjFiles = (files: FileList | null) => {
+    if (!files || !files.length) return;
+    const pjs = [...tableData.pjs];
+    let count = 0;
+    const fileList = Array.from(files);
+    let pending = fileList.length;
+
+    fileList.forEach((f) => {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        try {
+          const data = JSON.parse(ev.target?.result as string);
+          if (data.name && data.base) {
+            const idx = pjs.findIndex((p) => p.name.toLowerCase() === data.name.toLowerCase());
+            if (idx >= 0) pjs[idx] = data;
+            else pjs.push(data);
+            count++;
+          }
+        } catch (e) {
+          console.error(e);
+        }
+        pending--;
+        if (pending === 0) {
+          onUpdateTableData({ ...tableData, pjs });
+          alert(`${count} fiches de PJ importées avec succès !`);
+        }
+      };
+      reader.readAsText(f);
+    });
   };
 
   const handleDownloadOfflineMjHtml = async () => {
@@ -953,7 +984,6 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
             </div>
           </div>
 
-          {/* Liste des PJ du groupe */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {tableData.pjs.map((pj, idx) => {
               const hpMax = pj.hpMaxManual || pj.hpMaxAuto || pj.hpBase || 10;
@@ -970,7 +1000,6 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                       <button
                         onClick={() => sendPjToCombat(pj)}
                         className="px-2.5 py-1 bg-[#231c15] hover:bg-[#32271d] border border-[#3d3023] text-xs text-[#f3d48d] rounded-lg flex items-center gap-1"
-                        title="Envoyer ce PJ dans l'arène de combat"
                       >
                         <Swords className="w-3 h-3" /> Combat
                       </button>
@@ -1117,7 +1146,7 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
         </div>
       )}
 
-      {/* ==================== 7. AUTRES ONGLETS (Équipements, Règles, etc.) ==================== */}
+      {/* ==================== 7. ÉQUIPEMENTS ==================== */}
       {activeTab === 'equipements' && (
         <div className="bg-[#181410] border border-[#3d3023] rounded-xl p-4 space-y-3">
           <h3 className="font-serif-co text-lg font-bold text-[#f3d48d]">Catalogue des Équipements</h3>
@@ -1136,6 +1165,7 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
         </div>
       )}
 
+      {/* ==================== 8. RÈGLES & ÉTATS ==================== */}
       {activeTab === 'regles' && (
         <div className="bg-[#181410] border border-[#3d3023] rounded-xl p-4 space-y-3">
           <h3 className="font-serif-co text-lg font-bold text-[#f3d48d]">Règles Officielles &amp; États Préjudiciables</h3>
@@ -1150,6 +1180,7 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
         </div>
       )}
 
+      {/* ==================== 9. RACES ==================== */}
       {activeTab === 'races' && (
         <div className="bg-[#181410] border border-[#3d3023] rounded-xl p-4 space-y-3">
           <h3 className="font-serif-co text-lg font-bold text-[#f3d48d]">Races Jouables</h3>
@@ -1164,6 +1195,7 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
         </div>
       )}
 
+      {/* ==================== 10. PROFILS ==================== */}
       {activeTab === 'profils' && (
         <div className="bg-[#181410] border border-[#3d3023] rounded-xl p-4 space-y-3">
           <h3 className="font-serif-co text-lg font-bold text-[#f3d48d]">Profils de Personnages</h3>
@@ -1178,18 +1210,28 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
         </div>
       )}
 
+      {/* ==================== 11. VOIES & RANGS ==================== */}
       {activeTab === 'voies' && (
         <div className="bg-[#181410] border border-[#3d3023] rounded-xl p-4 space-y-3">
           <h3 className="font-serif-co text-lg font-bold text-[#f3d48d]">Voies &amp; Capacités</h3>
           <p className="text-xs text-[#9e907d]">Catalogue complet des voies de profils et de leurs rangs.</p>
+          <div className="space-y-3">
+            {Object.entries(VOIES_CATALOG).map(([key, voie]: [string, any], idx) => (
+              <div key={idx} className="p-3 bg-[#231c15] border border-[#3d3023] rounded-lg space-y-1">
+                <b className="text-[#f3d48d] text-sm">{voie.n || key}</b>
+                <p className="text-xs text-[#9e907d]">{voie.desc || 'Voie de profil'}</p>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
+      {/* ==================== 12. GRIMOIRE DRS ==================== */}
       {activeTab === 'grimoire' && (
         <div className="bg-[#181410] border border-[#3d3023] rounded-xl p-4 space-y-3">
           <h3 className="font-serif-co text-lg font-bold text-[#f3d48d]">Grimoire DRS (Sorts)</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-            {SORTS_CATALOG.slice(0, 20).map((s, i) => (
+            {SORTS_CATALOG.map((s, i) => (
               <div key={i} className="p-2.5 bg-[#231c15] border border-[#3d3023] rounded-lg text-xs space-y-0.5">
                 <b className="text-[#f3d48d]">{s.n}</b>
                 <p className="text-[#9e907d]">{s.portee} • {s.duree}</p>
