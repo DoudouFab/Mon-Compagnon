@@ -588,6 +588,22 @@ export default function App() {
     });
   }, [currentPj, appMode]);
 
+  // Connexion automatique à la table mémorisée ou reçue par lien (?table=CODE) : sans ça, personne n'est connecté
+  useEffect(() => {
+    if (liveRoomCode && !realtimeTable.room) {
+      realtimeTable.connect(liveRoomCode, appMode, currentPj);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Joueur : publier sa fiche dès que la connexion est établie, et quand le héros actif change
+  useEffect(() => {
+    if (appMode === 'pj' && liveStatus === 'connected' && currentPj) {
+      realtimeTable.updateHero(currentPj);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [appMode, liveStatus, currentPj?.id]);
+
   // Persist live room code and auto-connect if URL parameter provided
   useEffect(() => {
     try {
