@@ -911,6 +911,313 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
           </div>
         </div>
       )}
+
+      {/* ==================== 2. GROUPE & PNJ ==================== */}
+      {activeTab === 'groupe' && (
+        <div className="space-y-4">
+          <div className="bg-[#181410] border border-[#3d3023] rounded-xl p-4 space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h3 className="font-serif-co text-lg font-bold text-[#f3d48d]">
+                  Gestion du Groupe de Personnages (PJ &amp; PNJ)
+                </h3>
+                <span className="text-xs text-[#9e907d]">
+                  Membres enregistrés : <b className="text-[#ede3d1]">{tableData.pjs.length}</b>
+                </span>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  onClick={addAllPjToCombat}
+                  className="px-3 py-1.5 bg-[#d4a84a] hover:bg-[#e0b555] text-black text-xs font-bold rounded-lg flex items-center gap-1.5 shadow-xs"
+                >
+                  <Swords className="w-3.5 h-3.5" /> Envoyer TOUT au combat
+                </button>
+                <button
+                  onClick={() => setIsPnjCreatorOpen(true)}
+                  className="px-3 py-1.5 bg-[#231c15] hover:bg-[#32271d] border border-[#3d3023] text-xs font-semibold text-[#f3d48d] rounded-lg flex items-center gap-1.5"
+                >
+                  <Plus className="w-3.5 h-3.5" /> Créer PJ / PNJ
+                </button>
+                <label className="px-3 py-1.5 bg-[#231c15] hover:bg-[#32271d] border border-[#3d3023] text-xs font-semibold text-[#ede3d1] rounded-lg flex items-center gap-1.5 cursor-pointer">
+                  <FileUp className="w-3.5 h-3.5 text-[#d4a84a]" /> Importer Fiches (.json)
+                  <input
+                    type="file"
+                    accept=".json"
+                    multiple
+                    className="hidden"
+                    onChange={(e) => handleImportPjFiles(e.target.files)}
+                  />
+                </label>
+              </div>
+            </div>
+          </div>
+
+          {/* Liste des PJ du groupe */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {tableData.pjs.map((pj, idx) => {
+              const hpMax = pj.hpMaxManual || pj.hpMaxAuto || pj.hpBase || 10;
+              return (
+                <div key={pj.id || idx} className="bg-[#181410] border border-[#3d3023] rounded-xl p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="font-serif-co text-base font-bold text-[#f3d48d]">{pj.name}</h4>
+                      <span className="text-xs text-[#9e907d]">
+                        {pj.profil} Niv. {pj.level} • {pj.race}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => sendPjToCombat(pj)}
+                        className="px-2.5 py-1 bg-[#231c15] hover:bg-[#32271d] border border-[#3d3023] text-xs text-[#f3d48d] rounded-lg flex items-center gap-1"
+                        title="Envoyer ce PJ dans l'arène de combat"
+                      >
+                        <Swords className="w-3 h-3" /> Combat
+                      </button>
+                      <button
+                        onClick={() => setSelectedCharacterModal(pj)}
+                        className="px-2.5 py-1 bg-[#231c15] hover:bg-[#32271d] border border-[#3d3023] text-xs text-[#ede3d1] rounded-lg"
+                      >
+                        Fiche
+                      </button>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between text-xs text-[#9e907d] pt-2 border-t border-[#30251a]">
+                    <span>PV : <b className="text-[#ede3d1]">{pj.hp} / {hpMax}</b></span>
+                    <span>DEF : <b className="text-[#ede3d1]">{10 + getMod((pj.base.DEX || 10) + (pj.rb.DEX || 0))}</b></span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {tableData.pjs.length === 0 && (
+            <div className="text-center py-8 text-[#9e907d] text-xs bg-[#181410] border border-[#3d3023] rounded-xl">
+              Aucun personnage dans le groupe pour l'instant. Utilisez le bouton "Créer PJ / PNJ" ou demandez à vos joueurs de se connecter via la table en direct.
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ==================== 3. BESTIAIRE DRS ==================== */}
+      {activeTab === 'bestiaire' && (
+        <div className="space-y-4">
+          <div className="bg-[#181410] border border-[#3d3023] rounded-xl p-4 space-y-3">
+            <h3 className="font-serif-co text-lg font-bold text-[#f3d48d]">Bestiaire Officiel DRS (53 Monstres)</h3>
+            <p className="text-xs text-[#9e907d]">Cliquez sur un monstre pour l'ajouter directement à la piste de combat en cours.</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {BESTIAIRE.map((m, idx) => (
+              <div key={idx} className="bg-[#181410] border border-[#3d3023] rounded-xl p-3.5 space-y-2 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-serif-co font-bold text-sm text-[#ede3d1]">{m.n}</h4>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#381616] text-[#ff9d9d] border border-[#6d2525]">
+                      NC {m.nc}
+                    </span>
+                  </div>
+                  <p className="text-xs text-[#9e907d] mt-1">PV: {m.pv} • DEF: {m.def} • Init: {m.init}</p>
+                </div>
+                <button
+                  onClick={() => addMonsterToCombat(m)}
+                  className="w-full mt-2 py-1.5 bg-[#231c15] hover:bg-[#32271d] border border-[#3d3023] text-xs font-semibold text-[#f3d48d] rounded-lg flex items-center justify-center gap-1.5"
+                >
+                  <Swords className="w-3.5 h-3.5" /> Ajouter au combat
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ==================== 4. TERRES D'OSGILD ==================== */}
+      {activeTab === 'osgild' && (
+        <OsgildLoreMj />
+      )}
+
+      {/* ==================== 5. CODEX THARNEA ==================== */}
+      {activeTab === 'tharnea' && isTharneaActive && (
+        <div className="space-y-4">
+          <div className="bg-gradient-to-r from-[#22152f] to-[#160d21] border border-[#6b21a8]/60 rounded-xl p-4 space-y-2">
+            <h3 className="font-serif-co text-lg font-bold text-[#f7e6ff]">Codex Tharnéa (Extension)</h3>
+            <p className="text-xs text-[#d8b4fe]">Monstres exclusifs, artéfacts magiques et règles optionnelles de l'univers de Tharnéa.</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {THARNEA_MONSTERS.map((m, idx) => (
+              <div key={idx} className="bg-[#181410] border border-[#6b21a8]/40 rounded-xl p-3.5 space-y-2 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-serif-co font-bold text-sm text-[#f7e6ff]">{m.n}</h4>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#3b1754] text-[#e9d5ff]">
+                      NC {m.nc}
+                    </span>
+                  </div>
+                  <p className="text-xs text-[#a855f7] mt-1">PV: {m.pv} • DEF: {m.def} • Init: {m.init}</p>
+                </div>
+                <button
+                  onClick={() => addMonsterToCombat(m)}
+                  className="w-full mt-2 py-1.5 bg-[#2a1b3d] hover:bg-[#382452] border border-[#6b21a8]/50 text-xs font-semibold text-[#f7e6ff] rounded-lg flex items-center justify-center gap-1.5"
+                >
+                  <Swords className="w-3.5 h-3.5 text-[#c084fc]" /> Ajouter au combat
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ==================== 6. TABLE DE BUTIN ==================== */}
+      {activeTab === 'loot' && (
+        <div className="space-y-4">
+          <div className="bg-[#181410] border border-[#3d3023] rounded-xl p-4 space-y-3">
+            <h3 className="font-serif-co text-lg font-bold text-[#f3d48d]">Table de Butin Aléatoire 🎲</h3>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleRollRandomLoot}
+                className="px-4 py-2 bg-[#d4a84a] hover:bg-[#e0b555] text-black text-xs font-bold rounded-lg flex items-center gap-2 shadow-sm"
+              >
+                <Dices className="w-4 h-4" /> Tirer un Butin Aléatoire
+              </button>
+            </div>
+          </div>
+
+          {rolledLoot && (
+            <div className="bg-[#231c15] border border-[#d4a84a]/50 rounded-xl p-4 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-[#d4a84a] font-bold uppercase">Résultat du tirage</span>
+                <span className="text-xs text-[#9e907d]">{rolledLoot.date}</span>
+              </div>
+              <h4 className="font-serif-co text-base font-bold text-[#f3d48d]">{rolledLoot.item.n}</h4>
+              <p className="text-xs text-[#ede3d1]">{rolledLoot.item.desc || rolledLoot.item.props || 'Aucune description'}</p>
+              
+              {tableData.pjs.length > 0 && (
+                <div className="flex items-center gap-2 pt-2 border-t border-[#3d3023]">
+                  <select
+                    value={targetPjForLoot}
+                    onChange={(e) => setTargetPjForLoot(e.target.value)}
+                    className="px-3 py-1.5 bg-[#181410] border border-[#3d3023] rounded-lg text-xs text-[#ede3d1] outline-none"
+                  >
+                    <option value="">Sélectionner un PJ destinataire...</option>
+                    {tableData.pjs.map((p, i) => (
+                      <option key={p.id || i} value={p.id || p.name}>{p.name}</option>
+                    ))}
+                  </select>
+                  <button
+                    onClick={() => handleGiveLootToPj(rolledLoot.item)}
+                    className="px-3 py-1.5 bg-[#9c2a2b] hover:bg-[#b83233] text-white text-xs font-bold rounded-lg"
+                  >
+                    Donner au PJ
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ==================== 7. AUTRES ONGLETS (Équipements, Règles, etc.) ==================== */}
+      {activeTab === 'equipements' && (
+        <div className="bg-[#181410] border border-[#3d3023] rounded-xl p-4 space-y-3">
+          <h3 className="font-serif-co text-lg font-bold text-[#f3d48d]">Catalogue des Équipements</h3>
+          <p className="text-xs text-[#9e907d]">Retrouvez ici toutes les armes, armures et objets d'aventure officiels.</p>
+          <div className="space-y-2">
+            {EQUIPEMENTS.map((eq, i) => (
+              <div key={i} className="p-3 bg-[#231c15] border border-[#3d3023] rounded-lg flex items-center justify-between text-xs">
+                <div>
+                  <b className="text-[#ede3d1]">{eq.n}</b>
+                  <span className="text-[#9e907d] ml-2">({eq.cat})</span>
+                </div>
+                <span className="text-[#d4a84a] font-mono">{eq.pc ? `${eq.pc} pc` : 'Standard'}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'regles' && (
+        <div className="bg-[#181410] border border-[#3d3023] rounded-xl p-4 space-y-3">
+          <h3 className="font-serif-co text-lg font-bold text-[#f3d48d]">Règles Officielles &amp; États Préjudiciables</h3>
+          <div className="space-y-3">
+            {ETATS.map((et, i) => (
+              <div key={i} className="p-3 bg-[#231c15] border border-[#3d3023] rounded-lg space-y-1">
+                <b className="text-[#f3d48d] text-sm">{et.n}</b>
+                <p className="text-xs text-[#ede3d1]">{et.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'races' && (
+        <div className="bg-[#181410] border border-[#3d3023] rounded-xl p-4 space-y-3">
+          <h3 className="font-serif-co text-lg font-bold text-[#f3d48d]">Races Jouables</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {RACES.map((r, i) => (
+              <div key={i} className="p-3 bg-[#231c15] border border-[#3d3023] rounded-lg space-y-1">
+                <b className="text-[#ede3d1]">{r.n}</b>
+                <p className="text-xs text-[#9e907d]">{r.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'profils' && (
+        <div className="bg-[#181410] border border-[#3d3023] rounded-xl p-4 space-y-3">
+          <h3 className="font-serif-co text-lg font-bold text-[#f3d48d]">Profils de Personnages</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {PROFILS.map((p, i) => (
+              <div key={i} className="p-3 bg-[#231c15] border border-[#3d3023] rounded-lg space-y-1">
+                <b className="text-[#ede3d1]">{p.n}</b>
+                <p className="text-xs text-[#9e907d]">{p.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'voies' && (
+        <div className="bg-[#181410] border border-[#3d3023] rounded-xl p-4 space-y-3">
+          <h3 className="font-serif-co text-lg font-bold text-[#f3d48d]">Voies &amp; Capacités</h3>
+          <p className="text-xs text-[#9e907d]">Catalogue complet des voies de profils et de leurs rangs.</p>
+        </div>
+      )}
+
+      {activeTab === 'grimoire' && (
+        <div className="bg-[#181410] border border-[#3d3023] rounded-xl p-4 space-y-3">
+          <h3 className="font-serif-co text-lg font-bold text-[#f3d48d]">Grimoire DRS (Sorts)</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+            {SORTS_CATALOG.slice(0, 20).map((s, i) => (
+              <div key={i} className="p-2.5 bg-[#231c15] border border-[#3d3023] rounded-lg text-xs space-y-0.5">
+                <b className="text-[#f3d48d]">{s.n}</b>
+                <p className="text-[#9e907d]">{s.portee} • {s.duree}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Modales annexes */}
+      {isPnjCreatorOpen && (
+        <PnjCreatorModal
+          onClose={() => setIsPnjCreatorOpen(false)}
+          onSave={handleSavePnj}
+        />
+      )}
+
+      {selectedCharacterModal && (
+        <CharacterSheetModal
+          character={selectedCharacterModal}
+          onClose={() => setSelectedCharacterModal(null)}
+          onUpdate={(updated) => {
+            const nextPjs = tableData.pjs.map((p) => p.id === updated.id ? updated : p);
+            onUpdateTableData({ ...tableData, pjs: nextPjs });
+            setSelectedCharacterModal(null);
+          }}
+        />
+      )}
     </div>
   );
 };
