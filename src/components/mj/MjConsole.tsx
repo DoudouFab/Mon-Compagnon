@@ -175,11 +175,22 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
   // Joueurs actuellement en ligne (dernier instantané reçu) + compteur de diagnostic
   const [onlineHeroes, setOnlineHeroes] = useState<Character[]>([]);
   const [rtStats, setRtStats] = useState<{ events: number; last: string }>({ events: 0, last: '' });
+  // Ajout automatique des nouveaux joueurs à la table (activé par défaut, mémorisé)
+  const [autoAddPlayers, setAutoAddPlayers] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('co_mj_auto_add_players') !== '0';
+    } catch {
+      return true;
+    }
+  });
+  const autoAddRef = React.useRef(autoAddPlayers);
+  autoAddRef.current = autoAddPlayers;
 
   React.useEffect(() => {
     let disposed = false;
     realtimeTable.setCallbacks({
       onHeroesChanged: (heroesMap: any) => {
+        console.info('[MJ] onHeroesChanged reçu', heroesMap);
         if (disposed) return;
         const values: any[] = !heroesMap
           ? []
@@ -203,8 +214,14 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
               (!!hero.id && p.id === hero.id) ||
               (p.name || '').toLowerCase() === hero.name.toLowerCase()
           );
-          // Nouveau joueur : il apparaît dans « Joueurs en ligne » et c'est le MJ qui l'ajoute à sa table.
-          if (idx === -1) return;
+          // Nouveau joueur : ajouté d'office si l'option est active, sinon proposé dans « Joueurs en ligne ».
+          if (idx === -1) {
+            if (autoAddRef.current) {
+              pjs.push(hero);
+              changed = true;
+            }
+            return;
+          }
           // Fusion : la fiche distante complète/met à jour la locale, les champs propres au MJ sont conservés.
           const merged = { ...pjs[idx], ...hero };
           // Identique à la version locale : on n'écrase rien et on ne déclenche aucune mise à jour.
@@ -220,6 +237,7 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
         onUpdateTableDataRef.current(next);
       },
     });
+    console.info('[MJ] écouteur onHeroesChanged enregistré');
     return () => {
       disposed = true;
     };
@@ -235,6 +253,32 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
     if (!toAdd.length) return;
     onUpdateTableData({ ...tableData, pjs: [...tableData.pjs, ...toAdd] });
   };
+
+  // Diagnostic technique du service temps réel (hors clés/jetons) pour comprendre pourquoi rien n'arrive
+  const rtDiag = (() => {
+    try {
+      const o: any = realtimeTable;
+      const methods = Object.getOwnPropertyNames(Object.getPrototypeOf(o) || {}).filter((k) => k !== 'constructor');
+      const fields: Record<string, any> = {};
+      Object.keys(o).forEach((k) => {
+        if (/key|token|secret|password/i.test(k)) return;
+        const v = o[k];
+        fields[k] =
+          typeof v === 'function'
+            ? 'fonction'
+            : Array.isArray(v)
+            ? `tableau(${v.length})`
+            : v instanceof Map
+            ? `Map(${v.size})`
+            : v && typeof v === 'object'
+            ? 'objet'
+            : v;
+      });
+      return JSON.stringify({ methods, fields }, null, 2);
+    } catch (e: any) {
+      return 'Diagnostic indisponible : ' + e.message;
+    }
+  })();
 
   // Master Loot Items Catalog (Officiel DRS + Codex Tharnéa + Bonbons Alchimiques)
   const masterLootCatalog: (Equipment & { lootIndex: number; lootCategoryGroup: 'armes' | 'armures' | 'biens' | 'tharnea' | 'bonbons' })[] = React.useMemo(() => {
@@ -1051,6 +1095,24 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                 )}
               </div>
             </div>
+            <label className="flex items-center gap-2 text-xs text-[#cbb8a7] cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={autoAddPlayers}
+                onChange={(e) => {
+                  setAutoAddPlayers(e.target.checked);
+                  try {
+                    localStorage.setItem('co_mj_auto_add_players', e.target.checked ? '1' : '0');
+                  } catch {}
+                }}
+                className="w-3.5 h-3.5 accent-[#d4a84a]"
+              />
+              Ajouter automatiquement à la table les joueurs qui se connectent
+            </label>
+            <details className="text-[11px] text-[#9e907d]">
+              <summary className="cursor-pointer hover:text-[#ede3d1]">Diagnostic technique (à me copier si rien n'arrive)</summary>
+              <pre className="mt-2 p-2 bg-[#0d0a08] border border-[#3d3023] rounded overflow-x-auto text-[#7db5ff]">{rtDiag}</pre>
+            </details>
             {onlineHeroes.length === 0 ? (
               <p className="text-xs text-[#9e907d]">
                 Aucun joueur connecté pour l'instant. Les héros apparaissent ici dès qu'un joueur ouvre ou modifie sa fiche.
