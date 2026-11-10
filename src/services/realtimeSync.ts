@@ -13,7 +13,7 @@ export interface TableLiveEventCallbacks {
   onPeerJoined?: (clientName: string, role: string, hero?: Character) => void;
   onPeerLeft?: (clientName: string, role: string) => void;
   onRoomState?: (state: any) => void;
-  onHeroesChanged?: (heroesMap: Record<string, Character>) => void; // Ajouté pour notifier l'UI des héros
+  onHeroesChanged?: (heroesMap: Record<string, Character>) => void;
 }
 
 // Configuration Firebase intégrée avec vos identifiants
