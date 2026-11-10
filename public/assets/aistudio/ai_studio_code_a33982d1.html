@@ -1,0 +1,971 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Chroniques Oubliées – Console MJ Pro (Filtres & Recherche)</title>
+<style>
+:root{
+  --bg:#0f0d0b;--p:#181410;--p2:#231c15;--p3:#2d241c;--ln:#3d3023;
+  --gold:#d4a84a;--gold2:#f3d48d;--red:#9c2a2b;--tx:#ede3d1;--mu:#9e907d;
+  --ok:#6fa85b;--ko:#cf5544;--accent:#c97d32;--sp:#7c5ebb;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--tx);line-height:1.5;padding-bottom:92px;font-size:14px}
+h1,h2,h3,h4{font-family:Georgia,serif;font-weight:700}
+header{background:linear-gradient(180deg,#341512,var(--bg));border-bottom:1px solid var(--ln);padding:10px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:30}
+header h1{color:var(--gold);font-size:1.15rem;letter-spacing:.12em;text-transform:uppercase}
+main{max-width:1200px;margin:0 auto;padding:12px}
+
+/* NAVIGATION DÉFILANTE */
+nav#nav{position:fixed;left:0;right:0;bottom:0;background:#130f0c;border-top:1px solid var(--ln);display:flex;overflow-x:auto;padding:6px 4px calc(6px + env(safe-area-inset-bottom));z-index:40;gap:4px}
+nav#nav button{flex:0 0 auto;min-width:76px;background:none;border:0;color:var(--mu);font-size:.7rem;font-weight:600;padding:5px 6px;border-radius:8px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px}
+nav#nav button span{font-size:1.2rem;line-height:1}
+nav#nav button.on{color:var(--gold);background:rgba(212,168,74,.18)}
+
+.card{background:var(--p);border:1px solid var(--ln);border-radius:12px;padding:14px;margin-bottom:12px}
+.card h3{color:var(--gold);font-size:1rem;margin-bottom:8px}
+.mu{color:var(--mu);font-size:.82rem}.ok{color:var(--ok)}.ko{color:var(--ko)}
+.row{display:flex;gap:6px;flex-wrap:wrap;align-items:center}.sp{justify-content:space-between}
+button.b{background:var(--p2);color:var(--tx);border:1px solid var(--ln);border-radius:6px;padding:6px 11px;font-weight:600;font-size:.8rem;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:5px}
+button.b:hover{border-color:var(--gold)}button.gold{background:var(--gold);color:#1b1406;border-color:var(--gold)}button.red{background:var(--red);border-color:var(--red);color:#fff}button.sm{padding:3px 7px;font-size:.75rem}button.purple{background:#3a2954;border-color:#654a93;color:#dccbff}
+input,select,textarea{width:100%;padding:7px 9px;background:var(--p2);border:1px solid var(--ln);color:var(--tx);border-radius:6px;font-size:.88rem;margin:3px 0 6px;font-family:inherit}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--gold);outline-offset:-1px}
+label{font-size:.65rem;color:var(--mu);font-weight:700;text-transform:uppercase;letter-spacing:.05em;display:block}
+
+.g{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
+.opt{background:var(--p2);border:1px solid var(--ln);border-radius:8px;padding:10px;margin-bottom:6px}
+.tag{display:inline-block;padding:2px 5px;border-radius:4px;font-size:.68rem;font-weight:600;margin-right:4px}
+.tag-l{background:#632c2d;color:#ffb8b8}.tag-s{background:#2a4563;color:#b0d7ff}.tag-nc{background:#382b1b;color:#f3d48d}
+
+.hp-bar{height:8px;background:#0c0a08;border-radius:4px;overflow:hidden;border:1px solid var(--ln);margin:4px 0}
+.hp-bar div{height:100%;transition:width .2s}
+
+details summary{padding:8px;cursor:pointer;font:700 .92rem Georgia,serif;color:var(--gold);list-style:none}
+details summary::-webkit-details-marker{display:none}
+details summary::after{content:"▾";float:right;color:var(--mu)}
+details[open] summary::after{content:"▴"}
+
+.init-box{display:flex;align-items:center;gap:4px;background:#15100b;padding:3px 6px;border-radius:6px;border:1px solid var(--ln)}
+.init-val{width:45px;text-align:center;font-weight:700;color:var(--gold2);font-size:1rem;margin:0;padding:2px}
+table{width:100%;border-collapse:collapse;font-size:.82rem}
+td,th{border-bottom:1px solid var(--ln);padding:6px 5px;text-align:left;vertical-align:top}
+th{color:var(--gold);font-size:.68rem;text-transform:uppercase}
+.search-bar-box{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:6px}
+.search-bar-box input{flex:2;min-width:180px;margin:0}
+.search-bar-box select{flex:1;min-width:130px;margin:0}
+
+#drop-overlay{display:none;position:fixed;inset:0;background:rgba(20,15,10,.92);border:4px dashed var(--gold);z-index:99;align-items:center;justify-content:center;flex-direction:column;pointer-events:none}
+#drop-overlay.drag-on{display:flex}
+</style>
+</head>
+<body>
+
+<div id="drop-overlay">
+  <h2 style="color:var(--gold);font-size:1.8rem">📥 Déposez vos fichiers JSON ici</h2>
+  <p class="mu" style="font-size:1rem;margin-top:8px">L'application détecte et range automatiquement le Bestiaire, les Équipements, les Règles, etc.</p>
+</div>
+
+<header>
+  <div>
+    <h1>Console Maître du Jeu</h1>
+    <span class="mu" style="font-size:.7rem">Chroniques Oubliées – Hub de Recherche &amp; Table</span>
+  </div>
+  <div class="row">
+    <button class="b sm gold" onclick="document.getElementById('universal-file-input').click()">📥 Déposer des JSON (Auto-détection)</button>
+    <button class="b sm" onclick="saveMasterJSON()">💾 Sauvegarder Master</button>
+    <button class="b sm" onclick="document.getElementById('master-imp').click()">📂 Charger Master</button>
+    <input type="file" id="master-imp" hidden accept=".json" onchange="loadMasterJSON(event)">
+    <input type="file" id="universal-file-input" hidden multiple accept=".json" onchange="handleFiles(this.files)">
+  </div>
+</header>
+
+<main id="main"></main>
+<nav id="nav"></nav>
+
+<script>
+const LS = {
+  get: (k, def) => { try { const v = JSON.parse(localStorage.getItem(k)); return v ?? def; } catch(e){ return def; } },
+  set: (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch(e){ return false; } }
+};
+
+/* ==================== BASE DE DONNÉES GLOBALE DU DRS ==================== */
+let tableData = LS.get("co_mj_table", {
+  pjs: [],
+  combatants: [],
+  bestiaire: [],
+  equipements: [],
+  regles: [],
+  etats: [],
+  races: [],
+  profils: [],
+  voies: [],
+  sorts: []
+});
+
+let curTab = "combat";
+function saveState(){ LS.set("co_mj_table", tableData); }
+
+/* ==================== MOTEUR D'INGESTION UNIVERSEL ==================== */
+function ingestData(data, filename = ""){
+  let log = [];
+  if(!data) return log;
+
+  // 1. Fiche PJ
+  if(data.name && (data.base || data.profil || data.level !== undefined)){
+    const i = tableData.pjs.findIndex(p => p.name.toLowerCase() === data.name.toLowerCase());
+    if(i >= 0) tableData.pjs[i] = data; else tableData.pjs.push(data);
+    log.push(`PJ : ${data.name}`);
+    return log;
+  }
+
+  // 2. Tableaux
+  if(Array.isArray(data)){
+    if(!data.length) return log;
+    if(data[0].nc !== undefined){
+      tableData.bestiaire = data;
+      log.push(`${data.length} créatures (Bestiaire)`);
+    } else if(data[0].prix !== undefined){
+      tableData.equipements = data;
+      log.push(`${data.length} objets (Équipements)`);
+    } else if(data[0].voie !== undefined && data[0].rang !== undefined){
+      tableData.sorts = data;
+      log.push(`${data.length} sorts / capacités`);
+    } else if(data[0].mod !== undefined){
+      tableData.races = data;
+      log.push(`${data.length} races`);
+    } else if(data[0].dv !== undefined){
+      tableData.profils = data;
+      log.push(`${data.length} profils`);
+    }
+    return log;
+  }
+
+  // 3. Objets avec clés
+  if(typeof data === "object"){
+    if(Array.isArray(data.bestiaire)){ tableData.bestiaire = data.bestiaire; log.push(`${data.bestiaire.length} monstres`); }
+    if(Array.isArray(data.equipements || data.biens)){
+      const eq = data.equipements || data.biens;
+      tableData.equipements = eq; log.push(`${eq.length} équipements`);
+    }
+    if(Array.isArray(data.regles)){ tableData.regles = data.regles; log.push(`${data.regles.length} règles`); }
+    if(Array.isArray(data.etats)){ tableData.etats = data.etats; log.push(`${data.etats.length} états`); }
+    if(Array.isArray(data.races)){ tableData.races = data.races; log.push(`${data.races.length} races`); }
+    if(Array.isArray(data.profils)){ tableData.profils = data.profils; log.push(`${data.profils.length} profils`); }
+    if(Array.isArray(data.voies)){ tableData.voies = data.voies; log.push(`${data.voies.length} voies`); }
+    if(Array.isArray(data.sorts)){ tableData.sorts = data.sorts; log.push(`${data.sorts.length} sorts`); }
+    if(Array.isArray(data.pjs)){ tableData.pjs = data.pjs; log.push(`${data.pjs.length} PJ`); }
+    if(Array.isArray(data.combatants)){ tableData.combatants = data.combatants; }
+  }
+
+  return log;
+}
+
+function handleFiles(files){
+  if(!files || !files.length) return;
+  let totalLogs = [], pending = files.length;
+  Array.from(files).forEach(f => {
+    const reader = new FileReader();
+    reader.onload = ev => {
+      try {
+        const parsed = JSON.parse(ev.target.result);
+        const l = ingestData(parsed, f.name);
+        if(l.length) totalLogs.push(...l);
+      } catch(e){ console.error("Erreur JSON " + f.name, e); }
+      pending--;
+      if(pending === 0){
+        saveState();
+        switchTab(curTab);
+        if(totalLogs.length) alert("✅ Données enregistrées avec succès :\n• " + totalLogs.join("\n• "));
+        else alert("Fichier JSON non reconnu ou vide.");
+      }
+    };
+    reader.readAsText(f);
+  });
+}
+
+/* Glisser-déposer global */
+window.addEventListener("dragover", e => { e.preventDefault(); document.getElementById("drop-overlay").classList.add("drag-on"); });
+window.addEventListener("dragleave", e => { if(e.clientX <= 0 || e.clientY <= 0) document.getElementById("drop-overlay").classList.remove("drag-on"); });
+window.addEventListener("drop", e => {
+  e.preventDefault();
+  document.getElementById("drop-overlay").classList.remove("drag-on");
+  if(e.dataTransfer && e.dataTransfer.files.length) handleFiles(e.dataTransfer.files);
+});
+
+/* ==================== NAVIGATION ==================== */
+const TABS = [
+  ["combat", "Combat & Init", "⚔️"],
+  ["groupe", "Groupe PJ", "👥"],
+  ["bestiaire", "Bestiaire", "🐉"],
+  ["equipements", "Équipements", "💰"],
+  ["regles", "Règles", "📜"],
+  ["races", "Races", "🧝"],
+  ["profils", "Profils", "🛡️"],
+  ["voies", "Voies", "🌳"],
+  ["capacites", "Capacités", "⚡"],
+  ["grimoire", "Grimoire", "✨"]
+];
+
+function renderNav(){
+  document.getElementById("nav").innerHTML = TABS.map(([k,l,i]) => `
+    <button class="${k === curTab ? "on" : ""}" onclick="switchTab('${k}')">
+      <span>${i}</span>${l}
+    </button>
+  `).join("");
+}
+
+function switchTab(t){
+  curTab = t; renderNav();
+  const m = document.getElementById("main");
+  if(t === "combat") { m.innerHTML = viewCombat(); filterCombat(); }
+  else if(t === "groupe") { m.innerHTML = viewGroupe(); filterGroupe(); }
+  else if(t === "bestiaire") { m.innerHTML = viewBestiaire(); filterBestiaire(); }
+  else if(t === "equipements") { m.innerHTML = viewEquipements(); filterEquipements(); }
+  else if(t === "regles") { m.innerHTML = viewRegles(); filterRegles(); }
+  else if(t === "races") { m.innerHTML = viewRaces(); filterRaces(); }
+  else if(t === "profils") { m.innerHTML = viewProfils(); filterProfils(); }
+  else if(t === "voies") { m.innerHTML = viewVoies(); filterVoies(); }
+  else if(t === "capacites") { m.innerHTML = viewCapacites(); filterCapacites(); }
+  else if(t === "grimoire") { m.innerHTML = viewGrimoire(); filterGrimoire(); }
+  window.scrollTo(0,0);
+}
+
+/* ==================== 1. COMBAT & INIT ==================== */
+function viewCombat(){
+  return `
+    <div class="card">
+      <div class="row sp">
+        <div>
+          <h3 style="margin:0">Piste de Combat &amp; Initiatives</h3>
+          <span class="mu">Total engagés : <b id="cmb-count">${tableData.combatants.length}</b></span>
+        </div>
+        <div class="row">
+          <button class="b sm gold" onclick="rollAllInit()">🎲 Lancer TOUT (d20+Base)</button>
+          <button class="b sm purple" onclick="rollMonstersInit()">🎲 Lancer Monstres</button>
+          <button class="b sm" onclick="sortCombatants()">⚡ Trier</button>
+          <button class="b sm red" onclick="clearCombat()">✕ Vider</button>
+        </div>
+      </div>
+      <div class="search-bar-box">
+        <input id="cmb-q" placeholder="Filtrer combattant par nom ou note..." oninput="filterCombat()">
+        <select id="cmb-filter" onchange="filterCombat()">
+          <option value="">Tous les combattants</option>
+          <option value="pj">PJ uniquement</option>
+          <option value="monstre">Monstres uniquement</option>
+          <option value="alive">En vie (> 0 PV)</option>
+          <option value="ko">Inconscients / Morts (0 PV)</option>
+        </select>
+        <button class="b sm" onclick="document.getElementById('cmb-q').value='';document.getElementById('cmb-filter').value='';filterCombat()">Effacer</button>
+      </div>
+    </div>
+    <div id="cmb-list"></div>
+  `;
+}
+
+function filterCombat(){
+  const q = (document.getElementById("cmb-q")?.value || "").toLowerCase();
+  const f = document.getElementById("cmb-filter")?.value || "";
+  const target = document.getElementById("cmb-list");
+  if(!target) return;
+
+  const filtered = tableData.combatants.filter((c, i) => {
+    const matchQ = (c.n + (c.notes || "")).toLowerCase().includes(q);
+    let matchF = true;
+    if(f === "pj") matchF = !!c.isPj;
+    else if(f === "monstre") matchF = !c.isPj;
+    else if(f === "alive") matchF = c.hp > 0;
+    else if(f === "ko") matchF = c.hp <= 0;
+    c._origIdx = i;
+    return matchQ && matchF;
+  });
+
+  const countEl = document.getElementById("cmb-count");
+  if(countEl) countEl.textContent = `${filtered.length} / ${tableData.combatants.length}`;
+
+  target.innerHTML = filtered.map(c => {
+    const i = c._origIdx;
+    const pct = Math.max(0, Math.min(100, Math.round(100 * c.hp / Math.max(1, c.hpMax))));
+    const barCol = pct > 50 ? "var(--ok)" : pct > 25 ? "var(--accent)" : "var(--ko)";
+    return `
+      <div class="opt" style="border-left:5px solid ${c.isPj ? "var(--gold)" : "var(--red)"}">
+        <div class="row sp">
+          <div>
+            <b style="font-size:1.05rem;color:${c.isPj ? "var(--gold2)" : "#ff9d9d"}">${escapeHTML(c.n)}</b>
+            <span class="mu">(${c.isPj ? "PJ" : "Monstre"}) • DEF : <b>${c.def}</b></span>
+          </div>
+          <div class="init-box">
+            <label style="margin:0;font-size:.65rem">Init :</label>
+            <input type="number" class="init-val" value="${c.init}" onchange="tableData.combatants[${i}].init=+this.value||0;saveState()">
+            <button class="b sm" onclick="rollOneInit(${i})">🎲 Jet</button>
+            ${c.lastRoll !== undefined ? `<span class="mu" style="font-size:.7rem">(d20:${c.lastRoll})</span>` : ""}
+          </div>
+        </div>
+        <div style="margin:6px 0">
+          <div class="row sp">
+            <span>PV : <b>${c.hp} / ${c.hpMax}</b></span>
+            <div class="row">
+              <button class="b sm" onclick="alterCombatHp(${i},-5)">-5</button>
+              <button class="b sm" onclick="alterCombatHp(${i},-1)">-1</button>
+              <input type="number" value="${c.hp}" style="width:50px;text-align:center;padding:1px;margin:0;font-weight:700" onchange="setCombatHpDirect(${i}, this.value)">
+              <button class="b sm" onclick="alterCombatHp(${i},+1)">+1</button>
+              <button class="b sm" onclick="alterCombatHp(${i},+5)">+5</button>
+              <button class="b sm red" onclick="tableData.combatants.splice(${i},1);saveState();switchTab('combat')">✕</button>
+            </div>
+          </div>
+          <div class="hp-bar"><div style="width:${pct}%;background:${barCol}"></div></div>
+        </div>
+        ${c.notes ? `<div class="mu" style="font-size:.75rem">${escapeHTML(c.notes)}</div>` : ""}
+      </div>
+    `;
+  }).join("") || `<p class="mu card" style="text-align:center">Aucun combattant ne correspond aux filtres.</p>`;
+}
+
+function rollOneInit(i){
+  const c = tableData.combatants[i], d20 = 1 + Math.floor(Math.random() * 20);
+  c.lastRoll = d20; c.init = d20 + (c.baseInit || 10);
+  saveState(); filterCombat();
+}
+function rollAllInit(){
+  tableData.combatants.forEach(c => { const d = 1 + Math.floor(Math.random()*20); c.lastRoll = d; c.init = d + (c.baseInit || 10); });
+  sortCombatants();
+}
+function rollMonstersInit(){
+  tableData.combatants.forEach(c => { if(!c.isPj){ const d = 1 + Math.floor(Math.random()*20); c.lastRoll = d; c.init = d + (c.baseInit || 10); } });
+  sortCombatants();
+}
+function sortCombatants(){ tableData.combatants.sort((a,b) => b.init - a.init); saveState(); switchTab("combat"); }
+function clearCombat(){ if(confirm("Vider la piste de combat ?")){ tableData.combatants = []; saveState(); switchTab("combat"); } }
+function alterCombatHp(i, d){ const c = tableData.combatants[i]; c.hp = Math.max(0, Math.min(c.hpMax, c.hp + d)); saveState(); filterCombat(); }
+function setCombatHpDirect(i, v){ const c = tableData.combatants[i]; c.hp = Math.max(0, Math.min(c.hpMax, parseInt(v)||0)); saveState(); filterCombat(); }
+
+/* ==================== 2. GROUPE PJ ==================== */
+function viewGroupe(){
+  return `
+    <div class="card">
+      <div class="row sp">
+        <div>
+          <h3 style="margin:0">Groupe d'Aventuriers</h3>
+          <span class="mu">PJ enregistrés : <b id="pj-count">${tableData.pjs.length}</b></span>
+        </div>
+        <div class="row">
+          <button class="b sm gold" onclick="document.getElementById('pj-files').click()">➕ Importer PJ (JSON)</button>
+          <button class="b sm" onclick="addAllPjToCombat()">⚔️ Envoyer TOUS en combat</button>
+          <input type="file" id="pj-files" hidden multiple accept=".json" onchange="handleFiles(this.files)">
+        </div>
+      </div>
+      <div class="search-bar-box">
+        <input id="pj-q" placeholder="Rechercher nom de héros, joueur, roleplay..." oninput="filterGroupe()">
+        <select id="pj-prof" onchange="filterGroupe()">
+          <option value="">Tous profils</option>
+          ${[...new Set(tableData.pjs.map(p => p.profil).filter(Boolean))].map(pr => `<option value="${escapeHTML(pr)}">${escapeHTML(pr)}</option>`).join("")}
+        </select>
+        <select id="pj-race" onchange="filterGroupe()">
+          <option value="">Toutes races</option>
+          ${[...new Set(tableData.pjs.map(p => p.race).filter(Boolean))].map(rc => `<option value="${escapeHTML(rc)}">${escapeHTML(rc)}</option>`).join("")}
+        </select>
+        <button class="b sm" onclick="document.getElementById('pj-q').value='';document.getElementById('pj-prof').value='';document.getElementById('pj-race').value='';filterGroupe()">Effacer</button>
+      </div>
+    </div>
+    <div class="g" id="pj-grid"></div>
+  `;
+}
+
+function filterGroupe(){
+  const q = (document.getElementById("pj-q")?.value || "").toLowerCase();
+  const prof = document.getElementById("pj-prof")?.value || "";
+  const race = document.getElementById("pj-race")?.value || "";
+  const target = document.getElementById("pj-grid");
+  if(!target) return;
+
+  const filtered = tableData.pjs.filter((pj, i) => {
+    const str = (pj.name + (pj.player || "") + (pj.persoTraits || "")).toLowerCase();
+    const matchQ = str.includes(q);
+    const matchP = !prof || pj.profil === prof;
+    const matchR = !race || pj.race === race;
+    pj._origIdx = i;
+    return matchQ && matchP && matchR;
+  });
+
+  const countEl = document.getElementById("pj-count");
+  if(countEl) countEl.textContent = `${filtered.length} / ${tableData.pjs.length}`;
+
+  target.innerHTML = filtered.map(pj => {
+    const idx = pj._origIdx;
+    return `
+      <div class="card">
+        <div class="row sp">
+          <div>
+            <b style="font-size:1.1rem;color:var(--gold2)">${escapeHTML(pj.name)}</b>
+            <div class="mu" style="font-size:.75rem">Joueur : <b>${escapeHTML(pj.player || "Anonyme")}</b> • ${escapeHTML(pj.race)} • ${escapeHTML(pj.profil)} Niv. ${pj.level}</div>
+          </div>
+          <button class="b sm red" onclick="tableData.pjs.splice(${idx},1);saveState();switchTab('groupe')">✕</button>
+        </div>
+        <div style="margin:6px 0">PV : <b>${pj.hp} / ${(pj.hpMaxManual || pj.hpBase || 10)}</b></div>
+        ${pj.persoTraits ? `<div class="mu" style="font-size:.75rem;margin-bottom:6px"><b>Roleplay :</b> ${escapeHTML(pj.persoTraits)}</div>` : ""}
+        <button class="b sm gold" style="width:100%" onclick="sendPjToCombat(${idx})">⚔️ Envoyer au Combat</button>
+      </div>
+    `;
+  }).join("") || `<p class="mu card">Aucun personnage ne correspond aux filtres.</p>`;
+}
+
+function sendPjToCombat(idx){
+  const p = tableData.pjs[idx];
+  tableData.combatants.push({ n: p.name, isPj: true, hp: p.hp, hpMax: (p.hpMaxManual || p.hpBase || 10), def: 12, baseInit: 10, init: 10, notes: "" });
+  saveState(); alert(`${p.name} rejoint le combat !`);
+}
+function addAllPjToCombat(){ tableData.pjs.forEach((p, idx) => sendPjToCombat(idx)); switchTab("combat"); }
+
+/* ==================== 3. BESTIAIRE ==================== */
+function viewBestiaire(){
+  return `
+    <div class="card">
+      <div class="row sp">
+        <div>
+          <h3 style="margin:0">Bestiaire du Meneur</h3>
+          <span class="mu">Créatures : <b id="best-count">${tableData.bestiaire.length}</b></span>
+        </div>
+        <div class="row">
+          <button class="b sm gold" onclick="document.getElementById('best-import-btn').click()">📥 Importer Bestiaire (JSON)</button>
+          <input type="file" id="best-import-btn" hidden accept=".json" onchange="handleFiles(this.files)">
+        </div>
+      </div>
+      <div class="search-bar-box">
+        <input id="best-q" placeholder="Rechercher nom, attaque, capacité..." oninput="filterBestiaire()">
+        <select id="best-nc" onchange="filterBestiaire()">
+          <option value="">Tous les NC</option>
+          <option value="0">NC 0</option><option value="1/2">NC 1/2</option><option value="1">NC 1</option>
+          <option value="2">NC 2</option><option value="3">NC 3</option><option value="4">NC 4</option>
+          <option value="5">NC 5</option><option value="6">NC 6</option><option value="7">NC 7</option>
+          <option value="8">NC 8</option><option value="9">NC 9</option><option value="10">NC 10+</option>
+        </select>
+        <select id="best-fam" onchange="filterBestiaire()">
+          <option value="">Toutes Familles</option>
+          <option value="Humanoïdes">Humanoïdes</option><option value="Bêtes">Bêtes</option>
+          <option value="Morts-vivants">Morts-vivants</option><option value="Géants">Géants</option>
+          <option value="Créatures magiques">Créatures magiques</option><option value="Dragons">Dragons</option><option value="Élémentaires">Élémentaires</option><option value="Démons">Démons</option>
+        </select>
+        <button class="b sm" onclick="document.getElementById('best-q').value='';document.getElementById('best-nc').value='';document.getElementById('best-fam').value='';filterBestiaire()">Effacer</button>
+      </div>
+    </div>
+    <div id="best-list"></div>
+  `;
+}
+
+function filterBestiaire(){
+  const q = (document.getElementById("best-q")?.value || "").toLowerCase();
+  const nc = document.getElementById("best-nc")?.value || "";
+  const fam = document.getElementById("best-fam")?.value || "";
+  const target = document.getElementById("best-list");
+  if(!target) return;
+
+  const filtered = tableData.bestiaire.filter(m => {
+    const mStr = (m.n + m.att + m.traits + (m.fam||"")).toLowerCase();
+    const matchQ = mStr.includes(q);
+    const matchNc = !nc || (nc === "10" ? parseInt(m.nc) >= 10 : m.nc === nc);
+    const matchFam = !fam || m.fam === fam;
+    return matchQ && matchNc && matchFam;
+  });
+
+  const countEl = document.getElementById("best-count");
+  if(countEl) countEl.textContent = `${filtered.length} / ${tableData.bestiaire.length}`;
+
+  target.innerHTML = filtered.map(m => `
+    <details class="card">
+      <summary>
+        <b>${escapeHTML(m.n)}</b> 
+        <span class="tag tag-nc">NC ${m.nc}</span>
+        <span class="mu">${escapeHTML(m.fam || "")} • PV : ${m.pv} • DEF : ${m.def} • Init : ${m.init}</span>
+      </summary>
+      <div style="padding:8px;background:var(--p2);border-radius:6px;margin-top:6px">
+        <div><b>Attaques :</b> ${escapeHTML(m.att)}</div>
+        <div class="mu" style="margin-top:4px"><b>Capacités :</b> ${escapeHTML(m.traits)}</div>
+        <button class="b sm gold" style="margin-top:8px" onclick="addMonsterToCombat('${escapeHTML(m.n)}')">⚔️ Lancer en Combat</button>
+      </div>
+    </details>
+  `).join("") || `<p class="mu card">Aucune créature trouvée.</p>`;
+}
+
+function addMonsterToCombat(name){
+  const m = tableData.bestiaire.find(x => x.n === name);
+  if(!m) return;
+  tableData.combatants.push({ n: m.n, isPj: false, hp: m.pv, hpMax: m.pv, def: m.def, baseInit: m.init, init: m.init, notes: m.att + " | " + m.traits });
+  saveState(); alert(`${m.n} a été envoyé au combat !`);
+}
+
+/* ==================== 4. ÉQUIPEMENTS ==================== */
+function viewEquipements(){
+  return `
+    <div class="card">
+      <div class="row sp">
+        <div>
+          <h3 style="margin:0">Équipements &amp; Biens Officiels</h3>
+          <span class="mu">Objets répertoriés : <b id="eq-count">${tableData.equipements.length}</b></span>
+        </div>
+        <div class="row">
+          <button class="b sm gold" onclick="document.getElementById('eq-import-btn').click()">📥 Importer Équipements (JSON)</button>
+          <input type="file" id="eq-import-btn" hidden accept=".json" onchange="handleFiles(this.files)">
+        </div>
+      </div>
+      <div class="search-bar-box">
+        <input id="eq-q" placeholder="Rechercher arme, armure, bien, prix..." oninput="filterEquipements()">
+        <select id="eq-cat" onchange="filterEquipements()">
+          <option value="">Toutes Catégories</option>
+          <option value="Armes Contact">Armes Contact</option><option value="Armes Distance">Armes Distance</option>
+          <option value="Armes Poudre">Armes Poudre</option><option value="Armures">Armures</option>
+          <option value="Boucliers">Boucliers</option><option value="Campement">Campement &amp; Tentes</option>
+          <option value="Aventure">Matériel d'aventure</option><option value="Auberge">Auberge &amp; Vivres</option><option value="Logement">Logement</option><option value="Montures">Montures</option><option value="Véhicules">Véhicules</option>
+          <option value="Immobilier">Immobilier</option>
+        </select>
+        <button class="b sm" onclick="document.getElementById('eq-q').value='';document.getElementById('eq-cat').value='';filterEquipements()">Effacer</button>
+      </div>
+    </div>
+    <div class="card" id="eq-table"></div>
+  `;
+}
+
+function filterEquipements(){
+  const q = (document.getElementById("eq-q")?.value || "").toLowerCase();
+  const cat = document.getElementById("eq-cat")?.value || "";
+  const target = document.getElementById("eq-table");
+  if(!target) return;
+
+  const filtered = tableData.equipements.filter(b => {
+    return (b.n + b.cat + (b.desc||"") + (b.prix||"")).toLowerCase().includes(q) && (!cat || b.cat === cat);
+  });
+
+  const countEl = document.getElementById("eq-count");
+  if(countEl) countEl.textContent = `${filtered.length} / ${tableData.equipements.length}`;
+
+  target.innerHTML = `
+    <table>
+      <tr><th>Nom</th><th>Catégorie</th><th>Prix</th><th>DM / DEF / Propriétés</th></tr>
+      ${filtered.map(b => `
+        <tr>
+          <td><b>${escapeHTML(b.n)}</b></td>
+          <td><span class="tag tag-s">${escapeHTML(b.cat || "-")}</span></td>
+          <td style="color:var(--gold2)"><b>${escapeHTML(b.prix || "-")}</b></td>
+          <td>${escapeHTML(b.dm ? "DM: "+b.dm : "")} ${escapeHTML(b.def ? "+"+b.def+" DEF" : "")} ${escapeHTML(b.desc || "")}</td>
+        </tr>
+      `).join("")}
+    </table>
+  ` || `<p class="mu">Aucun équipement chargé.</p>`;
+}
+
+/* ==================== 5. RÈGLES ==================== */
+function viewRegles(){
+  return `
+    <div class="card">
+      <div class="row sp">
+        <div>
+          <h3 style="margin:0">Règles &amp; États Officiels</h3>
+          <span class="mu">Entrées : <b id="reg-count">${tableData.regles.length + tableData.etats.length}</b></span>
+        </div>
+        <div class="row">
+          <button class="b sm gold" onclick="document.getElementById('reg-import-btn').click()">📥 Importer Règles (JSON)</button>
+          <input type="file" id="reg-import-btn" hidden accept=".json" onchange="handleFiles(this.files)">
+        </div>
+      </div>
+      <div class="search-bar-box">
+        <input id="reg-q" placeholder="Rechercher dans les règles, agonie, couvert, saut..." oninput="filterRegles()">
+        <select id="reg-cat" onchange="filterRegles()">
+          <option value="">Toutes sections</option>
+          <option value="etats">États préjudiciables uniquement</option>
+          <option value="Création">Création de perso</option>
+          <option value="Actions">Actions &amp; Tests</option>
+          <option value="Combat">Combat &amp; Blessures</option>
+          <option value="Aventure">Aventure &amp; Exploration</option>
+          <option value="Règles Avancées">Règles Avancées</option>
+        </select>
+        <button class="b sm" onclick="document.getElementById('reg-q').value='';document.getElementById('reg-cat').value='';filterRegles()">Effacer</button>
+      </div>
+    </div>
+    <div id="reg-content"></div>
+  `;
+}
+
+function filterRegles(){
+  const q = (document.getElementById("reg-q")?.value || "").toLowerCase();
+  const cat = document.getElementById("reg-cat")?.value || "";
+  const target = document.getElementById("reg-content");
+  if(!target) return;
+
+  let html = "";
+
+  // Filtrer les états
+  if(!cat || cat === "etats"){
+    const filteredEtats = tableData.etats.filter(e => (e.n + e.t).toLowerCase().includes(q));
+    if(filteredEtats.length){
+      html += `
+        <div class="card">
+          <h3>États Préjudiciables (${filteredEtats.length})</h3>
+          ${filteredEtats.map(e => `<div class="opt"><b style="color:var(--gold2)">${escapeHTML(e.n)} :</b> ${escapeHTML(e.t)}</div>`).join("")}
+        </div>
+      `;
+    }
+  }
+
+  // Filtrer les règles
+  if(cat !== "etats"){
+    const filteredRegles = tableData.regles.filter(r => {
+      const matchQ = (r.t + r.c + (r.cat || "")).toLowerCase().includes(q);
+      const matchC = !cat || r.cat === cat;
+      return matchQ && matchC;
+    });
+
+    if(filteredRegles.length){
+      html += `
+        <div class="card">
+          <h3>Chapitres de Règles (${filteredRegles.length})</h3>
+          ${filteredRegles.map(r => `
+            <details class="card" open style="margin-bottom:8px">
+              <summary>${escapeHTML(r.t)} ${r.cat ? `<span class="tag tag-nc">${escapeHTML(r.cat)}</span>` : ''}</summary>
+              <p style="padding:6px;font-size:.85rem">${escapeHTML(r.c)}</p>
+            </details>
+          `).join("")}
+        </div>
+      `;
+    }
+  }
+
+  target.innerHTML = html || `<p class="mu card">Aucune règle trouvée.</p>`;
+}
+
+/* ==================== 6. RACES ==================== */
+function viewRaces(){
+  return `
+    <div class="card">
+      <div class="row sp">
+        <div>
+          <h3 style="margin:0">Races Jouables du DRS</h3>
+          <span class="mu">Races : <b id="race-count">${tableData.races.length}</b></span>
+        </div>
+        <div class="row">
+          <button class="b sm gold" onclick="document.getElementById('race-import-btn').click()">📥 Importer Races (JSON)</button>
+          <input type="file" id="race-import-btn" hidden accept=".json" onchange="handleFiles(this.files)">
+        </div>
+      </div>
+      <div class="search-bar-box">
+        <input id="race-q" placeholder="Rechercher nom de race, don, vision..." oninput="filterRaces()">
+        <select id="race-mod" onchange="filterRaces()">
+          <option value="">Tous les modificateurs</option>
+          <option value="FOR">+FOR</option><option value="DEX">+DEX</option>
+          <option value="CON">+CON</option><option value="INT">+INT</option>
+          <option value="SAG">+SAG</option><option value="CHA">+CHA</option>
+          <option value="Aucun">Sans modificateur</option>
+        </select>
+        <button class="b sm" onclick="document.getElementById('race-q').value='';document.getElementById('race-mod').value='';filterRaces()">Effacer</button>
+      </div>
+    </div>
+    <div id="races-list"></div>
+  `;
+}
+
+function filterRaces(){
+  const q = (document.getElementById("race-q")?.value || "").toLowerCase();
+  const mod = document.getElementById("race-mod")?.value || "";
+  const target = document.getElementById("races-list");
+  if(!target) return;
+
+  const filtered = tableData.races.filter(r => {
+    const matchQ = (r.n + r.t + r.traits + (r.mod || "")).toLowerCase().includes(q);
+    const matchM = !mod || (mod === "Aucun" ? r.mod.includes("Aucun") : r.mod.includes("+" + mod));
+    return matchQ && matchM;
+  });
+
+  const countEl = document.getElementById("race-count");
+  if(countEl) countEl.textContent = `${filtered.length} / ${tableData.races.length}`;
+
+  target.innerHTML = filtered.map(r => `
+    <div class="card">
+      <div class="row sp">
+        <b style="font-size:1.05rem;color:var(--gold2)">${escapeHTML(r.n)}</b>
+        <span class="tag tag-nc">${escapeHTML(r.mod)}</span>
+      </div>
+      <p style="margin:4px 0">${escapeHTML(r.t)}</p>
+      <div class="mu" style="font-size:.78rem"><b>Tempérament :</b> ${escapeHTML(r.traits)}</div>
+    </div>
+  `).join("") || `<p class="mu card">Aucune race trouvée.</p>`;
+}
+
+/* ==================== 7. PROFILS ==================== */
+function viewProfils(){
+  return `
+    <div class="card">
+      <div class="row sp">
+        <div>
+          <h3 style="margin:0">Profils (Classes) de Personnages</h3>
+          <span class="mu">Profils : <b id="prof-count">${tableData.profils.length}</b></span>
+        </div>
+        <div class="row">
+          <button class="b sm gold" onclick="document.getElementById('prof-import-btn').click()">📥 Importer Profils (JSON)</button>
+          <input type="file" id="prof-import-btn" hidden accept=".json" onchange="handleFiles(this.files)">
+        </div>
+      </div>
+      <div class="search-bar-box">
+        <input id="prof-q" placeholder="Rechercher classe, arme, armure..." oninput="filterProfils()">
+        <select id="prof-dv" onchange="filterProfils()">
+          <option value="">Tous les dés de vie</option>
+          <option value="4">d4</option><option value="6">d6</option>
+          <option value="8">d8</option><option value="10">d10</option><option value="12">d12</option>
+        </select>
+        <select id="prof-mag" onchange="filterProfils()">
+          <option value="">Tous types de magie</option>
+          <option value="non">Non magique</option>
+          <option value="INT">Magie INT</option>
+          <option value="SAG">Magie SAG</option>
+          <option value="CHA">Magie CHA</option>
+        </select>
+        <button class="b sm" onclick="document.getElementById('prof-q').value='';document.getElementById('prof-dv').value='';document.getElementById('prof-mag').value='';filterProfils()">Effacer</button>
+      </div>
+    </div>
+    <div id="profils-list"></div>
+  `;
+}
+
+function filterProfils(){
+  const q = (document.getElementById("prof-q")?.value || "").toLowerCase();
+  const dv = document.getElementById("prof-dv")?.value || "";
+  const mag = document.getElementById("prof-mag")?.value || "";
+  const target = document.getElementById("profils-list");
+  if(!target) return;
+
+  const filtered = tableData.profils.filter(p => {
+    const matchQ = (p.n + p.ar + p.eq).toLowerCase().includes(q);
+    const matchDv = !dv || p.dv == dv;
+    const matchMag = !mag || (mag === "non" ? (!p.mag || p.mag === "-") : p.mag === mag);
+    return matchQ && matchDv && matchMag;
+  });
+
+  const countEl = document.getElementById("prof-count");
+  if(countEl) countEl.textContent = `${filtered.length} / ${tableData.profils.length}`;
+
+  target.innerHTML = filtered.map(p => `
+    <div class="card">
+      <div class="row sp">
+        <b style="font-size:1.05rem;color:var(--gold2)">${escapeHTML(p.n)}</b>
+        <span class="tag tag-s">Dé de vie : d${p.dv} ${p.mag && p.mag !== '-' ? '• Magie : '+p.mag : ''}</span>
+      </div>
+      <p style="margin:4px 0"><b>Armes &amp; armures :</b> ${escapeHTML(p.ar)}</p>
+      <div class="mu" style="font-size:.78rem"><b>Équipement de départ :</b> ${escapeHTML(p.eq)}</div>
+    </div>
+  `).join("") || `<p class="mu card">Aucun profil trouvé.</p>`;
+}
+
+/* ==================== 8. VOIES ==================== */
+function viewVoies(){
+  return `
+    <div class="card">
+      <div class="row sp">
+        <div>
+          <h3 style="margin:0">Arborescence des Voies Héroïques</h3>
+          <span class="mu">Capacités &amp; rangs indexés</span>
+        </div>
+      </div>
+      <div class="search-bar-box">
+        <input id="voie-q" placeholder="Rechercher une voie ou un rang..." oninput="filterVoies()">
+        <select id="voie-prof" onchange="filterVoies()">
+          <option value="">Tous profils</option>
+          ${[...new Set(tableData.sorts.map(s => s.voie).filter(Boolean))].map(v => `<option value="${escapeHTML(v)}">${escapeHTML(v)}</option>`).join("")}
+        </select>
+        <button class="b sm" onclick="document.getElementById('voie-q').value='';document.getElementById('voie-prof').value='';filterVoies()">Effacer</button>
+      </div>
+    </div>
+    <div id="voies-list"></div>
+  `;
+}
+
+function filterVoies(){
+  const q = (document.getElementById("voie-q")?.value || "").toLowerCase();
+  const vFilter = document.getElementById("voie-prof")?.value || "";
+  const target = document.getElementById("voies-list");
+  if(!target) return;
+
+  // Grouper les capacités par voie
+  const groups = {};
+  tableData.sorts.forEach(s => {
+    const vName = s.voie || "Voie Diverse";
+    if(!groups[vName]) groups[vName] = [];
+    groups[vName].push(s);
+  });
+
+  const matchingVoies = Object.keys(groups).filter(vName => {
+    const matchV = !vFilter || vName === vFilter;
+    const matchQ = vName.toLowerCase().includes(q) || groups[vName].some(cap => (cap.n + cap.t).toLowerCase().includes(q));
+    return matchV && matchQ;
+  });
+
+  target.innerHTML = matchingVoies.map(vName => `
+    <details class="card" open>
+      <summary><b>${escapeHTML(vName)}</b> <span class="mu">(${groups[vName].length} rangs)</span></summary>
+      <div style="padding:6px 0">
+        ${groups[vName].sort((a,b) => (a.rang||0) - (b.rang||0)).map(c => `
+          <div class="opt" style="margin-bottom:4px">
+            <div class="row sp">
+              <b style="color:var(--gold2)">Rang ${c.rang || 1} : ${escapeHTML(c.n)}</b>
+              <div>
+                ${c.L ? `<span class="tag tag-l">Limitée</span>` : ''}
+                ${c.portee ? `<span class="tag tag-s">${escapeHTML(c.portee)}</span>` : ''}
+              </div>
+            </div>
+            <p style="font-size:.82rem;margin-top:2px">${escapeHTML(c.t)}</p>
+          </div>
+        `).join("")}
+      </div>
+    </details>
+  `).join("") || `<p class="mu card">Aucune voie trouvée.</p>`;
+}
+
+/* ==================== 9. CAPACITÉS ==================== */
+function viewCapacites(){
+  return `
+    <div class="card">
+      <div class="row sp">
+        <div>
+          <h3 style="margin:0">Moteur de Recherche des Capacités</h3>
+          <span class="mu">Capacités : <b id="cap-count">${tableData.sorts.length}</b></span>
+        </div>
+      </div>
+      <div class="search-bar-box">
+        <input id="cap-q" placeholder="Rechercher une capacité, un don, un effet..." oninput="filterCapacites()">
+        <select id="cap-r" onchange="filterCapacites()">
+          <option value="">Tous les rangs</option>
+          <option value="1">Rang 1</option><option value="2">Rang 2</option>
+          <option value="3">Rang 3</option><option value="4">Rang 4</option><option value="5">Rang 5</option>
+        </select>
+        <select id="cap-type" onchange="filterCapacites()">
+          <option value="">Tous les types</option>
+          <option value="limit">Actions Limitées (L)</option>
+          <option value="sort">Sorts (*)</option>
+        </select>
+        <button class="b sm" onclick="document.getElementById('cap-q').value='';document.getElementById('cap-r').value='';document.getElementById('cap-type').value='';filterCapacites()">Effacer</button>
+      </div>
+    </div>
+    <div id="caps-list"></div>
+  `;
+}
+
+function filterCapacites(){
+  const q = (document.getElementById("cap-q")?.value || "").toLowerCase();
+  const r = document.getElementById("cap-r")?.value || "";
+  const t = document.getElementById("cap-type")?.value || "";
+  const target = document.getElementById("caps-list");
+  if(!target) return;
+
+  const filtered = tableData.sorts.filter(c => {
+    const matchQ = (c.n + c.t + (c.voie || "")).toLowerCase().includes(q);
+    const matchR = !r || c.rang == r;
+    let matchT = true;
+    if(t === "limit") matchT = !!c.L;
+    else if(t === "sort") matchT = c.S || c.duree || c.portee;
+    return matchQ && matchR && matchT;
+  });
+
+  const countEl = document.getElementById("cap-count");
+  if(countEl) countEl.textContent = `${filtered.length} / ${tableData.sorts.length}`;
+
+  target.innerHTML = filtered.map(c => `
+    <div class="opt">
+      <div class="row sp">
+        <b style="color:var(--gold2)">${escapeHTML(c.n)}</b>
+        <div>
+          <span class="tag tag-nc">Rang ${c.rang || 1}</span>
+          ${c.L ? `<span class="tag tag-l">Limitée</span>` : ''}
+        </div>
+      </div>
+      <div class="mu" style="font-size:.72rem">Voie : ${escapeHTML(c.voie || "Générale")}</div>
+      <p style="margin-top:3px;font-size:.82rem">${escapeHTML(c.t)}</p>
+    </div>
+  `).join("") || `<p class="mu card">Aucune capacité trouvée.</p>`;
+}
+
+/* ==================== 10. GRIMOIRE ==================== */
+function viewGrimoire(){
+  return `
+    <div class="card">
+      <div class="row sp">
+        <div>
+          <h3 style="margin:0">Grimoire &amp; Sortilèges Arcaniques</h3>
+          <span class="mu">Sorts répertoriés : <b id="grim-count">${tableData.sorts.length}</b></span>
+        </div>
+        <div class="row">
+          <button class="b sm gold" onclick="document.getElementById('grim-import-btn').click()">📥 Importer Sorts (JSON)</button>
+          <input type="file" id="grim-import-btn" hidden accept=".json" onchange="handleFiles(this.files)">
+        </div>
+      </div>
+      <div class="search-bar-box">
+        <input id="grim-q" placeholder="Rechercher sortilège, dégâts, rayon..." oninput="filterGrimoire()">
+        <select id="grim-r" onchange="filterGrimoire()">
+          <option value="">Tous rangs</option>
+          <option value="1">Rang 1</option><option value="2">Rang 2</option>
+          <option value="3">Rang 3</option><option value="4">Rang 4</option><option value="5">Rang 5</option>
+        </select>
+        <select id="grim-portee" onchange="filterGrimoire()">
+          <option value="">Toutes portées</option>
+          <option value="Contact">Contact / Perso</option>
+          <option value="20 m">20 mètres</option>
+          <option value="30 m">30 mètres</option>
+        </select>
+        <button class="b sm" onclick="document.getElementById('grim-q').value='';document.getElementById('grim-r').value='';document.getElementById('grim-portee').value='';filterGrimoire()">Effacer</button>
+      </div>
+    </div>
+    <div id="grim-list"></div>
+  `;
+}
+
+function filterGrimoire(){
+  const q = (document.getElementById("grim-q")?.value || "").toLowerCase();
+  const r = document.getElementById("grim-r")?.value || "";
+  const p = document.getElementById("grim-portee")?.value || "";
+  const target = document.getElementById("grim-list");
+  if(!target) return;
+
+  const filtered = tableData.sorts.filter(s => {
+    const matchQ = (s.n + s.t + (s.voie || "")).toLowerCase().includes(q);
+    const matchR = !r || s.rang == r;
+    const matchP = !p || (s.portee && s.portee.toLowerCase().includes(p.toLowerCase()));
+    return matchQ && matchR && matchP;
+  });
+
+  const countEl = document.getElementById("grim-count");
+  if(countEl) countEl.textContent = `${filtered.length} / ${tableData.sorts.length}`;
+
+  target.innerHTML = filtered.map(s => `
+    <div class="opt" style="border-left:4px solid var(--sp)">
+      <div class="row sp">
+        <b style="color:#d9c2ff">${escapeHTML(s.n)}</b>
+        <span class="tag tag-s">Rang ${s.rang || 1} • ${escapeHTML(s.portee || "Contact")}</span>
+      </div>
+      <div class="mu" style="font-size:.72rem">Voie : ${escapeHTML(s.voie || "Magie")} • Durée : ${escapeHTML(s.duree || "Instantané")}</div>
+      <p style="margin-top:3px;font-size:.82rem">${escapeHTML(s.t)}</p>
+    </div>
+  `).join("") || `<p class="mu card">Aucun sort ne correspond aux critères.</p>`;
+}
+
+/* ==================== SAUVEGARDE & CHARGEMENT MASTER ==================== */
+function saveMasterJSON(){
+  const a = document.createElement("a");
+  a.href = "data:application/json;charset=utf-8," + encodeURIComponent(JSON.stringify(tableData, null, 2));
+  a.download = "Campagne_CO_Master.json"; a.click();
+}
+function loadMasterJSON(e){
+  const f = e.target.files[0]; if(!f) return;
+  const r = new FileReader();
+  r.onload = ev => {
+    try {
+      tableData = JSON.parse(ev.target.result);
+      saveState(); switchTab(curTab); alert("Campagne Master restaurée avec succès !");
+    } catch(err){ alert("Erreur fichier Master."); }
+  };
+  r.readAsText(f);
+}
+
+function escapeHTML(str){
+  return String(str ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+}
+
+renderNav();
+switchTab("combat");
+</script>
+</body>
+</html>

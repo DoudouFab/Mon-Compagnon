@@ -1,0 +1,6 @@
+{
+  "name": "Chroniques Oubliées – Compagnon PJ & Console MJ",
+  "description": "Application complète pour le jeu de rôle Chroniques Oubliées Fantasy : Compagnon PJ (création 7 étapes, gestion des héros, voies, sorts, équipement) et Console MJ (écran de combat, initiatives, bestiaire complet, règles et écran du meneur).",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,214 @@
+{
+  "CAR": ["FOR","DEX","CON","INT","SAG","CHA"],
+  "profils": [
+    {"id":"arquebusier","n":"Arquebusier","dv":8,"traits":"Précis, méthodique avec la poudre et les rouages.","eq":"Pétoire, épée longue, dague, cuir.","ar":"Armes 1M, distance et poudre. Chemise de maille max."},
+    {"id":"barbare","n":"Barbare","dv":12,"traits":"Instinctif, féroce, rustique et indomptable.","eq":"Hache à 2 mains, 2 javelots, dague, cuir.","ar":"Armes contact et jet. Cuir max, bouclier autorisé."},
+    {"id":"barde","n":"Barde","dv":6,"mag":"CHA","traits":"Charismatique, conteur d'histoires et agile.","eq":"Rapière, dague, instrument de musique, cuir.","ar":"Armes légères à 1 main. Cuir renforcé max."},
+    {"id":"chevalier","n":"Chevalier","dv":10,"traits":"Sens du devoir, protecteur juré et honorable.","eq":"Épée longue, grand bouclier, lance, demi-plaque.","ar":"Toutes armes contact. Toutes armures et boucliers."},
+    {"id":"druide","n":"Druide","dv":8,"mag":"SAG","traits":"Gardien de l'équilibre naturel, calme et sage.","eq":"Bâton, dague, arc court, cuir.","ar":"Bâton, dague, épieu, arc court. Cuir, bouclier bois."},
+    {"id":"ensorceleur","n":"Ensorceleur","dv":4,"mag":"CHA","traits":"Fier, imprévisible, magie innée spontanée.","eq":"Bâton ferré, dague, potion de soin.","ar":"Dague et bâton uniquement. Aucune armure physique."},
+    {"id":"forgesort","n":"Forgesort","dv":6,"mag":"INT","traits":"Ingénieux, alchimiste et artisan des arcanes.","eq":"Dague, marteau, bâton ferré, nécessaire d'artisan.","ar":"Armes simples, marteau, arbalète. Cuir simple max."},
+    {"id":"guerrier","n":"Guerrier","dv":10,"traits":"Discipline militaire, pragmatique et solide au front.","eq":"Épée longue, épée 2M, grand bouclier, cotte de mailles.","ar":"Toutes les armes. Demi-plaque max et bouclier."},
+    {"id":"magicien","n":"Magicien","dv":4,"mag":"INT","traits":"Érudit, studieux, voué aux secrets des arcanes.","eq":"Bâton, dague, grimoire, potion de soin.","ar":"Dague et bâton. Aucune armure physique."},
+    {"id":"moine","n":"Moine","dv":8,"mag":"SAG","traits":"Ascète, rigoureux, cherchant l'harmonie intérieure.","eq":"Bâton ferré, chapelet.","ar":"Aucune armure. Combat dévastateur à mains nues."},
+    {"id":"necromancien","n":"Nécromancien","dv":4,"mag":"INT","traits":"Fasciné par le trépas, stoïque et sans tabous.","eq":"Bâton ferré, dague sacrificielle, potion de soin.","ar":"Dague et bâton. Aucune armure physique."},
+    {"id":"pretre","n":"Prêtre","dv":8,"mag":"SAG","traits":"Dévoué à son panthéon, pilier spirituel de l'équipe.","eq":"Masse de guerre, petit bouclier, chemise de mailles.","ar":"Armes contondantes 1M + arme sacrée. Chemise de mailles, bouclier."},
+    {"id":"rodeur","n":"Rôdeur","dv":8,"traits":"Pisteur aguerri, discret, protecteur des grands espaces.","eq":"Arc court, carquois, épée longue, dague, cuir renforcé.","ar":"Armes 1M et distance. Cuir renforcé max."},
+    {"id":"voleur","n":"Voleur","dv":6,"traits":"Agile, opportuniste, esprit vif et observateur.","eq":"Rapière, 5 dagues, outils de crochetage, cuir.","ar":"Armes légères 1M, distance. Cuir simple max."}
+  ],
+  "races": [
+    {
+      "id":"demi-elfe","n":"Demi-elfe","d":"À la croisée de deux cultures.","b":{"CON":-2,"SAG":2},"t":"-2 CON, +2 SAG",
+      "traits":"Diplomate, mélancolique, ouvert et polyvalent.",
+      "cap":[{"n":"Sang mêlé","t":"Choix d'héritage humain ou elfique."}],
+      "opts":[
+        {"n":"Instinct de survie (humain)","t":"Si une attaque amène à 0 PV, dégâts subis divisés par 2 (min 1)."},
+        {"n":"Lumière des étoiles (elfe)","t":"Vision nocturne sous les étoiles équivalente à une pénombre légère."}
+      ]
+    },
+    {
+      "id":"demi-orque","n":"Demi-orque","d":"Force brute issue de son ascendance orque.","b":{"FOR":2,"INT":-2,"CHA":-2},"t":"+2 FOR, -2 INT, -2 CHA",
+      "traits":"Direct, loyal envers ses amis, prompt aux réactions vives.",
+      "cap":[{"n":"Vision dans le noir","t":"Vision dans le noir complet jusqu'à 30 m."}]
+    },
+    {
+      "id":"elfe-haut","n":"Elfe (Haut-Elfe)","d":"Être millénaire gracieux et érudit.","b":{"FOR":-2,"CHA":2},"t":"-2 FOR, +2 CHA",
+      "traits":"Esthète, fier, respectueux des traditions sacrées.",
+      "cap":[{"n":"Lumière des étoiles","t":"La nuit sous les étoiles n'est qu'une pénombre légère."}]
+    },
+    {
+      "id":"elfe-sylvain","n":"Elfe sylvain","d":"Chasseur insaisissable des forêts vierges.","b":{"FOR":-2,"DEX":2},"t":"-2 FOR, +2 DEX",
+      "traits":"Farouche, vif et profondément connecté à la nature.",
+      "cap":[{"n":"Sens forestiers","t":"Lumière des étoiles et +2 en discrétion naturelle."}]
+    },
+    {
+      "id":"gnome","n":"Gnome","d":"Inventeur ingénieux au grand cœur.","b":{"FOR":-2,"INT":2},"t":"-2 FOR, +2 INT",
+      "traits":"Curieux, volubile et passionné de mécanismes insolites.",
+      "cap":[{"n":"Don étrange","t":"Talent inné pour l'esprit ou la magie."}],
+      "opts":[
+        {"n":"Génie intellectuel (+5 INT)","t":"+5 à tous les tests basés sur l'Intelligence."},
+        {"n":"Sort inné d'Ensorceleur","t":"Lance un sort de rang 1 d'Ensorceleur même en armure de mailles."}
+      ]
+    },
+    {
+      "id":"halfelin","n":"Halfelin","d":"Petit peuple joyeux, discret et agile.","b":{"FOR":-2,"DEX":2},"t":"-2 FOR, +2 DEX","defb":1,
+      "traits":"Épicurien, discret et plein de bravoure insoupçonnée.",
+      "cap":[{"n":"Petite taille","t":"+1 DEF native, +2 discrétion. Armes lourdes restreintes."}]
+    },
+    {
+      "id":"humain","n":"Humain","d":"Polyvalent, déterminé et résilient.","b":{},"t":"Aucun modificateur",
+      "traits":"Ambitieux, courageux, pionnier et adaptable.",
+      "cap":[{"n":"Instinct de survie","t":"Si une attaque amène à 0 PV, dégâts divisés par 2 (min 1)."}]
+    },
+    {
+      "id":"nain","n":"Nain","d":"Solide comme la roche et fidèle à sa parole.","b":{"DEX":-2,"CON":2},"t":"-2 DEX, +2 CON",
+      "traits":"Tenace, travailleur infatigable, rancunier mais loyal.",
+      "cap":[{"n":"Vision dans le noir","t":"Vision dans le noir à 30 m et résistance aux poisons."}]
+    }
+  ],
+  "armes": [
+    {"n":"Dague","t":"Contact","dm":"1d4","crit":"20","por":"5 m","props":"Légère, jet possible"},
+    {"n":"Épée courte","t":"Contact","dm":"1d6","crit":"20","por":"-","props":"Légère, vive"},
+    {"n":"Rapière","t":"Contact","dm":"1d6","crit":"19-20","por":"-","props":"Précise, critique amélioré"},
+    {"n":"Bâton ferré","t":"Contact","dm":"1d6","crit":"20","por":"-","props":"Polyvalente"},
+    {"n":"Masse de guerre","t":"Contact","dm":"1d6","crit":"20","por":"-","props":"Contondante"},
+    {"n":"Hache à 1 main","t":"Contact","dm":"1d8","crit":"20","por":"-","props":"Tranchante"},
+    {"n":"Épée longue","t":"Contact","dm":"1d8","crit":"20","por":"-","props":"Polyvalente classique"},
+    {"n":"Épée à 2 mains","t":"Contact","dm":"2d6","crit":"20","por":"-","props":"Lourde, 2 mains"},
+    {"n":"Hache à 2 mains","t":"Contact","dm":"2d6","crit":"20","por":"-","props":"Deux mains brutale"},
+    {"n":"Arc court","t":"Distance","dm":"1d6","crit":"20","por":"30 m","props":"Cadence rapide"},
+    {"n":"Arc long","t":"Distance","dm":"1d8","crit":"20","por":"50 m","props":"FOR min 13 requis"},
+    {"n":"Arbalète légère","t":"Distance","dm":"2d4","crit":"20","por":"30 m","props":"Recharge 1 action simple"},
+    {"n":"Pétoire","t":"Poudre","dm":"1d10","crit":"20","por":"20 m","props":"Recharge limitée"},
+    {"n":"Mousquet","t":"Poudre","dm":"2d6","crit":"20","por":"50 m","props":"Longue portée à poudre"}
+  ],
+  "armures": [
+    {"n":"Tissu matelassé","t":"Corps","def":1,"props":"Aucun encombrement"},
+    {"n":"Cuir","t":"Corps","def":2,"props":"Protection souple"},
+    {"n":"Cuir renforcé","t":"Corps","def":3,"props":"Renforts cloutés"},
+    {"n":"Chemise de mailles","t":"Corps","def":4,"props":"Mailles de fer"},
+    {"n":"Cotte de mailles","t":"Corps","def":5,"props":"Mailles intégrales"},
+    {"n":"Demi-plaque","t":"Corps","def":6,"props":"Plaques d'acier"},
+    {"n":"Plaque complète","t":"Corps","def":8,"props":"Chevalier uniquement"},
+    {"n":"Petit bouclier","t":"Bouclier","def":1,"props":"Maniable"},
+    {"n":"Grand bouclier","t":"Bouclier","def":2,"props":"Couverture optimale"}
+  ],
+  "biens": [
+    {"n":"Pack d'aventurier complet","desc":"Contient sac renforcé, corde 15m & grappin, 5 torches, briquet, 7 rations, gourde, paillasse portable et potion de soin.","isPack":true},
+    {"n":"Tente (1 couchage)","desc":"Tente individuelle légère pour 1 personne avec piquets."},
+    {"n":"Tente (2 couchages)","desc":"Tente de bivouac standard pour 2 compagnons."},
+    {"n":"Tente (4 couchages)","desc":"Grande tente d'expédition pour 4 aventuriers."},
+    {"n":"Tente (6 couchages)","desc":"Tente de campement spacieuse pour 6 personnes."},
+    {"n":"Paillasse portable & couverture","desc":"Couchage rembourré transportable et couverture de voyage."},
+    {"n":"Corde (15 m) & grappin","desc":"Chanvre solide avec crochet d'acier"},
+    {"n":"Torches de résine (x3)","desc":"Éclairent à 10 m pendant 1h","isConsumable":true,"q":3},
+    {"n":"Lanterne à huile","desc":"Éclairage focalisé de 6h avec fiole"},
+    {"n":"Outils de crochetage","desc":"Essentiels pour ouvrir les verrous"},
+    {"n":"Briquet à silex et amadou","desc":"Allume un feu rapidement"},
+    {"n":"Potion de soins légers","desc":"Rend immédiatement 1d8 PV","isConsumable":true,"q":1},
+    {"n":"Rations de voyage (1 sem.)","desc":"Vivres de longue conservation","isConsumable":true,"q":7},
+    {"n":"Sac à dos renforcé","desc":"Toile imperméabilisée"},
+    {"n":"Gourde d'eau en cuir (1L)","desc":"Pleine d'eau fraîche","isConsumable":true,"q":1},
+    {"n":"Matériel d'écriture","desc":"Plume, encre indélébile et rouleau"},
+    {"n":"Trousse de premiers secours","desc":"Bandages et onguents propres","isConsumable":true,"q":3}
+  ],
+  "sortsCatalogue": [
+    {"n":"Projectile magique","voie":"Arcanes","rang":1,"portee":"30 m","duree":"Instantané","L":1,"t":"Flèche d'énergie infaillible infligeant [1d6 + INT] DM magiques."},
+    {"n":"Armure de mage","voie":"Protection","rang":1,"portee":"Personnelle","duree":"Combat","L":1,"t":"Bouclier arcanique accordant un bonus de +4 en DEF."},
+    {"n":"Arme enflammée","voie":"Éléments","rang":1,"portee":"Contact","duree":"Combat","L":1,"t":"Enflamme une arme : confère +1d6 DM de feu supplémentaires."},
+    {"n":"Saut de vent","voie":"Air","rang":1,"portee":"Personnelle","duree":"Instantané","L":1,"t":"Bondit magiquement jusqu'à 15 mètres ou amortit une chute."},
+    {"n":"Sommeil","voie":"Envoûtement","rang":1,"portee":"20 m","duree":"1d6 tours","L":1,"t":"Plonge une créature humanoïde dans un profond sommeil magique."},
+    {"n":"Soins légers","voie":"Spiritualité","rang":1,"portee":"Contact","duree":"Instantané","L":1,"t":"Restaure immédiatement [1d8 + SAG] Points de Vie."},
+    {"n":"Bénédiction","voie":"Prière","rang":1,"portee":"Vue","duree":"Combat","L":1,"t":"Accorde +1 à tous les tests d'attaque de ses compagnons."},
+    {"n":"Arme d'argent","voie":"Foi","rang":1,"portee":"Contact","duree":"Combat","L":1,"t":"L'arme devient lumineuse et inflige +1d6 DM contre démons et mort-vivants."},
+    {"n":"Rayon débilitant","voie":"Mort","rang":1,"portee":"20 m","duree":"Combat","L":1,"t":"Rayon ténébreux infligeant -2 en Force à la cible."},
+    {"n":"Baies médicinales","voie":"Nature","rang":1,"portee":"Contact","duree":"24 h","L":1,"t":"Enchante 1d6 baies : chacune rend 1 PV quand elle est consommée."},
+    {"n":"Enchevêtrement","voie":"Végétaux","rang":1,"portee":"30 m","duree":"Combat","L":1,"t":"Ronces jaillissantes retenant les ennemis dans une zone de 10 m de diamètre."},
+    {"n":"Boule de feu","voie":"Destruction","rang":3,"portee":"30 m","duree":"Instantané","L":1,"t":"Déflagration explosive de 10 m de diamètre infligeant 3d6 DM de feu."}
+  ],
+  "voies": {
+    "barbare-brute": {"nom":"Voie de la brute","profil":"barbare","r":[{"n":"Argument de taille","t":"Ajoute son Mod. de FOR à ses PV Max et aux tests d'intimidation.","L":0,"S":0}]},
+    "barbare-primitif": {"nom":"Voie du primitif","profil":"barbare","r":[{"n":"Armure de vent","t":"Sans armure, ajoute son Rang dans cette voie à sa valeur de DEF.","L":0,"S":0}]},
+    "barbare-rage": {"nom":"Voie de la rage","profil":"barbare","r":[{"n":"Rage du berserk","t":"Furie : gagne +2 en attaque et +1d6 aux DM, mais subit -2 en DEF.","L":1,"S":0}]},
+    "barbare-pourfendeur": {"nom":"Voie du pourfendeur","profil":"barbare","r":[{"n":"Frappe lourde","t":"Ajoute +2 aux dégâts avec toutes les armes tenues à deux mains.","L":0,"S":0}]},
+    "barbare-survivant": {"nom":"Voie du survivant","profil":"barbare","r":[{"n":"Endurance rustique","t":"Bonus de +2 en CON pour résister au climat, faim et fatigue.","L":0,"S":0}]},
+
+    "guerrier-combat": {"nom":"Voie du combat","profil":"guerrier","r":[{"n":"Initiative héroïque","t":"Ajoute son niveau d'expérience à son score d'Initiative.","L":0,"S":0}]},
+    "guerrier-resistance": {"nom":"Voie de la résistance","profil":"guerrier","r":[{"n":"Robustesse","t":"Gagne +3 PV max au Rang 1, puis +3 aux rangs 3 et 5.","L":0,"S":0}]},
+    "guerrier-bouclier": {"nom":"Voie du bouclier","profil":"guerrier","r":[{"n":"Maniement du bouclier","t":"Ajoute +1 supplémentaire à la valeur de DEF de son bouclier.","L":0,"S":0}]},
+    "guerrier-maitre": {"nom":"Voie du maître d'armes","profil":"guerrier","r":[{"n":"Arme de prédilection","t":"Choisit une arme : bonus permanent de +1 en attaque avec celle-ci.","L":0,"S":0}]},
+    "guerrier-chef": {"nom":"Voie du chef de guerre","profil":"guerrier","r":[{"n":"Ordre de bataille","t":"Sacrifie son mouvement pour donner +2 en attaque à un allié au contact.","L":1,"S":0}]},
+
+    "voleur-spadassin": {"nom":"Voie du spadassin","profil":"voleur","r":[{"n":"Attaque en finesse","t":"Utilise l'Attaque à distance pour frapper avec dague/rapière au contact.","L":0,"S":0}]},
+    "voleur-assassin": {"nom":"Voie de l'assassin","profil":"voleur","r":[{"n":"Attaque sournoise","t":"+1d6 aux DM au contact si la cible est prise en tenaille ou surprise.","L":0,"S":0}]},
+    "voleur-aventurier": {"nom":"Voie de l'aventurier","profil":"voleur","r":[{"n":"Sens du danger","t":"Ne peut jamais être pris au dépourvu lors d'un tour de surprise.","L":0,"S":0}]},
+    "voleur-deplacement": {"nom":"Voie du déplacement","profil":"voleur","r":[{"n":"Agilité féline","t":"Bonus de +2 à tous les tests de DEX acrobatiques ou de saut.","L":0,"S":0}]},
+    "voleur-roublard": {"nom":"Voie du roublard","profil":"voleur","r":[{"n":"Doigts agiles","t":"Bonus de +2 aux tests de crochetage et d'escamotage à mains nues.","L":0,"S":0}]},
+
+    "magicien-destructrice": {"nom":"Voie de la magie destructrice","profil":"magicien","r":[{"n":"Projectile magique","t":"Trait magique infaillible infligeant [1d6 + INT] DM magiques à 30 m.","L":1,"S":1}]},
+    "magicien-protectrice": {"nom":"Voie de la magie protectrice","profil":"magicien","r":[{"n":"Armure de mage","t":"Protection arcanique accordant un bonus de +4 en DEF pour tout le combat.","L":1,"S":1}]},
+    "magicien-elementaire": {"nom":"Voie de la magie élémentaire","profil":"magicien","r":[{"n":"Arme enflammée","t":"Enchante une arme : inflige +1d6 DM élémentaires de feu pour le combat.","L":1,"S":1}]},
+    "magicien-arcanes": {"nom":"Voie de la magie des arcanes","profil":"magicien","r":[{"n":"Agrandissement","t":"Cible agrandie : +2 en FOR et aux DM, mais -2 en DEX.","L":1,"S":1}]},
+    "magicien-universelle": {"nom":"Voie de la magie universelle","profil":"magicien","r":[{"n":"Lumière & Détection","t":"Illumine un objet à volonté et perçoit la magie dans un rayon de 10 m.","L":1,"S":1}]},
+
+    "pretre-foi": {"nom":"Voie de la foi","profil":"pretre","r":[{"n":"Arme d'argent","t":"L'arme sacrée inflige +1d6 DM contre les mort-vivants et démons.","L":1,"S":1}]},
+    "pretre-priere": {"nom":"Voie de la prière","profil":"pretre","r":[{"n":"Bénédiction","t":"Bénit ses compagnons en leur conférant +1 en attaque pour le combat.","L":1,"S":1}]},
+    "pretre-spiritualite": {"nom":"Voie de la spiritualité","profil":"pretre","r":[{"n":"Soin modéré","t":"Imposition des mains : restaure [1d8 + SAG] PV à un compagnon au contact.","L":1,"S":1}]},
+    "pretre-guerresainte": {"nom":"Voie de la guerre sainte","profil":"pretre","r":[{"n":"Arme bénie","t":"Relance tous les résultats de 1 aux dégâts avec son arme sacrée.","L":0,"S":0}]},
+    "pretre-jugement": {"nom":"Voie du jugement","profil":"pretre","r":[{"n":"Châtiment céleste","t":"Fait choir la foudre divine sur un mécréant pour 1d6 DM sacrés.","L":1,"S":1}]},
+
+    "arquebusier-artilleur": {"nom":"Voie de l'artilleur","profil":"arquebusier","r":[{"n":"Tir d'artillerie","t":"Augmente la portée de toutes ses armes à feu de +10 mètres.","L":0,"S":0}]},
+    "arquebusier-bataille": {"nom":"Voie du champ de bataille","profil":"arquebusier","r":[{"n":"Action concertée","t":"Une fois par tour, l'Arquebusier peut échanger son Initiative avec un allié.","L":0,"S":0}]},
+    "arquebusier-precision": {"nom":"Voie de la précision","profil":"arquebusier","r":[{"n":"Visée millimétrée","t":"Sacrifie son mouvement pour obtenir un bonus de +2 à son tir à distance.","L":1,"S":0}]},
+    "arquebusier-explosifs": {"nom":"Voie des explosifs","profil":"arquebusier","r":[{"n":"Grenade à poudre","t":"Lance une bombe improvisée à 15 m infligeant 1d6 DM de zone (rayon 3 m).","L":1,"S":0}]},
+    "arquebusier-pistolero": {"nom":"Voie du pistolero","profil":"arquebusier","r":[{"n":"Dégainer rapide","t":"Peut dégainer ou ranger son arme à feu comme une action gratuite.","L":0,"S":0}]},
+
+    "barde-escrime": {"nom":"Voie de l'escrime","profil":"barde","r":[{"n":"Attaque en finesse","t":"Utilise l'Attaque à distance pour frapper au contact avec une rapière.","L":0,"S":0}]},
+    "barde-seduction": {"nom":"Voie de la séduction","profil":"barde","r":[{"n":"Charme naturel","t":"Bonus de +2 aux tests de Charisme de persuasion et séduction.","L":0,"S":0}]},
+    "barde-saltimbanque": {"nom":"Voie du saltimbanque","profil":"barde","r":[{"n":"Acrobate","t":"Bonus de +2 aux tests de DEX pour sauter et garder l'équilibre.","L":0,"S":0}]},
+    "barde-musique": {"nom":"Voie de la musique","profil":"barde","r":[{"n":"Chant du héros","t":"Air martial : accorde +1 en attaque à tous ses alliés à portée de voix.","L":1,"S":1}]},
+    "barde-vagabond": {"nom":"Voie du vagabond","profil":"barde","r":[{"n":"Savoir universel","t":"Réussit automatiquement un test d'érudition ou de rumeur par partie.","L":0,"S":0}]},
+
+    "chevalier-guerre": {"nom":"Voie de la guerre","profil":"chevalier","r":[{"n":"Armure sur mesure","t":"L'armure est optimisée : gagne +1 en DEF avec les armures métalliques.","L":0,"S":0}]},
+    "chevalier-cavalier": {"nom":"Voie du cavalier","profil":"chevalier","r":[{"n":"Monture fidèle","t":"Reçoit un destrier dressé pour le combat en parfaite harmonie.","L":0,"S":0}]},
+    "chevalier-meneur": {"nom":"Voie du meneur d'hommes","profil":"chevalier","r":[{"n":"Exhortation","t":"Donne son Mod. de CHA au jet d'attaque d'un allié au contact.","L":1,"S":0}]},
+    "chevalier-heros": {"nom":"Voie du héros","profil":"chevalier","r":[{"n":"Courage inébranlable","t":"Immunité totale à la panique et aux effets magiques d'effroi.","L":0,"S":0}]},
+    "chevalier-noblesse": {"nom":"Voie de la noblesse","profil":"chevalier","r":[{"n":"Prestance seigneuriale","t":"Ajoute son Mod. de CHA à sa valeur d'Initiative.","L":0,"S":0}]},
+
+    "druide-animaux": {"nom":"Voie des animaux","profil":"druide","r":[{"n":"Ami des bêtes","t":"Communique avec les animaux et apaise leur hostilité naturelle.","L":0,"S":0}]},
+    "druide-fauve": {"nom":"Voie du fauve","profil":"druide","r":[{"n":"Sens de la bête","t":"Vision nocturne et odorat fin accordant +2 aux tests de vigilance.","L":0,"S":0}]},
+    "druide-nature": {"nom":"Voie de la nature","profil":"druide","r":[{"n":"Baies médicinales","t":"Enchante 1d6 baies rendant chacune 1 PV une fois ingérée.","L":1,"S":1}]},
+    "druide-vegetaux": {"nom":"Voie des végétaux","profil":"druide","r":[{"n":"Enchevêtrement","t":"Ronces jaillissantes immobilisant les ennemis dans une zone de 10 m.","L":1,"S":1}]},
+    "druide-elements": {"nom":"Voie des éléments","profil":"druide","r":[{"n":"Bourrasque","t":"Souffle puissant capable de déséquilibrer ou repousser une cible.","L":1,"S":1}]},
+
+    "ensorceleur-air": {"nom":"Voie de l'air","profil":"ensorceleur","r":[{"n":"Saut de vent","t":"Bondit jusqu'à 15 m ou amortit une chute sans subir de dégâts.","L":1,"S":1}]},
+    "ensorceleur-divination": {"nom":"Voie de la divination","profil":"ensorceleur","r":[{"n":"6ème sens","t":"Prévoit les événements : bonus de +1 en Initiative et en DEF par rang.","L":0,"S":0}]},
+    "ensorceleur-envouteur": {"nom":"Voie de l'envoûteur","profil":"ensorceleur","r":[{"n":"Sommeil","t":"Plonge une créature humanoïde dans un profond sommeil magique.","L":1,"S":1}]},
+    "ensorceleur-invocation": {"nom":"Voie de l'invocation","profil":"ensorceleur","r":[{"n":"Serviteur invisible","t":"Matérialise une force invisible capable d'effectuer des tâches légères.","L":1,"S":1}]},
+    "ensorceleur-sang": {"nom":"Voie du sang magique","profil":"ensorceleur","r":[{"n":"Flammes spontanées","t":"Enflamme un objet ou crée une gerbe d'étincelles au contact.","L":0,"S":1}]},
+
+    "forgesort-artefacts": {"nom":"Voie des artefacts","profil":"forgesort","r":[{"n":"Objet renforcé","t":"Améliore une arme (+1 att) ou armure (+1 DEF) pour la journée.","L":1,"S":0}]},
+    "forgesort-elixirs": {"nom":"Voie des élixirs","profil":"forgesort","r":[{"n":"Élixir de vigueur","t":"Fabrique une potion conférant +2 aux jets de FOR ou DEX temporairement.","L":1,"S":0}]},
+    "forgesort-metal": {"nom":"Voie du métal","profil":"forgesort","r":[{"n":"Arme fétiche","t":"Le marteau ou l'arme du Forgesort inflige +1d6 DM d'énergie arcanique.","L":0,"S":0}]},
+    "forgesort-runes": {"nom":"Voie des runes","profil":"forgesort","r":[{"n":"Rune de garde","t":"Grave une rune qui explose au passage d'un ennemi (2d6 DM).","L":1,"S":1}]},
+    "forgesort-automates": {"nom":"Voie des automates","profil":"forgesort","r":[{"n":"Familier mécanique","t":"Construit un petit automate d'espionnage agile et discret.","L":0,"S":0}]},
+
+    "moine-energie": {"nom":"Voie de l'énergie vitale","profil":"moine","r":[{"n":"Corps de fer","t":"Armure naturelle égale à son Modificateur de Sagesse.","L":0,"S":0}]},
+    "moine-maitrise": {"nom":"Voie de la maîtrise","profil":"moine","r":[{"n":"Frappe à mains nues","t":"Les coups à mains nues infligent 1d6 DM réels (au lieu de 1d4 temporaires).","L":0,"S":0}]},
+    "moine-meditation": {"nom":"Voie de la méditation","profil":"moine","r":[{"n":"Sérénité","t":"Immunité totale aux provocations, paniques et illusions déstabilisantes.","L":0,"S":0}]},
+    "moine-vent": {"nom":"Voie du vent","profil":"moine","r":[{"n":"Foulée rapide","t":"La vitesse de déplacement du moine augmente de +5 mètres par tour.","L":0,"S":0}]},
+    "moine-combat": {"nom":"Voie du combat loyal","profil":"moine","r":[{"n":"Déviation de projectiles","t":"Dévie une flèche ou projectile avec un test de DEX opposé réussi.","L":0,"S":0}]},
+
+    "necromancien-mort": {"nom":"Voie de la mort","profil":"necromancien","r":[{"n":"Rayon débilitant","t":"Projette un trait sombre réduisant de -2 la Force de sa victime.","L":1,"S":1}]},
+    "necromancien-outretombe": {"nom":"Voie de l'outre-tombe","profil":"necromancien","r":[{"n":"Animation des morts","t":"Anime le squelette ou cadavre d'une créature morte récemment.","L":1,"S":1}]},
+    "necromancien-sombre": {"nom":"Voie de la sombre magie","profil":"necromancien","r":[{"n":"Terreur spectrale","t":"Frappe d'effroi une cible qui subit -2 à toutes ses actions.","L":1,"S":1}]},
+    "necromancien-demon": {"nom":"Voie du démon","profil":"necromancien","r":[{"n":"Pacte ténébreux","t":"Sacrifie 2 PV pour obtenir +3 sur son prochain test d'attaque magique.","L":0,"S":1}]},
+    "necromancien-putrefaction": {"nom":"Voie de la putréfaction","profil":"necromancien","r":[{"n":"Toucher putride","t":"Attaque magique au contact infligeant 1d6 DM d'acide et décomposition.","L":1,"S":1}]},
+
+    "rodeur-archer": {"nom":"Voie de l'archer","profil":"rodeur","r":[{"n":"Tir parfait","t":"Ignore les pénalités de tir liées à la portée ou au vent pour son prochain jet.","L":1,"S":0}]},
+    "rodeur-animal": {"nom":"Voie du compagnon animal","profil":"rodeur","r":[{"n":"Fidèle compagnon","t":"Reçoit un loup ou rapace loyal qui combat à ses côtés.","L":0,"S":0}]},
+    "rodeur-escarmouche": {"nom":"Voie de l'escarmouche","profil":"rodeur","r":[{"n":"Attaque éclair","t":"Ajoute son Mod. de DEX en attaque et aux DM lors d'un assaut éclair au contact.","L":1,"S":0}]},
+    "rodeur-survie": {"nom":"Voie de la survie","profil":"rodeur","r":[{"n":"Sens affûtés","t":"Bonus de +2 à tous les tests de pistage, de survie et d'orientation.","L":0,"S":0}]},
+    "rodeur-traqueur": {"nom":"Voie du traqueur","profil":"rodeur","r":[{"n":"Ennemi juré","t":"Choisit un type d'ennemi : gagne +1d6 aux DM physiques contre lui.","L":0,"S":0}]}
+  }
+}

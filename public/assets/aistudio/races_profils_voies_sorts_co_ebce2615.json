@@ -1,0 +1,44 @@
+{
+  "races": [
+    { "n": "Humain", "mod": "Aucun modificateur", "t": "Instinct de survie : lorsqu'une attaque amène à 0 PV, dégâts subis divisés par 2.", "traits": "Adaptable, courageux, ambitieux, pionnier." },
+    { "n": "Demi-elfe", "mod": "-2 CON, +2 SAG", "t": "Sang mêlé : choix entre Instinct de survie (humain) OU Lumière des étoiles (elfe).", "traits": "Diplomate, mélancolique, ouvert." },
+    { "n": "Elfe, haut", "mod": "-2 FOR, +2 CHA", "t": "Lumière des étoiles : la nuit étoilée n'est pour lui qu'une pénombre.", "traits": "Arrogant, esthète, respectueux des traditions arcaniques." },
+    { "n": "Elfe, sylvain", "mod": "-2 FOR, +2 DEX", "t": "Lumière des étoiles et +2 en discrétion naturelle en extérieur.", "traits": "Farouche, agile, profondément lié aux forêts." },
+    { "n": "Nain", "mod": "-2 DEX, +2 CON", "t": "Vision dans le noir 30 m, résistance naturelle aux poisons et maladies.", "traits": "Tenace, travailleur infatigable, rancunier mais fraternel." },
+    { "n": "Demi-orque", "mod": "+2 FOR, -2 INT, -2 CHA", "t": "Vision dans le noir 30 m.", "traits": "Brut de décoffrage, direct, loyal envers ses compagnons." },
+    { "n": "Halfelin", "mod": "-2 FOR, +2 DEX", "t": "+1 DEF native, +2 en discrétion. Armes lourdes à deux mains restreintes.", "traits": "Épicurien, discret, audacieux quand la situation l'exige." },
+    { "n": "Gnome", "mod": "-2 FOR, +2 INT", "t": "Don étrange : +5 aux tests d'INT OU un sort de rang 1 d'Ensorceleur utilisable en armure.", "traits": "Curieux, volubile, passionné de bricolage occulte." }
+  ],
+  "profils": [
+    { "n": "Arquebusier", "dv": 8, "mag": "-", "ar": "Armes 1M, distance, poudre. Maille max, pas de bouclier.", "eq": "Pétoire (DM 1d10), épée longue, dague, armure de cuir." },
+    { "n": "Barbare", "dv": 12, "mag": "-", "ar": "Toutes armes contact et jet. Cuir max, bouclier autorisé.", "eq": "Hache 2M (DM 2d6), 2 javelots, dague, cuir." },
+    { "n": "Barde", "dv": 6, "mag": "CHA", "ar": "Armes légères 1M. Cuir renforcé max, aucun bouclier.", "eq": "Rapière (DM 1d6, Crit 19-20), dague, luth, cuir." },
+    { "n": "Chevalier", "dv": 10, "mag": "-", "ar": "Toutes armes contact. Toutes armures et boucliers.", "eq": "Épée longue, grand bouclier, lance, demi-plaque." },
+    { "n": "Druide", "dv": 8, "mag": "SAG", "ar": "Bâton, dague, arc court. Cuir, petit bouclier bois.", "eq": "Bâton, dague, arc court, armure de cuir." },
+    { "n": "Ensorceleur", "dv": 4, "mag": "CHA", "ar": "Dague et bâton uniquement. Aucune armure physique.", "eq": "Bâton ferré, dague, potion de soin." },
+    { "n": "Forgesort", "dv": 6, "mag": "INT", "ar": "Armes simples, marteau, arbalète. Cuir simple.", "eq": "Dague, marteau, bâton, trousse d'alchimie." },
+    { "n": "Guerrier", "dv": 10, "mag": "-", "ar": "Toutes armes. Demi-plaque max et bouclier.", "eq": "Épée longue, épée 2M, grand bouclier, mailles." },
+    { "n": "Magicien", "dv": 4, "mag": "INT", "ar": "Dague et bâton. Aucune armure physique.", "eq": "Bâton, dague, grimoire, potion de soin." },
+    { "n": "Moine", "dv": 8, "mag": "SAG", "ar": "Aucune armure. Combat dévastateur à mains nues.", "eq": "Bâton ferré, chapelet." },
+    { "n": "Nécromancien", "dv": 4, "mag": "INT", "ar": "Dague et bâton. Aucune armure physique.", "eq": "Bâton sacrificiel, dague, potion." },
+    { "n": "Prêtre", "dv": 8, "mag": "SAG", "ar": "Armes contondantes 1M + arme sacrée. Maille, bouclier.", "eq": "Masse, petit bouclier, mailles." },
+    { "n": "Rôdeur", "dv": 8, "mag": "-", "ar": "Armes 1M et distance. Cuir renforcé max.", "eq": "Arc court, carquois, épée longue, cuir renforcé." },
+    { "n": "Voleur", "dv": 6, "mag": "-", "ar": "Armes légères 1M, distance. Cuir simple, pas de bouclier.", "eq": "Rapière, 5 dagues, crochets, cuir." }
+  ],
+  "sorts": [
+    { "n": "Projectile magique", "voie": "Magie destructrice", "rang": 1, "portee": "30 m", "duree": "Instantané", "L": 1, "t": "Flèche d'énergie infaillible infligeant [1d6 + INT] DM magiques." },
+    { "n": "Armure de mage", "voie": "Magie protectrice", "rang": 1, "portee": "Personnelle", "duree": "Combat", "L": 1, "t": "Bouclier arcanique accordant un bonus de +4 en DEF." },
+    { "n": "Arme enflammée", "voie": "Magie élémentaire", "rang": 1, "portee": "Contact", "duree": "Combat", "L": 1, "t": "Enflamme une arme : confère +1d6 DM de feu." },
+    { "n": "Saut de vent", "voie": "Voie de l'air", "rang": 1, "portee": "Personnelle", "duree": "Instantané", "L": 1, "t": "Bondit magiquement jusqu'à 15 mètres ou amortit une chute." },
+    { "n": "Sommeil", "voie": "Voie de l'envoûteur", "rang": 1, "portee": "20 m", "duree": "1d6 tours", "L": 1, "t": "Plonge une créature humanoïde dans un profond sommeil magique." },
+    { "n": "Soins légers", "voie": "Spiritualité", "rang": 1, "portee": "Contact", "duree": "Instantané", "L": 1, "t": "Restaure immédiatement [1d8 + SAG] Points de Vie." },
+    { "n": "Bénédiction", "voie": "Prière", "rang": 1, "portee": "Vue", "duree": "Combat", "L": 1, "t": "Accorde +1 à tous les tests d'attaque de ses compagnons." },
+    { "n": "Arme d'argent", "voie": "Foi", "rang": 1, "portee": "Contact", "duree": "Combat", "L": 1, "t": "Arme lumineuse infligeant +1d6 DM contre démons et morts-vivants." },
+    { "n": "Rayon débilitant", "voie": "Mort", "rang": 1, "portee": "20 m", "duree": "Combat", "L": 1, "t": "Rayon ténébreux infligeant -2 en Force à la cible." },
+    { "n": "Baies médicinales", "voie": "Nature", "rang": 1, "portee": "Contact", "duree": "24 h", "L": 1, "t": "Enchante 1d6 baies : chacune rend 1 PV quand consommée." },
+    { "n": "Enchevêtrement", "voie": "Végétaux", "rang": 1, "portee": "30 m", "duree": "Combat", "L": 1, "t": "Ronces jaillissantes retenant les ennemis sur 10 m de diamètre." },
+    { "n": "Hâte", "voie": "Magie des arcanes", "rang": 3, "portee": "Personnelle", "duree": "1d6 tours", "L": 1, "t": "Accélère le métabolisme : octroie une action supplémentaire par tour (attaque ou mouvement)." },
+    { "n": "Boule de feu", "voie": "Magie destructrice", "rang": 3, "portee": "30 m", "duree": "Instantané", "L": 1, "t": "Déflagration explosive de 10 m de diamètre infligeant 3d6 DM de feu." },
+    { "n": "Désintégration", "voie": "Magie destructrice", "rang": 5, "portee": "20 m", "duree": "Instantané", "L": 1, "t": "Rayon mortel infligeant [5d6 + INT] DM bruts. Réduit en poussière si la cible tombe à 0 PV." }
+  ]
+}

@@ -1,0 +1,1451 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Chroniques Oubliées – Compagnon PJ Pro</title>
+<style>
+:root{
+  --bg:#12100e;--p:#1b1713;--p2:#262019;--p3:#322a21;--ln:#423628;
+  --gold:#d4a84a;--gold2:#f3d48d;--red:#9c2a2b;--tx:#ede3d1;--mu:#9e907d;
+  --ok:#6fa85b;--ko:#cf5544;--accent:#c97d32;--sp:#7c5ebb;--mana:#3a69a1;--mana2:#8dbbff;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--tx);line-height:1.5;padding-bottom:86px;font-size:15px}
+h1,h2,h3,h4{font-family:Georgia,serif;font-weight:700}
+header{background:linear-gradient(180deg,#2b1510,var(--bg));border-bottom:1px solid var(--ln);padding:12px 16px;text-align:center;position:sticky;top:0;z-index:20}
+header h1{color:var(--gold);font-size:1.15rem;letter-spacing:.15em;text-transform:uppercase}
+header small{color:var(--mu);letter-spacing:.18em;font-size:.65rem;text-transform:uppercase}
+main{max-width:960px;margin:0 auto;padding:12px}
+
+nav#nav{position:fixed;left:0;right:0;bottom:0;background:#15120f;border-top:1px solid var(--ln);display:flex;justify-content:center;padding:6px 6px calc(6px + env(safe-area-inset-bottom));z-index:40}
+nav#nav button{flex:1;max-width:140px;background:none;border:0;color:var(--mu);font-size:.72rem;font-weight:600;padding:6px 2px;border-radius:10px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px}
+nav#nav button span{font-size:1.25rem;line-height:1}
+nav#nav button.on{color:var(--gold);background:rgba(212,168,74,.15)}
+
+.card{background:var(--p);border:1px solid var(--ln);border-radius:14px;padding:16px;margin-bottom:14px}
+.card h3{color:var(--gold);font-size:1.05rem;margin-bottom:10px}
+.hero{background:linear-gradient(135deg,#361917,#1c1813);border:1px solid var(--ln);border-radius:14px;padding:16px;margin-bottom:14px}
+.mu{color:var(--mu);font-size:.85rem}.ok{color:var(--ok)}.ko{color:var(--ko)}.wn{color:#e0a030;font-size:.85rem}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.sp{justify-content:space-between}
+button.b{background:var(--p2);color:var(--tx);border:1px solid var(--ln);border-radius:8px;padding:8px 12px;font-weight:600;font-size:.85rem;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px}
+button.b:hover{border-color:var(--gold)}button.gold{background:var(--gold);color:#1b1406;border-color:var(--gold)}button.red{background:var(--red);border-color:var(--red);color:#fff}button.sm{padding:4px 8px;min-height:28px;font-size:.78rem}button.purple{background:#3d2a58;border-color:#6c4b9b;color:#d7c4f7}button.mana-btn{background:#233a59;border-color:var(--mana);color:var(--mana2)}
+input,select,textarea{width:100%;padding:8px 10px;background:var(--p2);border:1px solid var(--ln);color:var(--tx);border-radius:8px;font-size:.92rem;margin:4px 0 8px;font-family:inherit}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--gold);outline-offset:-1px}
+label{font-size:.68rem;color:var(--mu);font-weight:700;text-transform:uppercase;letter-spacing:.05em;display:block}
+
+.g{display:grid;gap:8px;grid-template-columns:repeat(auto-fit,minmax(110px,1fr))}
+.g3{display:grid;gap:8px;grid-template-columns:repeat(3,1fr)}
+.g6{display:grid;gap:8px;grid-template-columns:repeat(6,1fr)}
+@media(max-width:700px){.g6{grid-template-columns:repeat(3,1fr)}}
+
+.tile{background:var(--p2);border:1px solid var(--ln);border-radius:10px;padding:8px 6px;text-align:center}
+.tile small{display:block;color:var(--mu);font-size:.65rem;text-transform:uppercase;letter-spacing:.06em}
+.tile b{display:block;font:700 1.35rem Georgia,serif;color:var(--gold2)}
+.tile i{font-style:normal;font-size:.82rem;color:var(--ok);font-weight:700}
+
+/* JAUGES */
+.v-zone{background:var(--p2);border:1px solid var(--ln);border-radius:12px;padding:12px;margin:8px 0}
+.v-bar{height:14px;background:#0c0a08;border-radius:7px;overflow:hidden;border:1px solid var(--ln);margin-bottom:6px}
+.v-bar div{height:100%;transition:width .2s}
+input[type=range].slider-ctrl{-webkit-appearance:none;width:100%;height:8px;background:#0d0b09;border-radius:5px;outline:none;border:1px solid var(--ln);margin:6px 0}
+input[type=range].slider-ctrl::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;background:var(--gold);border:2px solid #fff;cursor:pointer}
+input[type=range].slider-mana::-webkit-slider-thumb{background:var(--mana2);border-color:#fff}
+
+.opt{background:var(--p2);border:1px solid var(--ln);border-radius:10px;padding:11px;margin-bottom:8px}
+.opt.sel{border-color:var(--gold);background:rgba(212,168,74,.1)}
+.chain{padding:4px 0}
+.rk{display:flex;gap:10px;align-items:flex-start;padding:10px;border:1px solid var(--ln);border-radius:10px;margin-bottom:8px;background:var(--p2)}
+.rk i{font-style:normal;background:#0c0a08;border:2px solid var(--ln);border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;flex:none;font-weight:700;margin-top:2px}
+.rk.have{border-color:var(--ok);background:rgba(111,168,91,.08)}
+.rk.have i{background:var(--ok);color:#0a1707;border-color:var(--ok)}
+.rk.next{border-color:var(--gold);box-shadow:0 0 8px rgba(212,168,74,.25)}
+.rk.next i{border-color:var(--gold);color:var(--gold)}
+.rk.lock{opacity:.45}
+
+details.active-way{border:1.5px solid var(--gold);box-shadow:0 0 10px rgba(212,168,74,.15)}
+details summary{padding:12px;cursor:pointer;font:700 1rem Georgia,serif;color:var(--gold);list-style:none}
+details summary::-webkit-details-marker{display:none}
+details summary::after{content:"▾";float:right;color:var(--mu)}
+details[open] summary::after{content:"▴"}
+
+.drawer{position:fixed;top:0;right:-100%;bottom:0;width:100%;max-width:440px;background:var(--p);border-left:1px solid var(--gold);box-shadow:-6px 0 30px rgba(0,0,0,.85);z-index:60;transition:right .3s ease;display:flex;flex-direction:column}
+.drawer.open{right:0}
+.drawer-header{padding:14px;border-bottom:1px solid var(--ln);display:flex;justify-content:space-between;align-items:center}
+.drawer-body{padding:14px;overflow-y:auto;flex:1}
+
+.ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:70;align-items:center;justify-content:center;padding:14px}
+.ov.on{display:flex}
+.sheet{background:var(--p);border:1px solid var(--gold);border-radius:14px;width:100%;max-width:700px;max-height:92vh;display:flex;flex-direction:column}
+#mh{padding:14px 18px;color:var(--gold);font:700 1.1rem Georgia,serif;border-bottom:1px solid var(--ln)}
+.prog{height:5px;background:#0c0a08}.prog div{height:100%;background:var(--gold);transition:width .25s}
+#mb{padding:14px 18px;overflow-y:auto;flex:1}
+#mf{padding:12px 18px calc(12px + env(safe-area-inset-bottom));border-top:1px solid var(--ln);display:flex;gap:8px}
+
+.tag{display:inline-block;padding:2px 6px;border-radius:4px;font-size:.7rem;font-weight:600;margin-right:4px}
+.tag-l{background:#632c2d;color:#ffb8b8}.tag-s{background:#2a4563;color:#b0d7ff}.tag-pack{background:#543818;color:#f3d48d}
+.note-inp{background:#18130e;border:1px dashed var(--ln);color:#ddd;font-size:.8rem;padding:4px 8px;border-radius:6px;width:100%;margin-top:4px}
+.note-inp:focus{border-style:solid;outline:none;border-color:var(--gold)}
+.qty-num-input{width:60px;text-align:center;font-weight:700;color:var(--gold2);padding:2px 4px;margin:0;border-radius:6px}
+
+/* STYLES D'IMPRESSION SUR PAPIER (A4) */
+@media print {
+  body { background: #fff !important; color: #000 !important; font-size: 10pt !important; padding: 0 !important; }
+  header, nav, .drawer, .ov, .no-print, button, input[type=range], .v-bar { display: none !important; }
+  .card, .hero, .tile, .opt { background: #fff !important; border: 1px solid #444 !important; color: #000 !important; box-shadow: none !important; page-break-inside: avoid; margin-bottom: 8px !important; padding: 8px !important; }
+  h1, h2, h3, h4, b, i, span, small { color: #000 !important; }
+  input, textarea { border: none !important; background: transparent !important; color: #000 !important; font-weight: bold; }
+  .g6, .g3, .g { display: flex !important; flex-wrap: wrap !important; gap: 4px !important; }
+  .tile { flex: 1 1 14% !important; min-width: 80px; }
+  .opt { border-left: 3px solid #000 !important; }
+}
+</style>
+</head>
+<body>
+
+<header class="no-print">
+  <h1>Chroniques Oubliées</h1>
+  <small>Fiche &amp; Grimoire du Héros</small>
+</header>
+
+<main id="main"></main>
+<nav id="nav" class="no-print"></nav>
+
+<div class="ov" id="ov">
+  <div class="sheet">
+    <div id="mh"></div>
+    <div id="pg"></div>
+    <div id="mb"></div>
+    <div id="mf"></div>
+  </div>
+</div>
+
+<div class="drawer" id="drawer">
+  <div class="drawer-header">
+    <h3 id="dr-title" style="color:var(--gold)">Catalogue</h3>
+    <button class="b sm" onclick="closeDrawer()">✕ Fermer</button>
+  </div>
+  <div style="padding:10px 14px 0">
+    <input id="dr-q" placeholder="Rechercher..." oninput="drawCatalog()">
+  </div>
+  <div class="drawer-body" id="dr-body"></div>
+</div>
+
+<script type="application/json" id="pj-data">
+{
+  "CAR": ["FOR","DEX","CON","INT","SAG","CHA"],
+  "profils": [
+    {"id":"arquebusier","n":"Arquebusier","dv":8,"traits":"Précis, méthodique avec la poudre et les rouages.","eq":"Pétoire, épée longue, dague, cuir.","ar":"Armes 1M, distance et poudre. Chemise de maille max."},
+    {"id":"barbare","n":"Barbare","dv":12,"traits":"Instinctif, féroce, rustique et indomptable.","eq":"Hache à 2 mains, 2 javelots, dague, cuir.","ar":"Armes contact et jet. Cuir max, bouclier autorisé."},
+    {"id":"barde","n":"Barde","dv":6,"mag":"CHA","traits":"Charismatique, conteur d'histoires et agile.","eq":"Rapière, dague, instrument de musique, cuir.","ar":"Armes légères à 1 main. Cuir renforcé max."},
+    {"id":"chevalier","n":"Chevalier","dv":10,"traits":"Sens du devoir, protecteur juré et honorable.","eq":"Épée longue, grand bouclier, lance, demi-plaque.","ar":"Toutes armes contact. Toutes armures et boucliers."},
+    {"id":"druide","n":"Druide","dv":8,"mag":"SAG","traits":"Gardien de l'équilibre naturel, calme et sage.","eq":"Bâton, dague, arc court, cuir.","ar":"Bâton, dague, épieu, arc court. Cuir, bouclier bois."},
+    {"id":"ensorceleur","n":"Ensorceleur","dv":4,"mag":"CHA","traits":"Fier, imprévisible, magie innée spontanée.","eq":"Bâton ferré, dague, potion de soin.","ar":"Dague et bâton uniquement. Aucune armure physique."},
+    {"id":"forgesort","n":"Forgesort","dv":6,"mag":"INT","traits":"Ingénieux, alchimiste et artisan des arcanes.","eq":"Dague, marteau, bâton ferré, nécessaire d'artisan.","ar":"Armes simples, marteau, arbalète. Cuir simple max."},
+    {"id":"guerrier","n":"Guerrier","dv":10,"traits":"Discipline militaire, pragmatique et solide au front.","eq":"Épée longue, épée 2M, grand bouclier, cotte de mailles.","ar":"Toutes les armes. Demi-plaque max et bouclier."},
+    {"id":"magicien","n":"Magicien","dv":4,"mag":"INT","traits":"Érudit, studieux, voué aux secrets des arcanes.","eq":"Bâton, dague, grimoire, potion de soin.","ar":"Dague et bâton. Aucune armure physique."},
+    {"id":"moine","n":"Moine","dv":8,"mag":"SAG","traits":"Ascète, rigoureux, cherchant l'harmonie intérieure.","eq":"Bâton ferré, chapelet.","ar":"Aucune armure. Combat dévastateur à mains nues."},
+    {"id":"necromancien","n":"Nécromancien","dv":4,"mag":"INT","traits":"Fasciné par le trépas, stoïque et sans tabous.","eq":"Bâton ferré, dague sacrificielle, potion de soin.","ar":"Dague et bâton. Aucune armure physique."},
+    {"id":"pretre","n":"Prêtre","dv":8,"mag":"SAG","traits":"Dévoué à son panthéon, pilier spirituel de l'équipe.","eq":"Masse de guerre, petit bouclier, chemise de mailles.","ar":"Armes contondantes 1M + arme sacrée. Chemise de mailles, bouclier."},
+    {"id":"rodeur","n":"Rôdeur","dv":8,"traits":"Pisteur aguerri, discret, protecteur des grands espaces.","eq":"Arc court, carquois, épée longue, dague, cuir renforcé.","ar":"Armes 1M et distance. Cuir renforcé max."},
+    {"id":"voleur","n":"Voleur","dv":6,"traits":"Agile, opportuniste, esprit vif et observateur.","eq":"Rapière, 5 dagues, outils de crochetage, cuir.","ar":"Armes légères 1M, distance. Cuir simple max."}
+  ],
+  "races": [
+    {
+      "id":"demi-elfe","n":"Demi-elfe","d":"À la croisée de deux cultures.","b":{"CON":-2,"SAG":2},"t":"-2 CON, +2 SAG",
+      "traits":"Diplomate, mélancolique, ouvert et polyvalent.",
+      "cap":[{"n":"Sang mêlé","t":"Choix d'héritage humain ou elfique."}],
+      "opts":[
+        {"n":"Instinct de survie (humain)","t":"Si une attaque amène à 0 PV, dégâts subis divisés par 2 (min 1)."},
+        {"n":"Lumière des étoiles (elfe)","t":"Vision nocturne sous les étoiles équivalente à une pénombre légère."}
+      ]
+    },
+    {
+      "id":"demi-orque","n":"Demi-orque","d":"Force brute issue de son ascendance orque.","b":{"FOR":2,"INT":-2,"CHA":-2},"t":"+2 FOR, -2 INT, -2 CHA",
+      "traits":"Direct, loyal envers ses amis, prompt aux réactions vives.",
+      "cap":[{"n":"Vision dans le noir","t":"Vision dans le noir complet jusqu'à 30 m."}]
+    },
+    {
+      "id":"elfe-haut","n":"Elfe (Haut-Elfe)","d":"Être millénaire gracieux et érudit.","b":{"FOR":-2,"CHA":2},"t":"-2 FOR, +2 CHA",
+      "traits":"Esthète, fier, respectueux des traditions sacrées.",
+      "cap":[{"n":"Lumière des étoiles","t":"La nuit sous les étoiles n'est qu'une pénombre légère."}]
+    },
+    {
+      "id":"elfe-sylvain","n":"Elfe sylvain","d":"Chasseur insaisissable des forêts vierges.","b":{"FOR":-2,"DEX":2},"t":"-2 FOR, +2 DEX",
+      "traits":"Farouche, vif et profondément connecté à la nature.",
+      "cap":[{"n":"Sens forestiers","t":"Lumière des étoiles et +2 en discrétion naturelle."}]
+    },
+    {
+      "id":"gnome","n":"Gnome","d":"Inventeur ingénieux au grand cœur.","b":{"FOR":-2,"INT":2},"t":"-2 FOR, +2 INT",
+      "traits":"Curieux, volubile et passionné de mécanismes insolites.",
+      "cap":[{"n":"Don étrange","t":"Talent inné pour l'esprit ou la magie."}],
+      "opts":[
+        {"n":"Génie intellectuel (+5 INT)","t":"+5 à tous les tests basés sur l'Intelligence."},
+        {"n":"Sort inné d'Ensorceleur","t":"Lance un sort de rang 1 d'Ensorceleur même en armure de mailles."}
+      ]
+    },
+    {
+      "id":"halfelin","n":"Halfelin","d":"Petit peuple joyeux, discret et agile.","b":{"FOR":-2,"DEX":2},"t":"-2 FOR, +2 DEX","defb":1,
+      "traits":"Épicurien, discret et plein de bravoure insoupçonnée.",
+      "cap":[{"n":"Petite taille","t":"+1 DEF native, +2 discrétion. Armes lourdes restreintes."}]
+    },
+    {
+      "id":"humain","n":"Humain","d":"Polyvalent, déterminé et résilient.","b":{},"t":"Aucun modificateur",
+      "traits":"Ambitieux, courageux, pionnier et adaptable.",
+      "cap":[{"n":"Instinct de survie","t":"Si une attaque amène à 0 PV, dégâts divisés par 2 (min 1)."}]
+    },
+    {
+      "id":"nain","n":"Nain","d":"Solide comme la roche et fidèle à sa parole.","b":{"DEX":-2,"CON":2},"t":"-2 DEX, +2 CON",
+      "traits":"Tenace, travailleur infatigable, rancunier mais loyal.",
+      "cap":[{"n":"Vision dans le noir","t":"Vision dans le noir à 30 m et résistance aux poisons."}]
+    }
+  ],
+  "armes": [
+    {"n":"Dague","t":"Contact","dm":"1d4","crit":"20","por":"5 m","props":"Légère, jet possible"},
+    {"n":"Épée courte","t":"Contact","dm":"1d6","crit":"20","por":"-","props":"Légère, vive"},
+    {"n":"Rapière","t":"Contact","dm":"1d6","crit":"19-20","por":"-","props":"Précise, critique amélioré"},
+    {"n":"Bâton ferré","t":"Contact","dm":"1d6","crit":"20","por":"-","props":"Polyvalente"},
+    {"n":"Masse de guerre","t":"Contact","dm":"1d6","crit":"20","por":"-","props":"Contondante"},
+    {"n":"Hache à 1 main","t":"Contact","dm":"1d8","crit":"20","por":"-","props":"Tranchante"},
+    {"n":"Épée longue","t":"Contact","dm":"1d8","crit":"20","por":"-","props":"Polyvalente classique"},
+    {"n":"Épée à 2 mains","t":"Contact","dm":"2d6","crit":"20","por":"-","props":"Lourde, 2 mains"},
+    {"n":"Hache à 2 mains","t":"Contact","dm":"2d6","crit":"20","por":"-","props":"Deux mains brutale"},
+    {"n":"Arc court","t":"Distance","dm":"1d6","crit":"20","por":"30 m","props":"Cadence rapide"},
+    {"n":"Arc long","t":"Distance","dm":"1d8","crit":"20","por":"50 m","props":"FOR min 13 requis"},
+    {"n":"Arbalète légère","t":"Distance","dm":"2d4","crit":"20","por":"30 m","props":"Recharge 1 action simple"},
+    {"n":"Pétoire","t":"Poudre","dm":"1d10","crit":"20","por":"20 m","props":"Recharge limitée"},
+    {"n":"Mousquet","t":"Poudre","dm":"2d6","crit":"20","por":"50 m","props":"Longue portée à poudre"}
+  ],
+  "armures": [
+    {"n":"Tissu matelassé","t":"Corps","def":1,"props":"Aucun encombrement"},
+    {"n":"Cuir","t":"Corps","def":2,"props":"Protection souple"},
+    {"n":"Cuir renforcé","t":"Corps","def":3,"props":"Renforts cloutés"},
+    {"n":"Chemise de mailles","t":"Corps","def":4,"props":"Mailles de fer"},
+    {"n":"Cotte de mailles","t":"Corps","def":5,"props":"Mailles intégrales"},
+    {"n":"Demi-plaque","t":"Corps","def":6,"props":"Plaques d'acier"},
+    {"n":"Plaque complète","t":"Corps","def":8,"props":"Chevalier uniquement"},
+    {"n":"Petit bouclier","t":"Bouclier","def":1,"props":"Maniable"},
+    {"n":"Grand bouclier","t":"Bouclier","def":2,"props":"Couverture optimale"}
+  ],
+  "biens": [
+    {"n":"Pack d'aventurier complet","desc":"Contient sac renforcé, corde 15m & grappin, 5 torches, briquet, 7 rations, gourde, paillasse portable et potion de soin.","isPack":true},
+    {"n":"Tente (1 couchage)","desc":"Tente individuelle légère pour 1 personne avec piquets."},
+    {"n":"Tente (2 couchages)","desc":"Tente de bivouac standard pour 2 compagnons."},
+    {"n":"Tente (4 couchages)","desc":"Grande tente d'expédition pour 4 aventuriers."},
+    {"n":"Tente (6 couchages)","desc":"Tente de campement spacieuse pour 6 personnes."},
+    {"n":"Paillasse portable & couverture","desc":"Couchage rembourré transportable et couverture de voyage."},
+    {"n":"Corde (15 m) & grappin","desc":"Chanvre solide avec crochet d'acier"},
+    {"n":"Torches de résine (x3)","desc":"Éclairent à 10 m pendant 1h","isConsumable":true,"q":3},
+    {"n":"Lanterne à huile","desc":"Éclairage focalisé de 6h avec fiole"},
+    {"n":"Outils de crochetage","desc":"Essentiels pour ouvrir les verrous"},
+    {"n":"Briquet à silex et amadou","desc":"Allume un feu rapidement"},
+    {"n":"Potion de soins légers","desc":"Rend immédiatement 1d8 PV","isConsumable":true,"q":1},
+    {"n":"Rations de voyage (1 sem.)","desc":"Vivres de longue conservation","isConsumable":true,"q":7},
+    {"n":"Sac à dos renforcé","desc":"Toile imperméabilisée"},
+    {"n":"Gourde d'eau en cuir (1L)","desc":"Pleine d'eau fraîche","isConsumable":true,"q":1},
+    {"n":"Matériel d'écriture","desc":"Plume, encre indélébile et rouleau"},
+    {"n":"Trousse de premiers secours","desc":"Bandages et onguents propres","isConsumable":true,"q":3}
+  ],
+  "sortsCatalogue": [
+    {"n":"Projectile magique","voie":"Arcanes","rang":1,"portee":"30 m","duree":"Instantané","L":1,"t":"Flèche d'énergie infaillible infligeant [1d6 + INT] DM magiques."},
+    {"n":"Armure de mage","voie":"Protection","rang":1,"portee":"Personnelle","duree":"Combat","L":1,"t":"Bouclier arcanique accordant un bonus de +4 en DEF."},
+    {"n":"Arme enflammée","voie":"Éléments","rang":1,"portee":"Contact","duree":"Combat","L":1,"t":"Enflamme une arme : confère +1d6 DM de feu supplémentaires."},
+    {"n":"Saut de vent","voie":"Air","rang":1,"portee":"Personnelle","duree":"Instantané","L":1,"t":"Bondit magiquement jusqu'à 15 mètres ou amortit une chute."},
+    {"n":"Sommeil","voie":"Envoûtement","rang":1,"portee":"20 m","duree":"1d6 tours","L":1,"t":"Plonge une créature humanoïde dans un profond sommeil magique."},
+    {"n":"Soins légers","voie":"Spiritualité","rang":1,"portee":"Contact","duree":"Instantané","L":1,"t":"Restaure immédiatement [1d8 + SAG] Points de Vie."},
+    {"n":"Bénédiction","voie":"Prière","rang":1,"portee":"Vue","duree":"Combat","L":1,"t":"Accorde +1 à tous les tests d'attaque de ses compagnons."},
+    {"n":"Arme d'argent","voie":"Foi","rang":1,"portee":"Contact","duree":"Combat","L":1,"t":"L'arme devient lumineuse et inflige +1d6 DM contre démons et mort-vivants."},
+    {"n":"Rayon débilitant","voie":"Mort","rang":1,"portee":"20 m","duree":"Combat","L":1,"t":"Rayon ténébreux infligeant -2 en Force à la cible."},
+    {"n":"Baies médicinales","voie":"Nature","rang":1,"portee":"Contact","duree":"24 h","L":1,"t":"Enchante 1d6 baies : chacune rend 1 PV quand elle est consommée."},
+    {"n":"Enchevêtrement","voie":"Végétaux","rang":1,"portee":"30 m","duree":"Combat","L":1,"t":"Ronces jaillissantes retenant les ennemis dans une zone de 10 m de diamètre."},
+    {"n":"Boule de feu","voie":"Destruction","rang":3,"portee":"30 m","duree":"Instantané","L":1,"t":"Déflagration explosive de 10 m de diamètre infligeant 3d6 DM de feu."}
+  ],
+  "voies": {
+    "barbare-brute": {"nom":"Voie de la brute","profil":"barbare","r":[{"n":"Argument de taille","t":"Ajoute son Mod. de FOR à ses PV Max et aux tests d'intimidation.","L":0,"S":0}]},
+    "barbare-primitif": {"nom":"Voie du primitif","profil":"barbare","r":[{"n":"Armure de vent","t":"Sans armure, ajoute son Rang dans cette voie à sa valeur de DEF.","L":0,"S":0}]},
+    "barbare-rage": {"nom":"Voie de la rage","profil":"barbare","r":[{"n":"Rage du berserk","t":"Furie : gagne +2 en attaque et +1d6 aux DM, mais subit -2 en DEF.","L":1,"S":0}]},
+    "barbare-pourfendeur": {"nom":"Voie du pourfendeur","profil":"barbare","r":[{"n":"Frappe lourde","t":"Ajoute +2 aux dégâts avec toutes les armes tenues à deux mains.","L":0,"S":0}]},
+    "barbare-survivant": {"nom":"Voie du survivant","profil":"barbare","r":[{"n":"Endurance rustique","t":"Bonus de +2 en CON pour résister au climat, faim et fatigue.","L":0,"S":0}]},
+
+    "guerrier-combat": {"nom":"Voie du combat","profil":"guerrier","r":[{"n":"Initiative héroïque","t":"Ajoute son niveau d'expérience à son score d'Initiative.","L":0,"S":0}]},
+    "guerrier-resistance": {"nom":"Voie de la résistance","profil":"guerrier","r":[{"n":"Robustesse","t":"Gagne +3 PV max au Rang 1, puis +3 aux rangs 3 et 5.","L":0,"S":0}]},
+    "guerrier-bouclier": {"nom":"Voie du bouclier","profil":"guerrier","r":[{"n":"Maniement du bouclier","t":"Ajoute +1 supplémentaire à la valeur de DEF de son bouclier.","L":0,"S":0}]},
+    "guerrier-maitre": {"nom":"Voie du maître d'armes","profil":"guerrier","r":[{"n":"Arme de prédilection","t":"Choisit une arme : bonus permanent de +1 en attaque avec celle-ci.","L":0,"S":0}]},
+    "guerrier-chef": {"nom":"Voie du chef de guerre","profil":"guerrier","r":[{"n":"Ordre de bataille","t":"Sacrifie son mouvement pour donner +2 en attaque à un allié au contact.","L":1,"S":0}]},
+
+    "voleur-spadassin": {"nom":"Voie du spadassin","profil":"voleur","r":[{"n":"Attaque en finesse","t":"Utilise l'Attaque à distance pour frapper avec dague/rapière au contact.","L":0,"S":0}]},
+    "voleur-assassin": {"nom":"Voie de l'assassin","profil":"voleur","r":[{"n":"Attaque sournoise","t":"+1d6 aux DM au contact si la cible est prise en tenaille ou surprise.","L":0,"S":0}]},
+    "voleur-aventurier": {"nom":"Voie de l'aventurier","profil":"voleur","r":[{"n":"Sens du danger","t":"Ne peut jamais être pris au dépourvu lors d'un tour de surprise.","L":0,"S":0}]},
+    "voleur-deplacement": {"nom":"Voie du déplacement","profil":"voleur","r":[{"n":"Agilité féline","t":"Bonus de +2 à tous les tests de DEX acrobatiques ou de saut.","L":0,"S":0}]},
+    "voleur-roublard": {"nom":"Voie du roublard","profil":"voleur","r":[{"n":"Doigts agiles","t":"Bonus de +2 aux tests de crochetage et d'escamotage à mains nues.","L":0,"S":0}]},
+
+    "magicien-destructrice": {"nom":"Voie de la magie destructrice","profil":"magicien","r":[{"n":"Projectile magique","t":"Trait magique infaillible infligeant [1d6 + INT] DM magiques à 30 m.","L":1,"S":1}]},
+    "magicien-protectrice": {"nom":"Voie de la magie protectrice","profil":"magicien","r":[{"n":"Armure de mage","t":"Protection arcanique accordant un bonus de +4 en DEF pour tout le combat.","L":1,"S":1}]},
+    "magicien-elementaire": {"nom":"Voie de la magie élémentaire","profil":"magicien","r":[{"n":"Arme enflammée","t":"Enchante une arme : inflige +1d6 DM élémentaires de feu pour le combat.","L":1,"S":1}]},
+    "magicien-arcanes": {"nom":"Voie de la magie des arcanes","profil":"magicien","r":[{"n":"Agrandissement","t":"Cible agrandie : +2 en FOR et aux DM, mais -2 en DEX.","L":1,"S":1}]},
+    "magicien-universelle": {"nom":"Voie de la magie universelle","profil":"magicien","r":[{"n":"Lumière & Détection","t":"Illumine un objet à volonté et perçoit la magie dans un rayon de 10 m.","L":1,"S":1}]},
+
+    "pretre-foi": {"nom":"Voie de la foi","profil":"pretre","r":[{"n":"Arme d'argent","t":"L'arme sacrée inflige +1d6 DM contre les mort-vivants et démons.","L":1,"S":1}]},
+    "pretre-priere": {"nom":"Voie de la prière","profil":"pretre","r":[{"n":"Bénédiction","t":"Bénit ses compagnons en leur conférant +1 en attaque pour le combat.","L":1,"S":1}]},
+    "pretre-spiritualite": {"nom":"Voie de la spiritualité","profil":"pretre","r":[{"n":"Soin modéré","t":"Imposition des mains : restaure [1d8 + SAG] PV à un compagnon au contact.","L":1,"S":1}]},
+    "pretre-guerresainte": {"nom":"Voie de la guerre sainte","profil":"pretre","r":[{"n":"Arme bénie","t":"Relance tous les résultats de 1 aux dégâts avec son arme sacrée.","L":0,"S":0}]},
+    "pretre-jugement": {"nom":"Voie du jugement","profil":"pretre","r":[{"n":"Châtiment céleste","t":"Fait choir la foudre divine sur un mécréant pour 1d6 DM sacrés.","L":1,"S":1}]},
+
+    "arquebusier-artilleur": {"nom":"Voie de l'artilleur","profil":"arquebusier","r":[{"n":"Tir d'artillerie","t":"Augmente la portée de toutes ses armes à feu de +10 mètres.","L":0,"S":0}]},
+    "arquebusier-bataille": {"nom":"Voie du champ de bataille","profil":"arquebusier","r":[{"n":"Action concertée","t":"Une fois par tour, l'Arquebusier peut échanger son Initiative avec un allié.","L":0,"S":0}]},
+    "arquebusier-precision": {"nom":"Voie de la précision","profil":"arquebusier","r":[{"n":"Visée millimétrée","t":"Sacrifie son mouvement pour obtenir un bonus de +2 à son tir à distance.","L":1,"S":0}]},
+    "arquebusier-explosifs": {"nom":"Voie des explosifs","profil":"arquebusier","r":[{"n":"Grenade à poudre","t":"Lance une bombe improvisée à 15 m infligeant 1d6 DM de zone (rayon 3 m).","L":1,"S":0}]},
+    "arquebusier-pistolero": {"nom":"Voie du pistolero","profil":"arquebusier","r":[{"n":"Dégainer rapide","t":"Peut dégainer ou ranger son arme à feu comme une action gratuite.","L":0,"S":0}]},
+
+    "barde-escrime": {"nom":"Voie de l'escrime","profil":"barde","r":[{"n":"Attaque en finesse","t":"Utilise l'Attaque à distance pour frapper au contact avec une rapière.","L":0,"S":0}]},
+    "barde-seduction": {"nom":"Voie de la séduction","profil":"barde","r":[{"n":"Charme naturel","t":"Bonus de +2 aux tests de Charisme de persuasion et séduction.","L":0,"S":0}]},
+    "barde-saltimbanque": {"nom":"Voie du saltimbanque","profil":"barde","r":[{"n":"Acrobate","t":"Bonus de +2 aux tests de DEX pour sauter et garder l'équilibre.","L":0,"S":0}]},
+    "barde-musique": {"nom":"Voie de la musique","profil":"barde","r":[{"n":"Chant du héros","t":"Air martial : accorde +1 en attaque à tous ses alliés à portée de voix.","L":1,"S":1}]},
+    "barde-vagabond": {"nom":"Voie du vagabond","profil":"barde","r":[{"n":"Savoir universel","t":"Réussit automatiquement un test d'érudition ou de rumeur par partie.","L":0,"S":0}]},
+
+    "chevalier-guerre": {"nom":"Voie de la guerre","profil":"chevalier","r":[{"n":"Armure sur mesure","t":"L'armure est optimisée : gagne +1 en DEF avec les armures métalliques.","L":0,"S":0}]},
+    "chevalier-cavalier": {"nom":"Voie du cavalier","profil":"chevalier","r":[{"n":"Monture fidèle","t":"Reçoit un destrier dressé pour le combat en parfaite harmonie.","L":0,"S":0}]},
+    "chevalier-meneur": {"nom":"Voie du meneur d'hommes","profil":"chevalier","r":[{"n":"Exhortation","t":"Donne son Mod. de CHA au jet d'attaque d'un allié au contact.","L":1,"S":0}]},
+    "chevalier-heros": {"nom":"Voie du héros","profil":"chevalier","r":[{"n":"Courage inébranlable","t":"Immunité totale à la panique et aux effets magiques d'effroi.","L":0,"S":0}]},
+    "chevalier-noblesse": {"nom":"Voie de la noblesse","profil":"chevalier","r":[{"n":"Prestance seigneuriale","t":"Ajoute son Mod. de CHA à sa valeur d'Initiative.","L":0,"S":0}]},
+
+    "druide-animaux": {"nom":"Voie des animaux","profil":"druide","r":[{"n":"Ami des bêtes","t":"Communique avec les animaux et apaise leur hostilité naturelle.","L":0,"S":0}]},
+    "druide-fauve": {"nom":"Voie du fauve","profil":"druide","r":[{"n":"Sens de la bête","t":"Vision nocturne et odorat fin accordant +2 aux tests de vigilance.","L":0,"S":0}]},
+    "druide-nature": {"nom":"Voie de la nature","profil":"druide","r":[{"n":"Baies médicinales","t":"Enchante 1d6 baies rendant chacune 1 PV une fois ingérée.","L":1,"S":1}]},
+    "druide-vegetaux": {"nom":"Voie des végétaux","profil":"druide","r":[{"n":"Enchevêtrement","t":"Ronces jaillissantes immobilisant les ennemis dans une zone de 10 m.","L":1,"S":1}]},
+    "druide-elements": {"nom":"Voie des éléments","profil":"druide","r":[{"n":"Bourrasque","t":"Souffle puissant capable de déséquilibrer ou repousser une cible.","L":1,"S":1}]},
+
+    "ensorceleur-air": {"nom":"Voie de l'air","profil":"ensorceleur","r":[{"n":"Saut de vent","t":"Bondit jusqu'à 15 m ou amortit une chute sans subir de dégâts.","L":1,"S":1}]},
+    "ensorceleur-divination": {"nom":"Voie de la divination","profil":"ensorceleur","r":[{"n":"6ème sens","t":"Prévoit les événements : bonus de +1 en Initiative et en DEF par rang.","L":0,"S":0}]},
+    "ensorceleur-envouteur": {"nom":"Voie de l'envoûteur","profil":"ensorceleur","r":[{"n":"Sommeil","t":"Plonge une créature humanoïde dans un profond sommeil magique.","L":1,"S":1}]},
+    "ensorceleur-invocation": {"nom":"Voie de l'invocation","profil":"ensorceleur","r":[{"n":"Serviteur invisible","t":"Matérialise une force invisible capable d'effectuer des tâches légères.","L":1,"S":1}]},
+    "ensorceleur-sang": {"nom":"Voie du sang magique","profil":"ensorceleur","r":[{"n":"Flammes spontanées","t":"Enflamme un objet ou crée une gerbe d'étincelles au contact.","L":0,"S":1}]},
+
+    "forgesort-artefacts": {"nom":"Voie des artefacts","profil":"forgesort","r":[{"n":"Objet renforcé","t":"Améliore une arme (+1 att) ou armure (+1 DEF) pour la journée.","L":1,"S":0}]},
+    "forgesort-elixirs": {"nom":"Voie des élixirs","profil":"forgesort","r":[{"n":"Élixir de vigueur","t":"Fabrique une potion conférant +2 aux jets de FOR ou DEX temporairement.","L":1,"S":0}]},
+    "forgesort-metal": {"nom":"Voie du métal","profil":"forgesort","r":[{"n":"Arme fétiche","t":"Le marteau ou l'arme du Forgesort inflige +1d6 DM d'énergie arcanique.","L":0,"S":0}]},
+    "forgesort-runes": {"nom":"Voie des runes","profil":"forgesort","r":[{"n":"Rune de garde","t":"Grave une rune qui explose au passage d'un ennemi (2d6 DM).","L":1,"S":1}]},
+    "forgesort-automates": {"nom":"Voie des automates","profil":"forgesort","r":[{"n":"Familier mécanique","t":"Construit un petit automate d'espionnage agile et discret.","L":0,"S":0}]},
+
+    "moine-energie": {"nom":"Voie de l'énergie vitale","profil":"moine","r":[{"n":"Corps de fer","t":"Armure naturelle égale à son Modificateur de Sagesse.","L":0,"S":0}]},
+    "moine-maitrise": {"nom":"Voie de la maîtrise","profil":"moine","r":[{"n":"Frappe à mains nues","t":"Les coups à mains nues infligent 1d6 DM réels (au lieu de 1d4 temporaires).","L":0,"S":0}]},
+    "moine-meditation": {"nom":"Voie de la méditation","profil":"moine","r":[{"n":"Sérénité","t":"Immunité totale aux provocations, paniques et illusions déstabilisantes.","L":0,"S":0}]},
+    "moine-vent": {"nom":"Voie du vent","profil":"moine","r":[{"n":"Foulée rapide","t":"La vitesse de déplacement du moine augmente de +5 mètres par tour.","L":0,"S":0}]},
+    "moine-combat": {"nom":"Voie du combat loyal","profil":"moine","r":[{"n":"Déviation de projectiles","t":"Dévie une flèche ou projectile avec un test de DEX opposé réussi.","L":0,"S":0}]},
+
+    "necromancien-mort": {"nom":"Voie de la mort","profil":"necromancien","r":[{"n":"Rayon débilitant","t":"Projette un trait sombre réduisant de -2 la Force de sa victime.","L":1,"S":1}]},
+    "necromancien-outretombe": {"nom":"Voie de l'outre-tombe","profil":"necromancien","r":[{"n":"Animation des morts","t":"Anime le squelette ou cadavre d'une créature morte récemment.","L":1,"S":1}]},
+    "necromancien-sombre": {"nom":"Voie de la sombre magie","profil":"necromancien","r":[{"n":"Terreur spectrale","t":"Frappe d'effroi une cible qui subit -2 à toutes ses actions.","L":1,"S":1}]},
+    "necromancien-demon": {"nom":"Voie du démon","profil":"necromancien","r":[{"n":"Pacte ténébreux","t":"Sacrifie 2 PV pour obtenir +3 sur son prochain test d'attaque magique.","L":0,"S":1}]},
+    "necromancien-putrefaction": {"nom":"Voie de la putréfaction","profil":"necromancien","r":[{"n":"Toucher putride","t":"Attaque magique au contact infligeant 1d6 DM d'acide et décomposition.","L":1,"S":1}]},
+
+    "rodeur-archer": {"nom":"Voie de l'archer","profil":"rodeur","r":[{"n":"Tir parfait","t":"Ignore les pénalités de tir liées à la portée ou au vent pour son prochain jet.","L":1,"S":0}]},
+    "rodeur-animal": {"nom":"Voie du compagnon animal","profil":"rodeur","r":[{"n":"Fidèle compagnon","t":"Reçoit un loup ou rapace loyal qui combat à ses côtés.","L":0,"S":0}]},
+    "rodeur-escarmouche": {"nom":"Voie de l'escarmouche","profil":"rodeur","r":[{"n":"Attaque éclair","t":"Ajoute son Mod. de DEX en attaque et aux DM lors d'un assaut éclair au contact.","L":1,"S":0}]},
+    "rodeur-survie": {"nom":"Voie de la survie","profil":"rodeur","r":[{"n":"Sens affûtés","t":"Bonus de +2 à tous les tests de pistage, de survie et d'orientation.","L":0,"S":0}]},
+    "rodeur-traqueur": {"nom":"Voie du traqueur","profil":"rodeur","r":[{"n":"Ennemi juré","t":"Choisit un type d'ennemi : gagne +1d6 aux DM physiques contre lui.","L":0,"S":0}]}
+  }
+}
+</script>
+
+<script>
+const DB = JSON.parse(document.getElementById("pj-data").textContent);
+DB.mod = v => Math.floor((v - 10) / 2);
+
+const LS = {
+  get: (k, def) => { try { const v = JSON.parse(localStorage.getItem(k)); return v ?? def; } catch(e){ return def; } },
+  set: (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch(e){ return false; } }
+};
+
+let pj = LS.get("co_pj_local", null);
+let curTab = "fiche";
+let catalogMode = "biens";
+
+function savePJ(){ if(pj) LS.set("co_pj_local", pj); }
+
+function calcStats(p){
+  if(!p) return null;
+  const m = {};
+  DB.CAR.forEach(c => {
+    const total = (p.base[c] || 10) + (p.rb[c] || 0);
+    m[c] = DB.mod(total);
+  });
+  const pr = DB.profils.find(x => x.id === p.profil) || {};
+  const rc = DB.races.find(x => x.id === p.race) || {};
+  const arm = DB.armures.find(a => a.n === p.arm && a.t === "Corps");
+  const bou = DB.armures.find(a => a.n === p.bou && a.t === "Bouclier");
+
+  const def = 10 + m.DEX + (arm ? arm.def : 0) + (bou ? bou.def : 0) + (rc.defb || 0) + (p.bonus?.def || 0);
+  const init = ((p.base.DEX || 10) + (p.rb.DEX || 0)) + (p.bonus?.init || 0);
+  const ct = p.level + m.FOR;
+  const di = p.level + m.DEX;
+  const mg = pr.mag ? (p.level + m[pr.mag]) : null;
+
+  // Calcul Points de Mana Max (Option Compagnon CO : Niveau x 2 + Mod. Magie)
+  const pmCalculated = pr.mag ? Math.max(1, p.level * 2 + (m[pr.mag] || 0)) : 0;
+  const pmMax = (p.pmMaxManual !== null && p.pmMaxManual !== undefined) ? p.pmMaxManual : pmCalculated;
+
+  // Déplacement officiel : 10 mètres par action de mouvement (20 m au pas de course)
+  let moveBase = 10;
+  if(p.profil === "moine") moveBase += 5; // Bonus voie du vent moine
+  const deplacement = (p.moveBonus || 0) + moveBase;
+
+  return { m, def, init, ct, di, mg, mag: pr.mag, hpMax: (p.hpMaxManual ?? p.hpMaxAuto) + (p.bonus?.pv || 0), pmMax, deplacement };
+}
+
+const TABS = [
+  ["fiche","Héros","🛡️"],
+  ["voies","Voies","🌳"],
+  ["sorts","Grimoire","✨"],
+  ["sac","Sac & Matériel","🎒"]
+];
+
+function renderNav(){
+  document.getElementById("nav").innerHTML = TABS.map(([k,l,i]) => `
+    <button class="${k === curTab ? "on" : ""}" onclick="switchTab('${k}')">
+      <span>${i}</span>${l}
+    </button>
+  `).join("");
+}
+
+function switchTab(t){
+  curTab = t;
+  renderNav();
+  const m = document.getElementById("main");
+  if(t === "fiche") m.innerHTML = viewFiche();
+  else if(t === "voies") m.innerHTML = viewVoies();
+  else if(t === "sorts") m.innerHTML = viewSorts();
+  else if(t === "sac") m.innerHTML = viewSac();
+  window.scrollTo(0,0);
+}
+
+/* ==================== VUE 1 : FICHE DU HÉROS ==================== */
+function viewFiche(){
+  if(!pj) return viewWelcome();
+  const st = calcStats(pj);
+  const pr = DB.profils.find(x => x.id === pj.profil) || { n: pj.profil };
+  const rc = DB.races.find(x => x.id === pj.race) || { n: pj.race };
+
+  // Santé
+  const hpPct = Math.max(0, Math.min(100, Math.round(100 * pj.hp / Math.max(1, st.hpMax))));
+  const hpCol = hpPct > 50 ? "var(--ok)" : hpPct > 25 ? "var(--accent)" : "var(--ko)";
+
+  // Mana
+  pj.pm = pj.pm !== undefined ? pj.pm : st.pmMax;
+  const pmPct = st.pmMax > 0 ? Math.max(0, Math.min(100, Math.round(100 * pj.pm / st.pmMax))) : 0;
+
+  // Récupération des sorts & capacités pour l'accès direct en page 1
+  const allSpells = getHeroSpells();
+
+  return `
+    <div class="hero">
+      <div class="row sp">
+        <div>
+          <h2>${escapeHTML(pj.name)}</h2>
+          <span class="mu">${escapeHTML(rc.n)} • ${escapeHTML(pr.n)} • Niveau ${pj.level}</span>
+        </div>
+        <div class="row no-print">
+          <button class="b sm gold" onclick="window.print()">🖨️ Imprimer la Fiche</button>
+          <button class="b sm" onclick="openLevelUpModal()">⬆️ Niveau Supérieur</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- JAUGE DE VIE (PV) -->
+    <div class="card">
+      <div class="row sp">
+        <h3 style="margin:0">Points de Vie (PV)</h3>
+        <div class="row">
+          <label style="margin:0">Actuel :</label>
+          <input type="number" value="${pj.hp}" min="0" max="${st.hpMax}" style="width:65px;text-align:center;font-weight:700" onchange="setHpDirect(this.value)">
+          <span style="font-weight:700">/</span>
+          <input type="number" value="${st.hpMax}" min="1" title="Modifier le PV Max" style="width:65px;text-align:center;color:var(--gold2);font-weight:700" onchange="setHpMax(this.value)">
+        </div>
+      </div>
+      <div class="v-zone">
+        <div class="v-bar"><div style="width:${hpPct}%;background:${hpCol}"></div></div>
+        <input type="range" class="slider-ctrl no-print" min="0" max="${st.hpMax}" value="${pj.hp}" oninput="setHpDirect(this.value)">
+        <div class="row sp mu" style="font-size:.72rem">
+          <span>0 PV (Inconscient/Mort)</span>
+          <span>${hpPct}% de vitalité</span>
+          <span>${st.hpMax} PV Max</span>
+        </div>
+      </div>
+      <div class="row no-print">
+        ${[-5,-1,+1,+5].map(v => `<button class="b sm" style="flex:1" onclick="alterHp(${v})">${v>0?"+":""}${v}</button>`).join("")}
+        <button class="b sm gold" onclick="alterHp(9999)">Soins Complets</button>
+      </div>
+    </div>
+
+    <!-- JAUGE DE POINTS DE SORT / MANA (PM) -->
+    ${st.mag ? `
+      <div class="card" style="border-color:var(--mana)">
+        <div class="row sp">
+          <h3 style="margin:0;color:var(--mana2)">Points de Sort / Mana (PM)</h3>
+          <div class="row">
+            <label style="margin:0">Actuel :</label>
+            <input type="number" value="${pj.pm}" min="0" max="${st.pmMax}" style="width:65px;text-align:center;font-weight:700;color:var(--mana2)" onchange="setPmDirect(this.value)">
+            <span style="font-weight:700">/</span>
+            <input type="number" value="${st.pmMax}" min="1" title="Modifier le PM Max" style="width:65px;text-align:center;color:var(--mana2);font-weight:700" onchange="setPmMax(this.value)">
+          </div>
+        </div>
+        <div class="v-zone">
+          <div class="v-bar"><div style="width:${pmPct}%;background:var(--mana)"></div></div>
+          <input type="range" class="slider-ctrl slider-mana no-print" min="0" max="${st.pmMax}" value="${pj.pm}" oninput="setPmDirect(this.value)">
+          <div class="row sp mu" style="font-size:.72rem">
+            <span>0 PM (Épuisé)</span>
+            <span>${pmPct}% d'énergie arcanique</span>
+            <span>${st.pmMax} PM Max (Règle Compagnon)</span>
+          </div>
+        </div>
+        <div class="row no-print">
+          ${[-3,-1,+1,+3].map(v => `<button class="b sm" style="flex:1" onclick="alterPm(${v})">${v>0?"+":""}${v}</button>`).join("")}
+          <button class="b sm mana-btn" onclick="alterPm(9999)">Méditation / Repos Complet</button>
+        </div>
+      </div>
+    ` : ""}
+
+    <!-- CARACTÉRISTIQUES -->
+    <div class="card">
+      <h3>Caractéristiques &amp; Modificateurs</h3>
+      <div class="g6">
+        ${DB.CAR.map(c => {
+          const tot = (pj.base[c] || 10) + (pj.rb[c] || 0);
+          const mod = DB.mod(tot);
+          return `
+            <div class="tile">
+              <small>${c}</small>
+              <input type="number" value="${tot}" style="width:100%;text-align:center;font:700 1.25rem Georgia;color:var(--gold2);padding:2px;margin:2px 0" onchange="updateCarac('${c}', this.value)">
+              <i>${mod >= 0 ? "+" : ""}${mod}</i>
+              ${pj.rb[c] ? `<div class="mu" style="font-size:.65rem">race ${pj.rb[c]>0?"+":""}${pj.rb[c]}</div>` : ""}
+            </div>
+          `;
+        }).join("")}
+      </div>
+    </div>
+
+    <!-- TACTIQUE, COMBAT & DÉPLACEMENT DIRECT -->
+    <div class="g" style="margin-bottom:12px">
+      <div class="tile"><small>Défense</small><b>${st.def}</b></div>
+      <div class="tile"><small>Initiative</small><b>${st.init}</b></div>
+      <div class="tile"><small>Att. Contact</small><b>${st.ct >= 0 ? "+" : ""}${st.ct}</b></div>
+      <div class="tile"><small>Att. Distance</small><b>${st.di >= 0 ? "+" : ""}${st.di}</b></div>
+      ${st.mg !== null ? `<div class="tile" style="border-color:var(--sp)"><small style="color:var(--sp)">Att. Magique</small><b style="color:#cbafff">${st.mg >= 0 ? "+" : ""}${st.mg}</b></div>` : ""}
+      <div class="tile" style="border-color:var(--accent)">
+        <small style="color:var(--accent)">Déplacement</small>
+        <b style="color:#ffd09b">${st.deplacement} m</b>
+        <i style="color:var(--mu);font-size:.7rem">Course : ${st.deplacement * 2} m</i>
+      </div>
+    </div>
+
+    <!-- ACTIONS, SORTS & TECHNIQUES ACCESSIBLES SUR LA PAGE 1 -->
+    <div class="card">
+      <div class="row sp">
+        <h3 style="margin:0">Actions &amp; Arsenal en Combat</h3>
+        <span class="mu">Prêt à agir</span>
+      </div>
+      <div style="margin-top:8px">
+        ${pj.armes && pj.armes.length ? pj.armes.map((ar, i) => `
+          <div class="opt row sp">
+            <div>
+              <b style="color:var(--gold2)">${escapeHTML(ar.n)}</b>
+              <span class="mu">DM : <b>${escapeHTML(ar.dm)}</b> • Portée : ${escapeHTML(ar.por)} • Crit : ${ar.crit}</span>
+              ${ar.note ? `<div class="mu" style="font-size:.75rem">${escapeHTML(ar.note)}</div>` : ""}
+            </div>
+            <span class="tag tag-s">${escapeHTML(ar.t)}</span>
+          </div>
+        `).join("") : `<p class="mu">Aucune arme équipée.</p>`}
+      </div>
+    </div>
+
+    <!-- SORTS DISPONIBLES EN DIRECT SUR PAGE 1 -->
+    ${st.mag ? `
+      <div class="card" style="border-color:var(--sp)">
+        <div class="row sp">
+          <h3 style="margin:0;color:#d9c2ff">Sorts &amp; Magie d'Action Rapide</h3>
+          <span class="mu">Coût en Mana : <b>1 PM par Rang</b></span>
+        </div>
+        <div style="margin-top:8px">
+          ${allSpells.length ? allSpells.map(s => {
+            const cost = s.rang || 1;
+            const canCast = pj.pm >= cost;
+            return `
+              <div class="opt" style="border-left:4px solid var(--mana)">
+                <div class="row sp">
+                  <div>
+                    <b style="color:#d9c2ff">${escapeHTML(s.n)}</b>
+                    <span class="mu">(Rang ${cost} · Portée : ${escapeHTML(s.portee || "30 m")})</span>
+                  </div>
+                  <div class="row no-print">
+                    <button class="b sm mana-btn" ${canCast ? "" : "disabled"} onclick="castSpellWithMana(${cost}, '${escapeHTML(s.n)}')">
+                      ⚡ Lancer (${cost} PM)
+                    </button>
+                  </div>
+                </div>
+                <p style="font-size:.82rem;margin-top:4px">${escapeHTML(s.t)}</p>
+              </div>
+            `;
+          }).join("") : `<p class="mu">Aucun sort mémorisé. Rendez-vous dans l'onglet Grimoire pour en apprendre.</p>`}
+        </div>
+      </div>
+    ` : ""}
+
+    <!-- TRAITS ROLEPLAY & PERSONNALITÉ -->
+    <div class="card">
+      <h3>Caractère &amp; Personnalité</h3>
+      <div class="opt" style="background:var(--p3)">
+        <p><b>Ascendance raciale :</b> ${escapeHTML(rc.traits || "Non renseigné.")}</p>
+        <p style="margin-top:4px"><b>Vocation martiale :</b> ${escapeHTML(pr.traits || "Non renseigné.")}</p>
+      </div>
+      <label>Notes &amp; Roleplay :</label>
+      <textarea rows="3" placeholder="Notes personnelles..." onchange="pj.persoTraits = this.value; savePJ()">${escapeHTML(pj.persoTraits || "")}</textarea>
+    </div>
+
+    <div class="row no-print" style="margin-bottom:14px">
+      <button class="b gold" onclick="exportHero()">📥 Exporter mon PJ (JSON)</button>
+      <button class="b" onclick="document.getElementById('file-imp').click()">📂 Charger PJ</button>
+      <button class="b" onclick="openWizard()">✨ Nouveau Héros</button>
+      <input type="file" id="file-imp" hidden accept=".json" onchange="importHero(event)">
+    </div>
+  `;
+}
+
+function viewWelcome(){
+  return `
+    <div class="hero">
+      <h2>Compagnon de Table – Chroniques Oubliées</h2>
+      <p class="mu" style="margin:8px 0 16px">Aucun personnage actif. Créez votre héros avec l'assistant ou importez une fiche existante.</p>
+      <div class="row">
+        <button class="b gold" onclick="openWizard()">✨ Créer un Héros (7 étapes)</button>
+        <button class="b" onclick="document.getElementById('file-imp').click()">📂 Charger une Fiche (JSON)</button>
+      </div>
+      <input type="file" id="file-imp" hidden accept=".json" onchange="importHero(event)">
+    </div>
+  `;
+}
+
+/* Gestion PV & PM */
+function alterHp(d){
+  if(!pj) return;
+  const st = calcStats(pj);
+  pj.hp = d === 9999 ? st.hpMax : Math.max(0, Math.min(st.hpMax, pj.hp + d));
+  savePJ(); switchTab("fiche");
+}
+function setHpDirect(v){
+  if(!pj) return;
+  const st = calcStats(pj), n = parseInt(v);
+  if(!isNaN(n)) pj.hp = Math.max(0, Math.min(st.hpMax, n));
+  savePJ(); switchTab("fiche");
+}
+function setHpMax(v){
+  if(!pj) return;
+  const n = parseInt(v);
+  if(!isNaN(n) && n > 0){ pj.hpMaxManual = n; pj.hp = Math.min(pj.hp, n); savePJ(); switchTab("fiche"); }
+}
+
+function alterPm(d){
+  if(!pj) return;
+  const st = calcStats(pj);
+  pj.pm = d === 9999 ? st.pmMax : Math.max(0, Math.min(st.pmMax, (pj.pm || 0) + d));
+  savePJ(); switchTab("fiche");
+}
+function setPmDirect(v){
+  if(!pj) return;
+  const st = calcStats(pj), n = parseInt(v);
+  if(!isNaN(n)) pj.pm = Math.max(0, Math.min(st.pmMax, n));
+  savePJ(); switchTab("fiche");
+}
+function setPmMax(v){
+  if(!pj) return;
+  const n = parseInt(v);
+  if(!isNaN(n) && n >= 0){ pj.pmMaxManual = n; pj.pm = Math.min(pj.pm || 0, n); savePJ(); switchTab("fiche"); }
+}
+
+function castSpellWithMana(cost, name){
+  if(!pj) return;
+  if((pj.pm || 0) < cost){
+    alert("Pas assez de Points de Mana pour lancer ce sort !");
+    return;
+  }
+  pj.pm -= cost;
+  savePJ();
+  switchTab("fiche");
+  // Permet de lancer le même sort plusieurs fois !
+  alert(`✨ ${name} lancé avec succès ! (-${cost} PM, restant : ${pj.pm} PM)`);
+}
+
+function updateCarac(c, v){
+  if(!pj) return;
+  const n = parseInt(v);
+  if(!isNaN(n)){ pj.base[c] = n - (pj.rb[c] || 0); savePJ(); switchTab("fiche"); }
+}
+
+/* ==================== VUE 2 : VOIES ==================== */
+function viewVoies(){
+  if(!pj) return viewWelcome();
+  return `
+    <div class="card">
+      <div class="row sp">
+        <h3 style="margin:0">Arbre des Voies Héroïques</h3>
+        <span class="mu">Niveau <b>${pj.level}</b> • Pts disponibles : <b>${pj.ptsCap || 0}</b></span>
+      </div>
+      <p class="mu" style="margin-top:6px">Vos voies de classe sont auréolées d'or. Cliquez sur un rang pour l'acquérir.</p>
+    </div>
+
+    ${Object.entries(DB.voies).map(([wKey, way]) => {
+      const isFav = (way.profil === pj.profil) || (way.profil === "race:" + pj.race);
+      const myRank = pj.caps.reduce((max, c) => c.wayKey === wKey ? Math.max(max, c.rank) : max, 0);
+
+      return `
+        <details class="${isFav ? "active-way" : ""}" ${isFav ? "open" : ""}>
+          <summary>
+            ${isFav ? "⭐ " : ""}${escapeHTML(way.nom)}
+            <span class="mu" style="font-weight:400;font-size:.8rem">(${escapeHTML(way.profil)}) • Rang : ${myRank}/5</span>
+          </summary>
+          <div class="chain" style="padding:0 12px 12px">
+            ${way.r.map((rk, idx) => {
+              const rankNum = idx + 1;
+              const hasRank = myRank >= rankNum;
+              const isNext = (myRank === rankNum - 1);
+              const cost = rankNum <= 2 ? 1 : 2;
+              const canAfford = (pj.ptsCap || 0) >= cost;
+
+              let statusCls = "lock", badge = "Verrouillé";
+              if(hasRank){ statusCls = "have"; badge = "Acquis ✓"; }
+              else if(isNext){ statusCls = "next"; badge = canAfford ? `Accessible (${cost} pt)` : `Points requis (${cost} pt)`; }
+
+              return `
+                <div class="rk ${statusCls}">
+                  <i>${rankNum}</i>
+                  <div style="flex:1">
+                    <div class="row sp">
+                      <b style="color:var(--gold2)">${escapeHTML(rk.n)}</b>
+                      <div>
+                        ${rk.L ? `<span class="tag tag-l">Limitée</span>` : ""}
+                        ${rk.S ? `<span class="tag tag-s">Sort</span>` : ""}
+                        <span class="mu" style="font-size:.7rem">${badge}</span>
+                      </div>
+                    </div>
+                    <p style="font-size:.82rem;margin-top:3px">${escapeHTML(rk.t)}</p>
+                    ${isNext && canAfford ? `
+                      <button class="b sm gold" style="margin-top:6px" onclick="learnRank('${wKey}', ${rankNum}, ${cost})">
+                        Débloquer le Rang ${rankNum} (-${cost} pt)
+                      </button>
+                    ` : ""}
+                  </div>
+                </div>
+              `;
+            }).join("")}
+          </div>
+        </details>
+      `;
+    }).join("")}
+  `;
+}
+
+function learnRank(wKey, rankNum, cost){
+  if(!pj || (pj.ptsCap || 0) < cost) return;
+  pj.ptsCap -= cost;
+  pj.caps.push({ wayKey: wKey, rank: rankNum });
+  savePJ(); switchTab("voies");
+}
+
+/* ==================== VUE 3 : GRIMOIRE & SORTS ==================== */
+function getHeroSpells(){
+  if(!pj) return [];
+  pj.customSorts = pj.customSorts || [];
+  const list = [];
+  pj.caps.forEach(c => {
+    const v = DB.voies[c.wayKey];
+    if(v && v.r && v.r[c.rank - 1]){
+      const rk = v.r[c.rank - 1];
+      if(rk.S){
+        list.push({ id: `${c.wayKey}_${c.rank}`, n: rk.n, voie: v.nom, rang: c.rank, t: rk.t, portee: "30 m", L: rk.L });
+      }
+    }
+  });
+  pj.customSorts.forEach((cs, i) => {
+    list.push({ id: `cust_${i}`, n: cs.n, voie: cs.voie || "Personnalisé", rang: cs.rang || 1, t: cs.t, portee: cs.portee || "Contact", L: 1 });
+  });
+  return list;
+}
+
+function viewSorts(){
+  if(!pj) return viewWelcome();
+  const st = calcStats(pj);
+  const spells = getHeroSpells();
+
+  return `
+    <div class="card">
+      <div class="row sp">
+        <div>
+          <h3 style="margin:0">Grimoire &amp; Arcanes</h3>
+          <span class="mu">Attaque Magique : <b style="color:#cbafff">${st.mg !== null ? (st.mg >= 0 ? "+" : "") + st.mg : "Non magique"}</b> • Réserve : <b style="color:var(--mana2)">${pj.pm || 0} / ${st.pmMax} PM</b></span>
+        </div>
+        <div class="row">
+          <button class="b purple sm" onclick="openDrawer('sorts')">📖 Catalogue des Sorts</button>
+          <button class="b sm" onclick="openAddSpellModal()">✨ Créer un Sort</button>
+        </div>
+      </div>
+      <p class="mu" style="margin-top:6px">Apprenez des sorts depuis le catalogue ou lancez vos sorts en dépensant vos Points de Mana (1 PM par Rang de sort). Vous pouvez lancer le même sort autant de fois que voulu.</p>
+    </div>
+
+    <div class="card">
+      <h3 style="margin:0">Sorts Mémorisés</h3>
+      <div style="margin-top:8px">
+        ${spells.length ? spells.map(s => {
+          const cost = s.rang || 1;
+          const canCast = (pj.pm || 0) >= cost;
+          return `
+            <div class="opt" style="border-left:4px solid var(--sp)">
+              <div class="row sp">
+                <div>
+                  <b style="color:#d9c2ff">${escapeHTML(s.n)}</b>
+                  <span class="mu">(Rang ${cost} • Coût : ${cost} PM • Portée : ${escapeHTML(s.portee)})</span>
+                </div>
+                <div class="row">
+                  <button class="b sm mana-btn" ${canCast ? "" : "disabled"} onclick="castSpellWithMana(${cost}, '${escapeHTML(s.n)}')">
+                    ⚡ Lancer le Sort (-${cost} PM)
+                  </button>
+                  ${s.id.startsWith("cust_") ? `<button class="b sm red" onclick="deleteCustomSpell(${s.id.split('_')[1]})">✕</button>` : ""}
+                </div>
+              </div>
+              <p style="font-size:.82rem;margin-top:4px">${escapeHTML(s.t)}</p>
+            </div>
+          `;
+        }).join("") : `<p class="mu">Aucun sort mémorisé. Utilisez le Catalogue des Sorts ci-dessus pour en ajouter.</p>`}
+      </div>
+    </div>
+  `;
+}
+
+function deleteCustomSpell(idx){
+  pj.customSorts.splice(idx,1);
+  savePJ(); switchTab("sorts");
+}
+
+function openAddSpellModal(){
+  document.getElementById("mh").textContent = "Créer un Sort Sur Mesure";
+  document.getElementById("pg").innerHTML = "";
+  document.getElementById("mb").innerHTML = `
+    <label>Nom du Sortilège *</label>
+    <input id="sp-n" placeholder="Ex: Rayon Glacial...">
+    <div class="g">
+      <div><label>Rang du sort (1 à 5)</label><input id="sp-r" type="number" min="1" max="5" value="1"></div>
+      <div><label>Portée</label><input id="sp-p" placeholder="Ex: 20 m, Contact..."></div>
+    </div>
+    <label>Effet &amp; Dégâts du Sort</label>
+    <textarea id="sp-t" rows="3" placeholder="Description de l'effet..."></textarea>
+  `;
+  document.getElementById("mf").innerHTML = `
+    <button class="b" onclick="closeModal()">Annuler</button>
+    <button class="b gold" onclick="saveCustomSpell()">Ajouter au Grimoire</button>
+  `;
+  document.getElementById("ov").classList.add("on");
+}
+
+function saveCustomSpell(){
+  const n = document.getElementById("sp-n").value.trim();
+  if(!n) return alert("Renseignez un nom de sort.");
+  pj.customSorts = pj.customSorts || [];
+  pj.customSorts.push({
+    n,
+    rang: parseInt(document.getElementById("sp-r").value) || 1,
+    portee: document.getElementById("sp-p").value.trim() || "Contact",
+    t: document.getElementById("sp-t").value.trim()
+  });
+  savePJ(); closeModal(); switchTab("sorts");
+}
+
+/* ==================== VUE 4 : SAC & MATÉRIEL ==================== */
+function viewSac(){
+  if(!pj) return viewWelcome();
+  pj.inventaire = pj.inventaire || [];
+
+  const consommables = pj.inventaire.filter(it => it.isConsumable);
+  const equipement = pj.inventaire.filter(it => !it.isConsumable);
+
+  return `
+    <div class="card">
+      <div class="row sp">
+        <h3 style="margin:0">Sacoche &amp; Équipement</h3>
+        <div class="row">
+          <button class="b sm" onclick="openManualItemModal()">➕ Objet sur mesure</button>
+          <button class="b gold sm" onclick="openDrawer('biens')">📖 Ouvrir le Catalogue</button>
+        </div>
+      </div>
+      <p class="mu" style="margin-top:6px">Cliquez sur « Ouvrir le Catalogue » pour choisir vos tentes, le pack d'aventurier ou du matériel. Vous pouvez modifier les quantités directement au clavier.</p>
+    </div>
+
+    <!-- CONSOMMABLES RAPIDES AVEC SAISIE NUMÉRIQUE DIRECTE -->
+    <div class="card">
+      <h3 style="margin:0">Consommables &amp; Munitions (Saisie Directe)</h3>
+      <div style="margin-top:8px">
+        ${consommables.length ? consommables.map((it, i) => {
+          const globalIdx = pj.inventaire.indexOf(it);
+          return `
+            <div class="opt">
+              <div class="row sp">
+                <div style="flex:1">
+                  <b style="color:var(--gold2)">${escapeHTML(it.n)}</b>
+                  <div class="mu" style="font-size:.75rem">${escapeHTML(it.desc || "")}</div>
+                </div>
+                <div class="row">
+                  <label style="margin:0;font-size:.7rem">Qté :</label>
+                  <input type="number" min="0" class="qty-num-input" value="${it.q || 1}" onchange="setItemQtyDirect(${globalIdx}, this.value)">
+                  <button class="b sm red" onclick="alterItemQty(${globalIdx}, -1)">-1</button>
+                  <button class="b sm" onclick="alterItemQty(${globalIdx}, +1)">+1</button>
+                  <button class="b sm red" onclick="removeItem(${globalIdx})">✕</button>
+                </div>
+              </div>
+              <input class="note-inp" placeholder="Annotations personnelles (poids, doses, rangement...)" value="${escapeHTML(it.note || "")}" onchange="updateItemNote(${globalIdx}, this.value)">
+            </div>
+          `;
+        }).join("") : `<p class="mu">Aucun consommable enregistré.</p>`}
+      </div>
+    </div>
+
+    <!-- PROTECTIONS & ARMES -->
+    <div class="card">
+      <div class="row sp">
+        <h3 style="margin:0">Armure &amp; Bouclier</h3>
+        <button class="b sm" onclick="openDrawer('armures')">+ Changer Protection</button>
+      </div>
+      <div class="g" style="margin-top:8px">
+        <div class="tile"><small>Corps</small><b>${escapeHTML(pj.arm || "Aucune")}</b></div>
+        <div class="tile"><small>Bouclier</small><b>${escapeHTML(pj.bou || "Aucun")}</b></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="row sp">
+        <h3 style="margin:0">Armes Équipées</h3>
+        <button class="b sm" onclick="openDrawer('armes')">+ Ajouter Arme</button>
+      </div>
+      <div style="margin-top:8px">
+        ${pj.armes && pj.armes.length ? pj.armes.map((ar, i) => `
+          <div class="opt">
+            <div class="row sp">
+              <div>
+                <b>${escapeHTML(ar.n)}</b>
+                <div class="mu" style="font-size:.75rem">DM : ${escapeHTML(ar.dm)} • Portée : ${escapeHTML(ar.por)} • Crit : ${ar.crit}</div>
+              </div>
+              <button class="b sm red" onclick="removeWeapon(${i})">✕</button>
+            </div>
+            <input class="note-inp" placeholder="Annotations sur l'arme..." value="${escapeHTML(ar.note || "")}" onchange="pj.armes[${i}].note = this.value; savePJ()">
+          </div>
+        `).join("") : `<p class="mu">Aucune arme équipée.</p>`}
+      </div>
+    </div>
+
+    <!-- INVENTAIRE GÉNÉRAL (AVEC TENTES, ETC.) -->
+    <div class="card">
+      <div class="row sp">
+        <h3 style="margin:0">Inventaire Général (Tentes, Matériel)</h3>
+      </div>
+      <div style="margin-top:8px">
+        ${equipement.length ? equipement.map((it, i) => {
+          const globalIdx = pj.inventaire.indexOf(it);
+          return `
+            <div class="opt">
+              <div class="row sp">
+                <div style="flex:1">
+                  <b>${escapeHTML(it.n)}</b>
+                  <div class="mu" style="font-size:.75rem">${escapeHTML(it.desc || "")}</div>
+                </div>
+                <div class="row">
+                  <label style="margin:0;font-size:.7rem">Qté :</label>
+                  <input type="number" min="0" class="qty-num-input" value="${it.q || 1}" onchange="setItemQtyDirect(${globalIdx}, this.value)">
+                  <button class="b sm" onclick="alterItemQty(${globalIdx}, -1)">-1</button>
+                  <button class="b sm" onclick="alterItemQty(${globalIdx}, +1)">+1</button>
+                  <button class="b sm red" onclick="removeItem(${globalIdx})">✕</button>
+                </div>
+              </div>
+              <input class="note-inp" placeholder="Annotations..." value="${escapeHTML(it.note || "")}" onchange="updateItemNote(${globalIdx}, this.value)">
+            </div>
+          `;
+        }).join("") : `<p class="mu">Sac vide. Consultez le catalogue ci-dessus.</p>`}
+      </div>
+    </div>
+  `;
+}
+
+function setItemQtyDirect(idx, val){
+  const q = parseInt(val);
+  if(isNaN(q) || q < 0) return switchTab("sac");
+  if(q === 0){
+    if(confirm(`La quantité est à zéro. Supprimer complètement "${pj.inventaire[idx].n}" ?`)){
+      pj.inventaire.splice(idx, 1);
+    } else {
+      pj.inventaire[idx].q = 0;
+    }
+  } else {
+    pj.inventaire[idx].q = q;
+  }
+  savePJ(); switchTab("sac");
+}
+
+function updateItemNote(idx, val){
+  pj.inventaire[idx].note = val;
+  savePJ();
+}
+
+function alterItemQty(idx, delta){
+  const it = pj.inventaire[idx];
+  it.q = (it.q || 1) + delta;
+  if(it.q <= 0){
+    if(confirm(`Supprimer "${it.n}" de l'inventaire ?`)){
+      pj.inventaire.splice(idx,1);
+    } else {
+      it.q = 0;
+    }
+  }
+  savePJ(); switchTab("sac");
+}
+
+function openManualItemModal(){
+  document.getElementById("mh").textContent = "Ajouter un Matériel sur Mesure";
+  document.getElementById("pg").innerHTML = "";
+  document.getElementById("mb").innerHTML = `
+    <label>Nom de l'objet *</label>
+    <input id="man-n" placeholder="Ex: Tente 3 places, Dague d'argent...">
+    <div class="g">
+      <div><label>Quantité</label><input id="man-q" type="number" value="1" min="1"></div>
+      <div>
+        <label>Type d'objet</label>
+        <select id="man-c">
+          <option value="0">Équipement général</option>
+          <option value="1">Consommable / Munition</option>
+        </select>
+      </div>
+    </div>
+    <label>Description &amp; Propriétés</label>
+    <textarea id="man-d" rows="2" placeholder="Description..."></textarea>
+    <label>Annotations personnelles</label>
+    <input id="man-note" placeholder="Ex: Couchage confortable, étanche...">
+  `;
+  document.getElementById("mf").innerHTML = `
+    <button class="b" onclick="closeModal()">Annuler</button>
+    <button class="b gold" onclick="saveManualItem()">Ajouter au Sac</button>
+  `;
+  document.getElementById("ov").classList.add("on");
+}
+
+function saveManualItem(){
+  const n = document.getElementById("man-n").value.trim();
+  if(!n) return alert("Donnez un nom à l'objet.");
+  pj.inventaire = pj.inventaire || [];
+  pj.inventaire.push({
+    n,
+    q: parseInt(document.getElementById("man-q").value) || 1,
+    isConsumable: document.getElementById("man-c").value === "1",
+    desc: document.getElementById("man-d").value.trim(),
+    note: document.getElementById("man-note").value.trim()
+  });
+  savePJ(); closeModal(); switchTab("sac");
+}
+
+function removeWeapon(idx){ pj.armes.splice(idx,1); savePJ(); switchTab("sac"); }
+function removeItem(idx){ pj.inventaire.splice(idx,1); savePJ(); switchTab("sac"); }
+
+function openDrawer(mode){
+  catalogMode = mode;
+  document.getElementById("dr-title").textContent =
+    mode === "armes" ? "Armurerie" : mode === "armures" ? "Protections" : mode === "sorts" ? "Catalogue des Sorts" : "Catalogue Matériel";
+  document.getElementById("drawer").classList.add("open");
+  drawCatalog();
+}
+function closeDrawer(){ document.getElementById("drawer").classList.remove("open"); }
+
+function drawCatalog(){
+  const q = (document.getElementById("dr-q").value || "").toLowerCase();
+  const body = document.getElementById("dr-body");
+
+  if(catalogMode === "sorts"){
+    const filteredSpells = DB.sortsCatalogue.filter(s => (s.n + s.t + s.voie).toLowerCase().includes(q));
+    body.innerHTML = filteredSpells.map(s => `
+      <div class="opt">
+        <div class="row sp">
+          <b style="color:#d9c2ff">${escapeHTML(s.n)}</b>
+          <button class="b sm purple" onclick='learnSpellFromCatalog(${JSON.stringify(s).replace(/'/g, "&apos;")})'>+ Apprendre</button>
+        </div>
+        <div class="mu" style="font-size:.78rem;margin-top:2px">
+          Rang <b>${s.rang}</b> • Voie : ${escapeHTML(s.voie)} • Portée : ${escapeHTML(s.portee)}<br>
+          ${escapeHTML(s.t)}
+        </div>
+      </div>
+    `).join("") || `<p class="mu">Aucun sort trouvé.</p>`;
+    return;
+  }
+
+  let items = catalogMode === "biens" ? DB.biens : catalogMode === "armes" ? DB.armes : DB.armures;
+  const filtered = items.filter(it => (it.n + (it.desc || it.props || "")).toLowerCase().includes(q));
+
+  body.innerHTML = filtered.map(it => `
+    <div class="opt">
+      <div class="row sp">
+        <b style="color:var(--gold2)">${escapeHTML(it.n)}</b>
+        <button class="b sm gold" onclick='selectFromDrawer(${JSON.stringify(it).replace(/'/g, "&apos;")})'>+ Sélectionner</button>
+      </div>
+      <div class="mu" style="font-size:.78rem;margin-top:3px">
+        ${it.isPack ? `<span class="tag tag-pack">Pack Complet</span>` : ""}
+        ${it.dm ? `Dégâts : <b>${it.dm}</b> • Portée : ${it.por} • Crit : ${it.crit}<br>` : ""}
+        ${it.def ? `Protection : <b>+${it.def} DEF</b><br>` : ""}
+        ${it.props ? `Propriétés : ${escapeHTML(it.props)}<br>` : ""}
+        ${it.desc ? `${escapeHTML(it.desc)}` : ""}
+      </div>
+    </div>
+  `).join("") || `<p class="mu">Aucun élément trouvé.</p>`;
+}
+
+function learnSpellFromCatalog(spell){
+  if(!pj) return;
+  pj.customSorts = pj.customSorts || [];
+  if(pj.customSorts.some(s => s.n.toLowerCase() === spell.n.toLowerCase())){
+    alert("Vous connaissez déjà ce sortilège !");
+    return;
+  }
+  pj.customSorts.push({
+    n: spell.n,
+    rang: spell.rang,
+    voie: spell.voie,
+    portee: spell.portee,
+    t: spell.t
+  });
+  savePJ();
+  closeDrawer();
+  switchTab("sorts");
+  alert(`✨ ${spell.n} ajouté à votre Grimoire !`);
+}
+
+function selectFromDrawer(item){
+  if(!pj) return;
+  if(catalogMode === "armes"){
+    (pj.armes = pj.armes || []).push({ ...item, note: "" });
+  } else if(catalogMode === "armures"){
+    if(item.t === "Bouclier") pj.bou = item.n; else pj.arm = item.n;
+  } else {
+    pj.inventaire = pj.inventaire || [];
+    if(item.isPack){
+      const packElements = [
+        { n: "Sac à dos renforcé", q: 1, desc: "Toile imperméabilisée", note: "Rangement principal" },
+        { n: "Corde (15 m) & grappin", q: 1, desc: "Chanvre solide avec crochet d'acier", note: "Fixée sous le sac" },
+        { n: "Paillasse portable & couverture", q: 1, desc: "Couchage rembourré et couverture chaude", note: "Roulée sur le sac" },
+        { n: "Torches de résine", q: 5, desc: "1h d'éclairage à 10 m", isConsumable: true, note: "Plein d'amadou" },
+        { n: "Briquet à silex et amadou", q: 1, desc: "Allume un feu rapidement", note: "Poche étanche" },
+        { n: "Rations de voyage (1 sem.)", q: 7, desc: "Vivres de longue conservation", isConsumable: true, note: "1 portion par jour" },
+        { n: "Gourde d'eau en cuir (1L)", q: 1, desc: "Pleine d'eau fraîche", isConsumable: true, note: "Ceinture" },
+        { n: "Potion de soins légers", q: 1, desc: "Rend immédiatement 1d8 PV", isConsumable: true, note: "Accès d'urgence" }
+      ];
+      packElements.forEach(pItem => {
+        const exist = pj.inventaire.find(x => x.n === pItem.n);
+        if(exist) exist.q = (exist.q || 1) + pItem.q;
+        else pj.inventaire.push(pItem);
+      });
+      alert("Le Pack d'Aventurier a été ajouté et déballé dans votre sac !");
+    } else {
+      const exist = pj.inventaire.find(x => x.n === item.n);
+      if(exist) exist.q = (exist.q || 1) + (item.q || 1);
+      else pj.inventaire.push({ n: item.n, desc: item.desc || "", q: item.q || 1, isConsumable: !!item.isConsumable, note: "" });
+    }
+  }
+  savePJ(); closeDrawer(); switchTab("sac");
+}
+
+function openLevelUpModal(){
+  if(!pj) return;
+  const pr = DB.profils.find(x => x.id === pj.profil) || { dv: 8 };
+  const st = calcStats(pj);
+  const modCon = st.m.CON;
+
+  document.getElementById("mh").textContent = `Passage au Niveau ${pj.level + 1}`;
+  document.getElementById("pg").innerHTML = "";
+  document.getElementById("mb").innerHTML = `
+    <p>Munissez-vous de votre véritable <b>dé physique à ${pr.dv} faces (d${pr.dv})</b> et lancez-le !</p>
+    <div style="margin:14px 0">
+      <label>Résultat exact obtenu sur le d${pr.dv} :</label>
+      <input type="number" id="dice-irl" min="1" max="${pr.dv}" value="${Math.ceil(pr.dv/2)}" style="font-size:1.5rem;text-align:center;color:var(--gold2);font-weight:700">
+    </div>
+    <div class="opt">
+      <div>Modificateur de Constitution appliqué : <b>${modCon >= 0 ? "+" : ""}${modCon}</b></div>
+      <div class="mu" style="font-size:.75rem">Minimum garanti par niveau : +1 PV.</div>
+    </div>
+    <p class="mu">+2 points de capacités vous seront également accordés.</p>
+  `;
+  document.getElementById("mf").innerHTML = `
+    <button class="b" onclick="closeModal()">Annuler</button>
+    <button class="b gold" onclick="confirmLevelUp(${pr.dv}, ${modCon})">Valider le niveau</button>
+  `;
+  document.getElementById("ov").classList.add("on");
+}
+
+function confirmLevelUp(dv, modCon){
+  const roll = parseInt(document.getElementById("dice-irl").value) || 1;
+  const gainedHp = Math.max(1, roll + modCon);
+
+  pj.level += 1;
+  pj.hpMaxAuto = (pj.hpMaxAuto || pj.hpBase || 10) + gainedHp;
+  if(pj.hpMaxManual) pj.hpMaxManual += gainedHp;
+  pj.hp += gainedHp;
+  pj.ptsCap = (pj.ptsCap || 0) + 2;
+
+  // Calcul auto PM
+  const st = calcStats(pj);
+  pj.pm = st.pmMax;
+
+  savePJ(); closeModal(); switchTab("fiche");
+  alert(`Félicitations ! Vous passez niveau ${pj.level}. +${gainedHp} PV ajoutés (d${dv} = ${roll} & CON = ${modCon}).`);
+}
+
+function closeModal(){ document.getElementById("ov").classList.remove("on"); }
+
+let w = null;
+const WS = ["Identité","Race","Profil","Caractéristiques","Capacités de départ","Équipement","Confirmation"];
+
+function openWizard(){
+  w = {
+    s: 0, name: "", player: "", race: "humain", rcOption: 0, profil: "barbare",
+    base: { FOR:10, DEX:10, CON:10, INT:10, SAG:10, CHA:10 }, rb: {}, selCaps: []
+  };
+  const r = DB.races.find(x => x.id === w.race);
+  if(r) w.rb = { ...r.b };
+  drawWizard();
+  document.getElementById("ov").classList.add("on");
+}
+
+function drawWizard(){
+  document.getElementById("mh").textContent = `Étape ${w.s + 1}/7 · ${WS[w.s]}`;
+  document.getElementById("pg").innerHTML = `<div class="prog"><div style="width:${(w.s+1)/7*100}%"></div></div>`;
+  let h = "";
+
+  if(w.s === 0){
+    h = `
+      <label>Nom du Héros *</label>
+      <input id="wn" value="${escapeHTML(w.name)}" placeholder="Ex: Sire Thomas, Grommash...">
+      <label>Nom du Joueur</label>
+      <input id="wp" value="${escapeHTML(w.player)}" placeholder="Ex: Julien...">
+    `;
+  }
+  else if(w.s === 1){
+    h = DB.races.map(r => `
+      <div class="opt ${w.race === r.id ? "sel" : ""}" onclick="wPickRace('${r.id}')">
+        <b>${escapeHTML(r.n)}</b> <span class="ok">${escapeHTML(r.t)}</span>
+        <p class="mu">${escapeHTML(r.d)}</p>
+        ${w.race === r.id ? `
+          <div style="margin-top:6px">
+            ${r.cap.map(c => `<p>• <b>${escapeHTML(c.n)} :</b> ${escapeHTML(c.t)}</p>`).join("")}
+            ${r.opts ? r.opts.map((o, idx) => `
+              <div class="opt ${w.rcOption === idx ? "sel" : ""}" style="margin:4px 0" onclick="event.stopPropagation(); w.rcOption=${idx}; drawWizard()">
+                <b>Option : ${escapeHTML(o.n)}</b>
+                <p class="mu" style="font-size:.75rem">${escapeHTML(o.t)}</p>
+              </div>
+            `).join("") : ""}
+          </div>
+        ` : ""}
+      </div>
+    `).join("");
+  }
+  else if(w.s === 2){
+    h = DB.profils.map(p => `
+      <div class="opt ${w.profil === p.id ? "sel" : ""}" onclick="w.profil='${p.id}'; w.selCaps=[]; drawWizard()">
+        <b>${escapeHTML(p.n)}</b> <span class="mu">Dé de vie d${p.dv}${p.mag ? " · Magie: "+p.mag : ""}</span>
+        <p class="mu" style="margin-top:4px"><b>Équipement :</b> ${escapeHTML(p.eq)}</p>
+        <p class="mu"><b>Armes &amp; armures :</b> ${escapeHTML(p.ar)}</p>
+      </div>
+    `).join("");
+  }
+  else if(w.s === 3){
+    h = `
+      <p class="mu" style="margin-bottom:8px">Méthode par répartition : 6 points de modificateurs à répartir (0 à +4 par carac.), 3 scores pairs et 3 impairs, maximum 18 avant bonus raciaux.</p>
+      <div class="g3">
+        ${DB.CAR.map(c => `
+          <div>
+            <label>${c} (Base)</label>
+            <input type="number" min="3" max="18" value="${w.base[c]}" oninput="wUpdateStat('${c}', this.value)" style="text-align:center;font-weight:700">
+            <div id="stat-lbl-${c}" class="ok" style="font-size:.75rem;text-align:center">${wFormatStat(c)}</div>
+          </div>
+        `).join("")}
+      </div>
+      <div id="chk-msg" style="margin-top:8px">${wCheckRules()}</div>
+    `;
+  }
+  else if(w.s === 4){
+    const availWays = Object.entries(DB.voies).filter(([k,v]) => v.profil === w.profil || v.profil === "race:" + w.race);
+    h = `
+      <p style="margin-bottom:8px">Choisissez <b>2 capacités de Rang 1</b> (${w.selCaps.length}/2 sélectionnées) :</p>
+      ${availWays.map(([k,v]) => {
+        const r1 = v.r && v.r[0] ? v.r[0] : { n: "Rang 1", t: "Description" };
+        const isSelected = w.selCaps.includes(k);
+        return `
+          <div class="opt ${isSelected ? "sel" : ""}" onclick="wToggleCap('${k}')">
+            <span class="mu">${escapeHTML(v.nom)}</span><br>
+            <b style="color:var(--gold2)">${escapeHTML(r1.n)}</b>
+            <p class="mu" style="font-size:.8rem;margin-top:2px">${escapeHTML(r1.t)}</p>
+          </div>
+        `;
+      }).join("")}
+    `;
+  }
+  else if(w.s === 5){
+    const pObj = DB.profils.find(x => x.id === w.profil);
+    h = `
+      <label>Inventaire &amp; équipement de départ :</label>
+      <textarea id="w-gear" rows="5">${escapeHTML(w.gear || pObj.eq)}</textarea>
+    `;
+  }
+  else if(w.s === 6){
+    const rObj = DB.races.find(x => x.id === w.race);
+    const pObj = DB.profils.find(x => x.id === w.profil);
+    const hpInit = pObj.dv + DB.mod(w.base.CON + (w.rb.CON || 0));
+    h = `
+      <h3 style="color:var(--gold)">${escapeHTML(w.name || "Aventurier")}</h3>
+      <p><b>${escapeHTML(rObj.n)}</b> • <b>${escapeHTML(pObj.n)}</b> • Niveau 1</p>
+      <div class="opt" style="margin-top:8px">
+        <p><b>Points de vie initiaux :</b> ${hpInit} PV (d${pObj.dv} max + CON)</p>
+        <p><b>Défense :</b> ${10 + DB.mod(w.base.DEX + (w.rb.DEX || 0)) + (rObj.defb || 0)}</p>
+        <p><b>Déplacement de base :</b> 10 m par action</p>
+        <p><b>Capacités choisies :</b> ${w.selCaps.map(k => DB.voies[k].r[0].n).join(", ") || "Aucune"}</p>
+      </div>
+    `;
+  }
+
+  document.getElementById("mb").innerHTML = h;
+  document.getElementById("mf").innerHTML = `
+    ${w.s > 0 ? `<button class="b" onclick="wNav(-1)">← Précédent</button>` : `<button class="b" onclick="closeModal()">Annuler</button>`}
+    <button class="b gold" style="flex:2" onclick="wNav(1)">${w.s === 6 ? "✓ Créer le Personnage" : "Continuer →"}</button>
+  `;
+}
+
+function wPickRace(id){
+  w.race = id;
+  const r = DB.races.find(x => x.id === id);
+  w.rb = { ...r.b };
+  w.rcOption = 0;
+  drawWizard();
+}
+
+function wFormatStat(c){
+  const tot = w.base[c] + (w.rb[c] || 0);
+  const m = DB.mod(tot);
+  return `${tot} (${m >= 0 ? "+" : ""}${m})${w.rb[c] ? " [race "+(w.rb[c]>0?"+":"")+w.rb[c]+"]" : ""}`;
+}
+
+function wUpdateStat(c, v){
+  w.base[c] = parseInt(v) || 10;
+  document.getElementById(`stat-lbl-${c}`).textContent = wFormatStat(c);
+  document.getElementById("chk-msg").innerHTML = wCheckRules();
+}
+
+function wCheckRules(){
+  const mods = DB.CAR.map(c => DB.mod(w.base[c]));
+  const sum = mods.reduce((a,b) => a+b, 0);
+  const pairs = DB.CAR.map(c => w.base[c]).filter(v => v % 2 === 0).length;
+  const errs = [];
+  if(sum !== 6) errs.push(`Somme des Modificateurs = ${sum} (Attendu : 6)`);
+  if(pairs !== 3) errs.push(`Valeurs paires de base : ${pairs}/3`);
+  return errs.length ? `<span class="wn">⚠ ${errs.join(" · ")}</span>` : `<span class="ok">✓ Répartition standard conforme</span>`;
+}
+
+function wToggleCap(k){
+  const idx = w.selCaps.indexOf(k);
+  if(idx >= 0) w.selCaps.splice(idx, 1);
+  else if(w.selCaps.length < 2) w.selCaps.push(k);
+  drawWizard();
+}
+
+function wNav(dir){
+  if(dir > 0){
+    if(w.s === 0){
+      w.name = document.getElementById("wn").value.trim();
+      w.player = document.getElementById("wp").value.trim();
+      if(!w.name) return alert("Donnez un nom à votre héros.");
+    }
+    if(w.s === 4){
+      const availWays = Object.entries(DB.voies).filter(([k,v]) => v.profil === w.profil || v.profil === "race:" + w.race);
+      if(availWays.length >= 2 && w.selCaps.length < 2){
+        if(!confirm("Vous n'avez pas sélectionné vos 2 capacités de rang 1. Voulez-vous continuer quand même ?")){
+          return;
+        }
+      }
+    }
+    if(w.s === 5){ w.gear = document.getElementById("w-gear").value; }
+    if(w.s === 6){ finalizeHero(); return; }
+  }
+  w.s += dir;
+  drawWizard();
+}
+
+function finalizeHero(){
+  const rObj = DB.races.find(x => x.id === w.race);
+  const pObj = DB.profils.find(x => x.id === w.profil);
+  const hpInit = pObj.dv + DB.mod(w.base.CON + (w.rb.CON || 0));
+
+  pj = {
+    version: "1.0",
+    name: w.name,
+    player: w.player,
+    race: w.race,
+    rcOption: w.rcOption,
+    profil: w.profil,
+    level: 1,
+    base: { ...w.base },
+    rb: { ...w.rb },
+    hpBase: hpInit,
+    hpMaxAuto: hpInit,
+    hpMaxManual: null,
+    hp: hpInit,
+    pmMaxManual: null,
+    pm: null,
+    ptsCap: 0,
+    caps: w.selCaps.map(k => ({ wayKey: k, rank: 1 })),
+    armes: [{ n: "Dague", t: "Contact", dm: "1d4", crit: "20", por: "5 m", note: "" }],
+    inventaire: [
+      { n: "Sac à dos renforcé", q: 1, desc: "Toile imperméable", note: w.gear || pObj.eq }
+    ],
+    customSorts: [],
+    arm: "",
+    bou: "",
+    bonus: { pv:0, def:0, init:0 },
+    persoTraits: ""
+  };
+
+  const st = calcStats(pj);
+  pj.pm = st.pmMax;
+
+  savePJ(); closeModal(); switchTab("fiche");
+}
+
+function exportHero(){
+  if(!pj) return;
+  const a = document.createElement("a");
+  a.href = "data:application/json;charset=utf-8," + encodeURIComponent(JSON.stringify(pj, null, 2));
+  a.download = (pj.name || "personnage").replace(/\s+/g,"_") + "_CO.json";
+  a.click();
+}
+
+function importHero(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const data = JSON.parse(ev.target.result);
+      if(!data.name || !data.base) throw new Error("Format JSON non valide.");
+      pj = data; savePJ(); switchTab("fiche");
+      alert(`Héros "${pj.name}" importé avec succès !`);
+    } catch(err){ alert("Erreur lors de l'import : " + err.message); }
+  };
+  reader.readAsText(file);
+}
+
+function escapeHTML(str){
+  return String(str ?? "").replace(/[&<>"']/g, c => ({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+  }[c]));
+}
+
+renderNav();
+switchTab(pj ? "fiche" : "fiche");
+</script>
+</body>
+</html>

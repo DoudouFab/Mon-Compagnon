@@ -1,0 +1,169 @@
+{
+  "etats": [
+    { "n": "Affaibli", "t": "Le personnage utilise un d12 au lieu du d20 pour tous ses tests de caractéristique et d'attaque." },
+    { "n": "Aveuglé", "t": "Initiative -5, Attaque au contact -5, Défense -5, Attaque à distance -10. Déplacements réduits de moitié." },
+    { "n": "Étourdi", "t": "Incapable d'agir. Défense réduite de -5 points. Perd automatiquement son tour de jeu." },
+    { "n": "Immobilisé", "t": "Déplacement nul. Utilise un d12 au lieu du d20 pour tous ses tests de caractéristique et d'attaque." },
+    { "n": "Paralysé", "t": "Incapable de bouger. Touché automatiquement au contact et subit un coup critique garanti." },
+    { "n": "Ralenti", "t": "Le personnage ne peut effectuer qu'une seule action par tour (soit attaquer, soit un mouvement)." },
+    { "n": "Renversé", "t": "Attaque -5, Défense -5. Relever le personnage consomme une action de mouvement." },
+    { "n": "Surpris", "t": "Aucune action possible au 1er tour de combat. Défense amputée de -5 points." },
+    { "n": "Asphyxié", "t": "Privé d'air, le personnage subit 1d6 DM direct chaque tour sans tenir compte de son armure." },
+    { "n": "Empoisonné", "t": "Subit des dégâts automatiques au début de chaque tour et applique -2 à tous ses tests de caractéristique." },
+    { "n": "Terrorisé", "t": "Obligation de fuir la source de terreur. Malus de -2 à toutes les actions tant que la créature est visible." },
+    { "n": "Endormi", "t": "Considéré comme sans défense (coup critique automatique au contact). Se réveille si blessé ou secoué." },
+    { "n": "Invisible", "t": "Indétectable à la vue : +5 en attaque et défense contre les créatures incapables de percevoir l'invisible." }
+  ],
+  "regles": [
+    {
+      "t": "Les 6 Caractéristiques & Modificateurs",
+      "cat": "Création",
+      "c": "Six caractéristiques définissent un aventurier : Force (FOR), Dextérité (DEX), Constitution (CON), Intelligence (INT), Sagesse (SAG), Charisme (CHA). Le score varie de 3 à 18. Le Modificateur se calcule ainsi : (Valeur - 10) / 2 arrondi à l'inférieur. Échelle : 10-11 = +0 | 12-13 = +1 | 14-15 = +2 | 16-17 = +3 | 18-19 = +4 | 20 = +5. Méthode par répartition : 6 points de Modificateurs à distribuer (0 à +4 par carac.), avec 3 scores pairs et 3 impairs, max 18."
+    },
+    {
+      "t": "Résolution d'un Test & Difficultés (DD)",
+      "cat": "Actions",
+      "c": "Pour résoudre une action incertaine : lancer 1d20 + Modificateur de Caractéristique. Si le total égale ou dépasse la Difficulté (DD), le test est réussi. Échelle des DD : Facile (DD 10), Moyen (DD 15), Difficile (DD 20), Très difficile (DD 25), Héroïque (DD 30). Un test en opposition compare les résultats des deux participants : le score le plus élevé l'emporte."
+    },
+    {
+      "t": "Réussite critique (20) et Échec critique (1)",
+      "cat": "Actions",
+      "c": "Un 20 naturel au d20 est toujours une Réussite Critique : succès automatique éclatant. En combat, l'attaque touche d'office et les dés de dégâts sont doublés. Un 1 naturel au d20 est toujours un Échec Critique / Maladresse : action manquée immédiatement avec complication imprévue décidée par le MJ."
+    },
+    {
+      "t": "Test en coopération",
+      "cat": "Actions",
+      "c": "Un personnage peut aider un allié sur une tâche commune. L'assistant effectue un test contre une DD de 10. En cas de succès, il accorde un bonus de +2 au test de son allié (+4 s'il obtient un 20 naturel ou atteint 25)."
+    },
+    {
+      "t": "Prendre 10 ou Prendre 20",
+      "cat": "Actions",
+      "c": "Quand un personnage n'est pas sous la pression du combat, il peut prendre son temps. 'Prendre 10' demande 2d6 minutes et octroie l'équivalent d'un résultat automatique de 10 au d20. 'Prendre 20' demande 2d6 heures et confère un résultat automatique de 20 (impossible si l'échec entraîne un danger mortel)."
+    },
+    {
+      "t": "Le Tour de Combat et l'Initiative",
+      "cat": "Combat",
+      "c": "Un tour de combat équivaut à 10 secondes. Au début du combat, l'ordre de jeu est déterminé par l'Initiative (valeur de DEX de base). Celui qui a le plus haut score agit en premier. En cas d'égalité, les PJ l'emportent sur les PNJ. Entre PJ, le score de SAG départage. Il est permis de retarder son initiative pour agir plus tard dans le tour."
+    },
+    {
+      "t": "Round de Surprise",
+      "cat": "Combat",
+      "c": "Si un camp prend l'autre par surprise (embuscade, invisibilité), un tour de surprise a lieu avant le premier tour normal. Seuls les attaquants conscients peuvent agir. Les cibles surprises ne peuvent faire aucune action et subissent un malus de -5 en Défense (DEF)."
+    },
+    {
+      "t": "Types d'Actions en Combat",
+      "cat": "Combat",
+      "c": "À chaque tour, un combattant peut accomplir : 1 Action Limitée (L) OU 1 Action d'Attaque (A) + 1 Action de Mouvement (M) OU 2 Actions de Mouvement. Une Action Gratuite (parler, lâcher un objet) est instantanée et peut être ajoutée sans pénalité."
+    },
+    {
+      "t": "Attaques : Contact, Distance et Magie",
+      "cat": "Combat",
+      "c": "Contact : d20 + Niveau + Mod. FOR. Distance : d20 + Niveau + Mod. DEX. Magique : d20 + Niveau + Modificateur magique du profil (INT pour magicien/forgesort/nécromancien, SAG pour prêtre/druide/moine, CHA pour barde/ensorceleur). L'attaque réussit si le score atteint ou dépasse la DEF de la cible."
+    },
+    {
+      "t": "Défense, Armures & Couverts",
+      "cat": "Combat",
+      "c": "Défense = 10 + Mod. DEX + Armure + Bouclier (+ bonus de dons). Un couvert partiel (arbres, muret, meuble) confère +2 en DEF. Un couvert important (créneau, fente de tir, gros rocher) confère +5 en DEF. Les attaques dans le dos ou sur cible étourdie réduisent la DEF de -5."
+    },
+    {
+      "t": "Attaque concertée",
+      "cat": "Combat",
+      "c": "Par une action d'attaque simple au contact, un combattant distrait un adversaire au profit d'un allié (test d'attaque DD 15). S'il réussit, son allié obtient +2 à son prochain jet d'attaque contre cette même cible (+4 en cas de réussite critique)."
+    },
+    {
+      "t": "Combat à deux armes (Action Limitée)",
+      "cat": "Combat",
+      "c": "Combattre avec deux armes nécessite une arme légère dans la main secondaire et consomme une Action Limitée (L). Le personnage porte une attaque avec chaque arme, mais applique un malus de -2 sur chacun de ses deux jets d'attaque."
+    },
+    {
+      "t": "Actions Défensives & Esquive",
+      "cat": "Combat",
+      "c": "Un combattant peut déclarer une 'Défense totale' en renonçant à son attaque : il bénéficie alors d'un bonus de +4 en DEF jusqu'à son prochain tour. S'il recule en même temps (action de mouvement), le bonus monte à +6."
+    },
+    {
+      "t": "Dégâts Létaux, Temporaires et Réduction (RD)",
+      "cat": "Combat",
+      "c": "Les dégâts physiques s'ajoutent au Modificateur de FOR au contact. Les dégâts à mains nues sans don spécifique infligent 1d4 temporaires + Mod. FOR. Il est possible d'annoncer des DM temporaires avec une arme pour assommer (sans tuer). La Réduction des Dégâts (RD) retranche sa valeur à chaque coup reçu (ex: RD 5 absorbe 5 DM par attaque subie)."
+    },
+    {
+      "t": "Inconscience, Agonie et Mort (0 PV)",
+      "cat": "Combat",
+      "c": "À 0 PV, le personnage sombre dans l'inconscience. Chaque tour non stabilisé, il perd 1 PV. Un test de CON DD 10 réussi ou un soin permet de le stabiliser. Si ses PV négatifs atteignent la valeur brute de son score de Constitution (ex: -14 pour 14 en CON), il meurt définitivement."
+    },
+    {
+      "t": "Points de Récupération (PR) et Guérison",
+      "cat": "Combat",
+      "c": "Chaque personnage dispose d'une réserve de Points de Récupération (PR) égale à son score de CON. Après 6h de sommeil, il peut dépenser 1 PR pour regagner [1 dé de vie du profil + Mod. CON] PV. 24 heures de repos complet dans un lit confortable restaurent tous les PV et 1 PR."
+    },
+    {
+      "t": "Règles de Poursuite",
+      "cat": "Combat",
+      "c": "Une poursuite se gère par des tests de course opposés basés sur la CON. Modificateurs : créature à 30 m/action (+10), action de mouvement supplémentaire (+10), créature volante (+5), quadrupède (+2), taille très petite (-5), taille énorme (+5). Celui qui accumule 3 succès d'avance sème son poursuivant ou le rattrape."
+    },
+    {
+      "t": "Voyager & Marche forcée",
+      "cat": "Aventure",
+      "c": "Un personnage à pied avec barda couvre environ [12 + Mod. CON - DEF armure] km par période de 4 heures sur chemin plat. Une journée standard compte 2 périodes (8 heures). En dehors des chemins, la distance est divisée par 2. En terrain difficile (marais, montagne), elle est divisée par 2 (ou par 4 hors chemin). Une 3e période de marche forcée exige un test de CON DD 10 (+2 par période supplémentaire) sous peine de subir -2 cumulatif et l'état Affaibli."
+    },
+    {
+      "t": "Montures & Transports",
+      "cat": "Aventure",
+      "c": "Une mule transporte le barda sans pénalité d'armure pour le marcheur (+2 km). Un cheval de selle couvre 18 km par période de 4h (poney : 15 km). Monter ou descendre de selle est une action de mouvement. Combattre à cheval octroie +1 en attaque contre les cibles à pied plus petites."
+    },
+    {
+      "t": "Sauter : Longueur et Hauteur",
+      "cat": "Aventure",
+      "c": "Saut en longueur avec élan : test de DEX DD = 3 × distance en mètres. Sans élan : DD = 6 × distance en mètres. Saut en hauteur avec élan : test de DEX DD = 10 × hauteur franchie en mètres."
+    },
+    {
+      "t": "Chutes",
+      "cat": "Aventure",
+      "c": "Une chute inflige 1d6 DM par tranche de 3 mètres de hauteur (maximum 10d6 pour 30 mètres et plus). Un test de DEX DD 10 réussi permet d'amortir la chute et d'annuler les dégâts des 3 premiers mètres."
+    },
+    {
+      "t": "Feu et Brûlures",
+      "cat": "Aventure",
+      "c": "Coup de torche : 1d4 DM. Flammes intenses ou brasier : 1d6 à 3d6 DM par tour d'immersion. Si les vêtements prennent feu, la victime subit 1d6 DM au début de chaque tour. Se rouler au sol pour éteindre le feu consomme 1 action de mouvement et un test de DEX DD 10."
+    },
+    {
+      "t": "Soulever une charge",
+      "cat": "Aventure",
+      "c": "Charge normale portable sans gêne = 5 × score de FOR en kg. Charge lourde transportable = 10 × score de FOR en kg (déplacement réduit de moitié). Charge maximale arrachable du sol = 20 × score de FOR en kg (test de FOR DD 15, aucun déplacement possible)."
+    },
+    {
+      "t": "Conditions climatiques : Chaleur et Froid",
+      "cat": "Aventure",
+      "c": "En cas de grand froid (neige, blizzard) ou chaleur caniculaire extrême sans abri adapté, le personnage doit réussir un test de CON DD 15 toutes les heures. En cas d'échec, il subit 1d6 DM non soignables tant qu'il n'a pas trouvé un refuge tempéré."
+    },
+    {
+      "t": "Poisons et Venins",
+      "cat": "Aventure",
+      "c": "L'exposition à un poison exige un test de CON contre le DD du poison (venin faible DD 12, venin mortel DD 18). L'échec entraîne l'état Empoisonné avec dégâts récurrents (ex: 1d6 DM par tour) et malus de -2, voire la paralysie ou la mort."
+    },
+    {
+      "t": "Dégâts aux Structures (Portes, Murs, Barricades)",
+      "cat": "Aventure",
+      "c": "Solidité et Réduction des Dégâts (RD) des structures : Porte simple bois (Solidité 15, RD 5) | Porte épaisse (Solidité 20, RD 7) | Porte renforcée ferrée (Solidité 25, RD 10) | Porte blindée (Solidité 30, RD 15) | Barreaux simples (Solidité 25, RD 20) | Mur de pierre par 30 cm d'épaisseur (Solidité 30, RD 20). Pour défoncer d'un coup d'épaule : test de FOR opposé à la Solidité. Les armes perforantes et tranchantes n'infligent aucun dégât aux murs maçonnés."
+    },
+    {
+      "t": "Pièges (Détection et Désarçonnage)",
+      "cat": "Aventure",
+      "c": "Repérer un piège nécessite un test de SAG (Perception) contre la difficulté de camouflage du piège (DD 15 standard, DD 20 élaboré). Le désamorcer exige des outils de crochetage et un test de DEX contre la difficulté du mécanisme (DD 15 à 25). Exemples : Chausse-trappes (1 DM et Ralenti), Fosse à pieux 3 m (2d6 DM, DEX DD 15 pour 1/2 DM), Trappe et lames 6 m (5d6 DM), Balancier à faux (3d6 DM)."
+    },
+    {
+      "t": "Règles Avancées : Points de Chance (PC)",
+      "cat": "Règles Avancées",
+      "c": "Points de Chance (PC) = 3 + Modificateur de Charisme. Dépenser 1 PC permet d'ajouter +10 sur n'importe quel jet de d20. La décision peut être prise APRÈS avoir pris connaissance du résultat du dé. Les PC se rechargent à chaque passage de niveau ou à la fin d'une aventure majeure."
+    },
+    {
+      "t": "Règles Avancées : Points de Mana (PM)",
+      "cat": "Règles Avancées",
+      "c": "Pour une magie limitée : Barde, Druide, Forgesort et Prêtre possèdent PM = [Niveau + Mod. Carac magique]. Ensorceleur, Magicien et Nécromancien possèdent PM = [2 × Niveau + Mod. Carac magique]. Les sorts de rang 1 et 2 restent gratuits (à volonté). Lancer un sort de rang 3 coûte 1 PM, rang 4 coûte 2 PM, rang 5 coûte 3 PM. Un repos complet restaure l'intégralité des PM."
+    },
+    {
+      "t": "Règles Avancées : Voies de Prestige",
+      "cat": "Règles Avancées",
+      "c": "À partir du niveau 8, un personnage peut débloquer une Voie de Prestige (Standard, Spécialisée, Raciale ou Singulière). Chaque rang de cette voie coûte 2 points de capacité (même les rangs 1 et 2). Elle permet de sublimer son rôle héroïque au-delà des 5 voies de base."
+    }
+  ]
+}

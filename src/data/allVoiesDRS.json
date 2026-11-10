@@ -1,0 +1,2522 @@
+{
+  "arquebusier-artilleur": {
+    "nom": "Voie de l artilleur",
+    "profil": "arquebusier",
+    "r": [
+      {
+        "n": "Tir d artillerie",
+        "t": "Augmente la portée de toutes ses armes à feu de +10 mètres.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Poudre surpressée",
+        "t": "Ajoute +2 aux dégâts physiques de tous ses tirs à poudre.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Tir de barrage",
+        "t": "Action limitée : tire en continu pour interdire une zone de 5m de rayon (1d6 DM aux intrus).",
+        "L": 1,
+        "S": 0
+      },
+      {
+        "n": "Grenade incendiaire",
+        "t": "Projette une bombe créant un incendie de 5m infligeant 2d6 DM de feu par tour.",
+        "L": 1,
+        "S": 0
+      },
+      {
+        "n": "Déluge de mitraille",
+        "t": "Décharge dévastatrice infligeant 4d6 DM en cône de 15m devant lui.",
+        "L": 1,
+        "S": 0
+      }
+    ]
+  },
+  "arquebusier-bataille": {
+    "nom": "Voie du champ de bataille",
+    "profil": "arquebusier",
+    "r": [
+      {
+        "n": "Action concertée",
+        "t": "Une fois par tour, l Arquebusier peut échanger son Initiative avec un allié volontaire.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Manœuvre tactique",
+        "t": "Peut se déplacer de 5m immédiatement après avoir tiré sans déclencher d attaque d opportunité.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Couverture mutuelle",
+        "t": "Donne +2 en DEF à un allié adjacent s il dispose d une arme chargée.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Position fortifiée",
+        "t": "Gagne +4 en DEF lorsqu il se met à couvert derrière un obstacle naturel ou meuble.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Maître stratège",
+        "t": "Permet à 2 compagnons d effectuer immédiatement une attaque gratuite hors de leur tour.",
+        "L": 1,
+        "S": 0
+      }
+    ]
+  },
+  "arquebusier-precision": {
+    "nom": "Voie de la précision",
+    "profil": "arquebusier",
+    "r": [
+      {
+        "n": "Visée millimétrée",
+        "t": "Sacrifie son mouvement pour obtenir un bonus de +2 à son tir à distance.",
+        "L": 1,
+        "S": 0
+      },
+      {
+        "n": "Tir précis",
+        "t": "Ignore les pénalités de couvert partiel et les malus liés aux tirs dans une mêlée.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Œil de lynx",
+        "t": "Coup critique étendu à 19-20 naturel sur toutes ses armes à feu.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Tir mortel au cœur",
+        "t": "Action limitée : tir chirurgical infligeant les dégâts maximaux de l arme + 10.",
+        "L": 1,
+        "S": 0
+      },
+      {
+        "n": "Balle infaillible",
+        "t": "Une fois par combat, un tir touche automatiquement sans jet de dé et réussit un coup critique.",
+        "L": 1,
+        "S": 0
+      }
+    ]
+  },
+  "arquebusier-explosifs": {
+    "nom": "Voie des explosifs",
+    "profil": "arquebusier",
+    "r": [
+      {
+        "n": "Grenade à poudre",
+        "t": "Lance une bombe improvisée à 15 m infligeant 1d6 DM de zone (rayon 3 m).",
+        "L": 1,
+        "S": 0
+      },
+      {
+        "n": "Poudre aveuglante",
+        "t": "Projette un nuage dense rendant aveugles les ennemis pris dedans pendant 1 tour.",
+        "L": 1,
+        "S": 0
+      },
+      {
+        "n": "Bombe à fragmentation",
+        "t": "Bombe renforcée de shrapnels infligeant 2d6 DM dans un rayon de 5m.",
+        "L": 1,
+        "S": 0
+      },
+      {
+        "n": "Mine téléguidée",
+        "t": "Pose une mine dissimulée qui explose au passage d un ennemi pour 3d6 DM.",
+        "L": 1,
+        "S": 0
+      },
+      {
+        "n": "Explosion cataclysmique",
+        "t": "Charge explosive lourde démolissant les structures et infligeant 5d6 DM sur 10m.",
+        "L": 1,
+        "S": 0
+      }
+    ]
+  },
+  "arquebusier-pistolero": {
+    "nom": "Voie du pistolero",
+    "profil": "arquebusier",
+    "r": [
+      {
+        "n": "Dégainer rapide",
+        "t": "Peut dégainer ou ranger ses armes à feu comme une simple action gratuite.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Tir réflexe",
+        "t": "Au début du combat, peut effectuer un tir gratuit avant le tout premier tour de jeu.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Deux pétoires en joue",
+        "t": "Peut faire feu simultanément avec deux pistolets sans malus au tir.",
+        "L": 1,
+        "S": 0
+      },
+      {
+        "n": "Rouleau de tir",
+        "t": "Recharge ses armes à feu en une action de mouvement au lieu d une action limitée.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Mitraille infernale",
+        "t": "Vide son chargeur : effectue jusqu à 4 tirs distincts au même tour.",
+        "L": 1,
+        "S": 0
+      }
+    ]
+  },
+  "barbare-brute": {
+    "nom": "Voie de la brute",
+    "profil": "barbare",
+    "r": [
+      {
+        "n": "Argument de taille",
+        "t": "Ajoute son Mod. de FOR à ses PV Max et aux tests d intimidation.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Encaisser un coup",
+        "t": "Une fois par combat en réaction, divise par 2 les dégâts physiques subis lors d une attaque.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Déchaînement de violence",
+        "t": "Action limitée : porte une attaque avec +2 en attaque et +2d6 aux dégâts physiques.",
+        "L": 1,
+        "S": 0
+      },
+      {
+        "n": "Colosse",
+        "t": "Gagne +2 en Force de manière permanente. Sa taille et sa masse physique imposent le respect.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Coup de massue",
+        "t": "Sur une attaque réussie, oblige la cible à réussir un test de CON DD (10 + Mod. FOR) sous peine d être assommée pour 1d4 tours.",
+        "L": 1,
+        "S": 0
+      }
+    ]
+  },
+  "barbare-primitif": {
+    "nom": "Voie du primitif",
+    "profil": "barbare",
+    "r": [
+      {
+        "n": "Armure de vent",
+        "t": "Sans armure ni bouclier, ajoute son Rang dans cette voie à sa valeur de Défense (DEF).",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Peau de pierre",
+        "t": "Bénéficie d une Réduction des Dégâts (RD) de 2 contre toutes les armes non magiques.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Sens de la bête",
+        "t": "Vision nocturne équivalente au plein jour et bonus de +5 aux tests de perception auditive et olfactive.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Force de la nature",
+        "t": "Gagne +2 en Constitution permanent et immunité totale aux maladies naturelles.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Forme bestiale",
+        "t": "Se transforme une fois par jour en bête monstrueuse : +5 en FOR, +10 PV temporaires et morsure 2d6.",
+        "L": 1,
+        "S": 0
+      }
+    ]
+  },
+  "barbare-rage": {
+    "nom": "Voie de la rage",
+    "profil": "barbare",
+    "r": [
+      {
+        "n": "Rage du berserk",
+        "t": "Action gratuite : entre en furie. Gagne +2 en attaque et +1d6 aux DM, mais subit un malus de -2 en DEF pendant le combat.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Cri de guerre",
+        "t": "Au premier tour, pousse un rugissement terrifiant : tous les ennemis à 10 m subissent -2 en attaque pour 1d4 tours.",
+        "L": 1,
+        "S": 0
+      },
+      {
+        "n": "Frénésie",
+        "t": "En rage, peut effectuer une deuxième attaque de contact par tour avec un malus de -2.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Fureur inextinguible",
+        "t": "En rage, ne peut plus tomber inconscient à 0 PV et combat avec fureur jusqu à -[Score de CON] PV.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Rage sanguinaire",
+        "t": "Le bonus aux dégâts de la rage passe à +2d6 et chaque coup critique réussi restaure 1d6 PV.",
+        "L": 0,
+        "S": 0
+      }
+    ]
+  },
+  "barbare-pourfendeur": {
+    "nom": "Voie du pourfendeur",
+    "profil": "barbare",
+    "r": [
+      {
+        "n": "Frappe lourde",
+        "t": "Ajoute +2 aux dégâts avec toutes les armes maniées à deux mains.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Attaque circulaire",
+        "t": "Action limitée : attaque toutes les créatures ennemies à portée de contact immédiate.",
+        "L": 1,
+        "S": 0
+      },
+      {
+        "n": "Balayage",
+        "t": "Si une attaque au contact touche, peut effectuer un test opposé de FOR pour jeter la cible à terre.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Décapitation",
+        "t": "Le score de critique pour les armes à deux mains passe à 19-20. Dégâts critiques triplés au lieu de doublés.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Furie destructrice",
+        "t": "Une fois par combat, porte une frappe titanesque infligeant le maximum des dés de dégâts + 20.",
+        "L": 1,
+        "S": 0
+      }
+    ]
+  },
+  "barbare-survivant": {
+    "nom": "Voie du survivant",
+    "profil": "barbare",
+    "r": [
+      {
+        "n": "Endurance rustique",
+        "t": "Bonus de +2 en CON pour résister au climat, à la faim, à la soif et aux toxines.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Robustesse",
+        "t": "Gagne immédiatement +5 Points de Vie Max supplémentaires.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Métabolisme hors du commun",
+        "t": "Récupère 2 fois plus de PV lors de chaque période de repos ou dépense de Points de Récupération.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Invulnérabilité",
+        "t": "Bénéficie d un bonus permanent de +2 en Défense et +2 à tous les jets de sauvegarde.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Dernier souffle",
+        "t": "Une fois par jour, si une attaque devait l amener à 0 PV ou moins, ses PV descendent à 1 PV à la place.",
+        "L": 0,
+        "S": 0
+      }
+    ]
+  },
+  "barde-escrime": {
+    "nom": "Voie de l escrime",
+    "profil": "barde",
+    "r": [
+      {
+        "n": "Attaque en finesse",
+        "t": "Utilise le Mod. de DEX en attaque au contact avec une rapière ou dague.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Feinte théâtrale",
+        "t": "Distrait l ennemi avec panache : l adversaire perd son bonus de DEX en DEF.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Botte secrète",
+        "t": "Ajoute son Mod. de CHA aux dégâts de ses attaques à la rapière.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Provocation en duel",
+        "t": "Force un ennemi à n attaquer que le barde sous peine d un malus de -4.",
+        "L": 1,
+        "S": 0
+      },
+      {
+        "n": "Maître épéiste flamboyant",
+        "t": "Critique sur 18-20 et riposte automatique chaque fois qu un coup le rate.",
+        "L": 0,
+        "S": 0
+      }
+    ]
+  },
+  "barde-seduction": {
+    "nom": "Voie de la séduction",
+    "profil": "barde",
+    "r": [
+      {
+        "n": "Charme naturel",
+        "t": "Bonus de +2 aux tests de Charisme de persuasion, séduction et négociation.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Parole enjôleuse",
+        "t": "Apaise les tensions : évite un combat immédiat sur un test de CHA réussi.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Fascination poétique",
+        "t": "Captive jusqu à 3 créatures qui restent immobiles et écoutent avec ravissement.",
+        "L": 1,
+        "S": 1
+      },
+      {
+        "n": "Amitié feinte",
+        "t": "Convainc un humanoïde que le barde est son plus cher ami pendant 1 heure.",
+        "L": 1,
+        "S": 1
+      },
+      {
+        "n": "Suggestion irrésistible",
+        "t": "Implante un ordre mental dans l esprit d une cible sur test de SAG opposé.",
+        "L": 1,
+        "S": 1
+      }
+    ]
+  },
+  "barde-saltimbanque": {
+    "nom": "Voie du saltimbanque",
+    "profil": "barde",
+    "r": [
+      {
+        "n": "Acrobate",
+        "t": "Bonus de +2 aux tests de DEX pour sauter, esquiver et garder l équilibre.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Jonglerie d esquive",
+        "t": "Gagne +2 en DEF tant qu il combat sans armure lourde ni bouclier.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Échappée belle",
+        "t": "Peut se faufiler à travers les lignes ennemies sans provoquer d attaque de revers.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Saut périlleux",
+        "t": "Bondit par-dessus un ennemi pour frapper dans son dos avec +2 en attaque.",
+        "L": 1,
+        "S": 0
+      },
+      {
+        "n": "Équilibriste des vents",
+        "t": "Capacité de courir sur l eau, les cordes et les parois verticales pendant 1 tour.",
+        "L": 0,
+        "S": 0
+      }
+    ]
+  },
+  "barde-musique": {
+    "nom": "Voie de la musique",
+    "profil": "barde",
+    "r": [
+      {
+        "n": "Chant du héros",
+        "t": "Air martial : accorde +1 en attaque à tous ses alliés à portée de voix.",
+        "L": 1,
+        "S": 1
+      },
+      {
+        "n": "Ballade apaisante",
+        "t": "Chaque allié récupère 1d6 PV pendant un court repos en écoutant sa musique.",
+        "L": 1,
+        "S": 1
+      },
+      {
+        "n": "Hymne martial",
+        "t": "Accorde +1d6 aux dégâts physiques de tous ses compagnons pendant 3 tours.",
+        "L": 1,
+        "S": 1
+      },
+      {
+        "n": "Fracas assourdissant",
+        "t": "Accorde magique discordant infligeant 2d6 DM soniques et assourdissant la zone.",
+        "L": 1,
+        "S": 1
+      },
+      {
+        "n": "Symphonie héroïque",
+        "t": "Impose un bonus de +3 en attaque et +3 en DEF à tous les membres du groupe.",
+        "L": 1,
+        "S": 1
+      }
+    ]
+  },
+  "barde-vagabond": {
+    "nom": "Voie du vagabond",
+    "profil": "barde",
+    "r": [
+      {
+        "n": "Savoir universel",
+        "t": "Réussit automatiquement un test d érudition, d histoire ou de rumeur par partie.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Polyglotte",
+        "t": "Comprend et parle toutes les langues courantes et dialectes régionaux.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Débrouillardise",
+        "t": "Trouve toujours un abri, de la nourriture ou un contact utile dans n importe quelle cité.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Passe-partout",
+        "t": "Peut crocheter serrures et contourner pièges avec un bonus de +3 en DEX.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Légende vivante",
+        "t": "Réputation éclatante : accorde un bonus permanent de +2 en Charisme.",
+        "L": 0,
+        "S": 0
+      }
+    ]
+  },
+  "chevalier-guerre": {
+    "nom": "Voie de la guerre",
+    "profil": "chevalier",
+    "r": [
+      {
+        "n": "Armure sur mesure",
+        "t": "L armure est optimisée : gagne +1 en DEF avec les armures métalliques.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Frapper fort",
+        "t": "Ajoute +2 aux dégâts avec toutes les armes d infanterie tenues à 1 main.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Encaisser héroïquement",
+        "t": "Réduit de moitié les dégâts d un coup critique subi une fois par combat.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Frappe lourde",
+        "t": "Sur un coup réussi, repousse l ennemi de 3 mètres et lui impose un test de FOR sous peine de chute.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Champion invaincu",
+        "t": "Gagne +2 en DEF et +2 en attaque tant qu il combat loyalement en première ligne.",
+        "L": 0,
+        "S": 0
+      }
+    ]
+  },
+  "chevalier-cavalier": {
+    "nom": "Voie du cavalier",
+    "profil": "chevalier",
+    "r": [
+      {
+        "n": "Monture fidèle",
+        "t": "Reçoit un destrier dressé pour la guerre en parfaite harmonie avec le chevalier.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Combat monté",
+        "t": "Bonus de +2 en attaque contre les cibles à pied et monture bénéficiant de sa DEF.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Charge dévastatrice",
+        "t": "À cheval avec lance : dégâts multipliés par 2 après 15 m de course d élan.",
+        "L": 1,
+        "S": 0
+      },
+      {
+        "n": "Saut d obstacle héroïque",
+        "t": "La monture franchit ravins et barrières avec un bonus de +5 aux tests de saut.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Destrier légendaire",
+        "t": "La monture gagne des ailes éthérées ou une armure d acier sacrée (vol à 20m/tour).",
+        "L": 0,
+        "S": 0
+      }
+    ]
+  },
+  "chevalier-meneur": {
+    "nom": "Voie du meneur d hommes",
+    "profil": "chevalier",
+    "r": [
+      {
+        "n": "Exhortation",
+        "t": "Donne son Mod. de CHA au jet d attaque d un allié au contact.",
+        "L": 1,
+        "S": 0
+      },
+      {
+        "n": "Ordre de charge",
+        "t": "Permet à un allié d effectuer immédiatement un mouvement de charge gratuit.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Bannière ralliante",
+        "t": "Les alliés à moins de 10 m sont totalement immunisés aux effets magiques d effroi.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Voix de stentor",
+        "t": "Une fois par combat, ranime un allié tombé à 0 PV qui se relève immédiatement avec 1d6 PV.",
+        "L": 1,
+        "S": 0
+      },
+      {
+        "n": "Général en chef",
+        "t": "Accorde +2 en Initiative et +2 en attaque à l ensemble de l équipe.",
+        "L": 0,
+        "S": 0
+      }
+    ]
+  },
+  "chevalier-heros": {
+    "nom": "Voie du héros",
+    "profil": "chevalier",
+    "r": [
+      {
+        "n": "Courage inébranlable",
+        "t": "Immunité totale à la panique, aux intimidations et effets magiques d effroi.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Provocation honorable",
+        "t": "Défie un adversaire puissant qui doit l attaquer sous peine de -4 contre les autres.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Sacrifice héroïque",
+        "t": "Prend sur lui les dégâts d une attaque qui visait un allié adjacent.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Rempart des faibles",
+        "t": "Bénéficie d une RD de 3 contre toutes les attaques d armes non magiques.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Héroïsme mythique",
+        "t": "Une fois par jour, ses PV ne peuvent descendre sous 1 pendant 3 tours entiers.",
+        "L": 0,
+        "S": 0
+      }
+    ]
+  },
+  "chevalier-noblesse": {
+    "nom": "Voie de la noblesse",
+    "profil": "chevalier",
+    "r": [
+      {
+        "n": "Prestance seigneuriale",
+        "t": "Ajoute son Mod. de CHA à sa valeur d Initiative.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Autorité naturelle",
+        "t": "Bonus de +3 aux tests de Charisme face aux soldats, citadins et nobles.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Épée de famille légitime",
+        "t": "Reçoit une arme ancestrale de maître conférant +1 en attaque et +1d6 DM.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Fief & Vassaux",
+        "t": "Reçoit un titre de noblesse et un domaine générant des revenus et du soutien.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Grâce royale",
+        "t": "Gagne +2 permanent en Charisme et peut exiger audience auprès des souverains.",
+        "L": 0,
+        "S": 0
+      }
+    ]
+  },
+  "druide-animaux": {
+    "nom": "Voie des animaux",
+    "profil": "druide",
+    "r": [
+      {
+        "n": "Ami des bêtes",
+        "t": "Communique avec les animaux et apaise leur hostilité naturelle.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Forme animale mineure",
+        "t": "Se métamorphose en oiseau, rongeur ou furet pour espionner discrètement.",
+        "L": 1,
+        "S": 1
+      },
+      {
+        "n": "Vigueur bestiale",
+        "t": "Gagne +2 en FOR et +2 en DEX lorsqu il combat aux côtés d animaux.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Forme d ours féroce",
+        "t": "Se transforme en grand ours : PV temporaires +20, FOR +4, griffes et morsure 2d6.",
+        "L": 1,
+        "S": 1
+      },
+      {
+        "n": "Communion chamanique",
+        "t": "Invoque une horde d esprits animaux submergeant tous les ennemis (4d6 DM).",
+        "L": 1,
+        "S": 1
+      }
+    ]
+  },
+  "druide-fauve": {
+    "nom": "Voie du fauve",
+    "profil": "druide",
+    "r": [
+      {
+        "n": "Sens de la bête",
+        "t": "Vision nocturne et odorat fin accordant +2 aux tests de vigilance.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Griffes acérées",
+        "t": "Ses mains se transforment en griffes infligeant 1d6 + Mod. FOR DM de contact.",
+        "L": 0,
+        "S": 1
+      },
+      {
+        "n": "Bond prédateur",
+        "t": "Bondit de 10m en avant et renverse sa cible en lui infligeant +1d6 DM.",
+        "L": 1,
+        "S": 0
+      },
+      {
+        "n": "Morsure déchirante",
+        "t": "Attaque mordante infligeant 2d6 DM et provoquant un saignement continu de 1d4/tour.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Fureur féline",
+        "t": "Vitesse doublée et gagne 2 attaques de griffes et 1 morsure par tour.",
+        "L": 1,
+        "S": 1
+      }
+    ]
+  },
+  "druide-nature": {
+    "nom": "Voie de la nature",
+    "profil": "druide",
+    "r": [
+      {
+        "n": "Baies médicinales",
+        "t": "Enchante 1d6 baies : chacune rend 1 PV quand consommée.",
+        "L": 1,
+        "S": 1
+      },
+      {
+        "n": "Peau d écorce",
+        "t": "Sa peau durcit comme le chêne : confère un bonus de +3 en DEF pour tout le combat.",
+        "L": 1,
+        "S": 1
+      },
+      {
+        "n": "Mur de ronces",
+        "t": "Fait surgir un rempart de ronces épineuses de 10 m barrant le chemin.",
+        "L": 1,
+        "S": 1
+      },
+      {
+        "n": "Régénération naturelle",
+        "t": "Régénère 3 PV au début de chacun de ses tours tant qu il touche la terre ferme.",
+        "L": 0,
+        "S": 1
+      },
+      {
+        "n": "Vengeance de Gaïa",
+        "t": "Déchaîne un séisme dévastateur renversant les ennemis et causant 4d6 DM.",
+        "L": 1,
+        "S": 1
+      }
+    ]
+  },
+  "druide-vegetaux": {
+    "nom": "Voie des végétaux",
+    "profil": "druide",
+    "r": [
+      {
+        "n": "Enchevêtrement",
+        "t": "Ronces jaillissantes immobilisant les ennemis dans une zone de 10 m.",
+        "L": 1,
+        "S": 1
+      },
+      {
+        "n": "Épines empoisonnées",
+        "t": "Tire une volée d épines toxiques à 20m infligeant 1d6 DM + poison affaiblissant.",
+        "L": 1,
+        "S": 1
+      },
+      {
+        "n": "Arbre protecteur",
+        "t": "Fait pousser un arbre gigantesque offrant un abri impénétrable au groupe.",
+        "L": 1,
+        "S": 1
+      },
+      {
+        "n": "Passe-muraille végétal",
+        "t": "Traverse les arbres et végétations denses sans laisser aucune trace.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Éveil des arbres",
+        "t": "Anime 2 arbres majestueux qui combattent comme des géants sous ses ordres.",
+        "L": 1,
+        "S": 1
+      }
+    ]
+  },
+  "druide-elements": {
+    "nom": "Voie des éléments",
+    "profil": "druide",
+    "r": [
+      {
+        "n": "Bourrasque",
+        "t": "Souffle puissant capable de déséquilibrer ou repousser une cible de 5 mètres.",
+        "L": 1,
+        "S": 1
+      },
+      {
+        "n": "Éclair élémentaire",
+        "t": "Frappe de foudre tombant du ciel pour infliger 2d6 DM électriques à 30 m.",
+        "L": 1,
+        "S": 1
+      },
+      {
+        "n": "Mur de vent",
+        "t": "Dévie automatiquement toutes les flèches et tirs à distance ciblant le groupe.",
+        "L": 1,
+        "S": 1
+      },
+      {
+        "n": "Tempête de glace",
+        "t": "Pluie de grêle infligeant 3d6 DM de froid sur une large zone.",
+        "L": 1,
+        "S": 1
+      },
+      {
+        "n": "Tornade primordiale",
+        "t": "Invoque un cyclone ravageur emportant les ennemis dans les airs pour 5d6 DM.",
+        "L": 1,
+        "S": 1
+      }
+    ]
+  },
+  "ensorceleur-air": {
+    "nom": "Voie de l air",
+    "profil": "ensorceleur",
+    "r": [
+      {
+        "n": "Saut de vent",
+        "t": "Bondit magiquement jusqu à 15 m ou amortit une chute sans subir de dégâts.",
+        "L": 1,
+        "S": 1
+      },
+      {
+        "n": "Lévitation",
+        "t": "Flotte dans les airs jusqu à 10 m de hauteur sans toucher le sol.",
+        "L": 1,
+        "S": 1
+      },
+      {
+        "n": "Foudre en arc",
+        "t": "Éclair bondissant entre 2 cibles pour 2d6 DM d électricité.",
+        "L": 1,
+        "S": 1
+      },
+      {
+        "n": "Vol arcanique",
+        "t": "Vole librement à 20 mètres par action de mouvement pendant tout le combat.",
+        "L": 1,
+        "S": 1
+      },
+      {
+        "n": "Tempête céleste",
+        "t": "Ouragan de foudre infligeant 4d6 DM électriques à tous les ennemis.",
+        "L": 1,
+        "S": 1
+      }
+    ]
+  },
+  "ensorceleur-divination": {
+    "nom": "Voie de la divination",
+    "profil": "ensorceleur",
+    "r": [
+      {
+        "n": "6ème sens",
+        "t": "Prévoit les événements : bonus de +1 en Initiative et en DEF par rang.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Clairvoyance",
+        "t": "Voit et entend à travers les murs et à distance jusqu à 100 mètres.",
+        "L": 1,
+        "S": 1
+      },
+      {
+        "n": "Vision véritable",
+        "t": "Détecte instantanément l invisible, les illusions et les déguisements magiques.",
+        "L": 1,
+        "S": 1
+      },
+      {
+        "n": "Prescience du combat",
+        "t": "Connaît à l avance le coup ennemi : force un adversaire à relancer son attaque.",
+        "L": 0,
+        "S": 1
+      },
+      {
+        "n": "Œil omniscient",
+        "t": "Perçoit le passé, le présent et le futur immédiat d un lieu ou individu.",
+        "L": 1,
+        "S": 1
+      }
+    ]
+  },
+  "ensorceleur-envouteur": {
+    "nom": "Voie de l envoûteur",
+    "profil": "ensorceleur",
+    "r": [
+      {
+        "n": "Sommeil",
+        "t": "Plonge une créature humanoïde dans un profond sommeil magique.",
+        "L": 1,
+        "S": 1
+      },
+      {
+        "n": "Confusion mentale",
+        "t": "Déstabilise un ennemi qui attaque au hasard ses propres alliés.",
+        "L": 1,
+        "S": 1
+      },
+      {
+        "n": "Peur panique",
+        "t": "Frappe de terreur : force la cible à fuir à toutes jambes pendant 1d4 tours.",
+        "L": 1,
+        "S": 1
+      },
+      {
+        "n": "Suggestion hypnotique",
+        "t": "Implante un ordre mental dans l esprit d un ennemi sur test de SAG opposé.",
+        "L": 1,
+        "S": 1
+      },
+      {
+        "n": "Domination totale",
+        "t": "Prend le contrôle mental absolu d une créature vivante.",
+        "L": 1,
+        "S": 1
+      }
+    ]
+  },
+  "ensorceleur-invocation": {
+    "nom": "Voie de l invocation",
+    "profil": "ensorceleur",
+    "r": [
+      {
+        "n": "Serviteur invisible",
+        "t": "Matérialise une force invisible capable d effectuer des tâches légères.",
+        "L": 1,
+        "S": 1
+      },
+      {
+        "n": "Nuée grouillante",
+        "t": "Fait surgir une nuée de scarabées ou serpents aveuglant et piquant la cible.",
+        "L": 1,
+        "S": 1
+      },
+      {
+        "n": "Molosse spectral",
+        "t": "Invoque un chien de guerre spectral combattant à ses côtés avec morsure 1d8.",
+        "L": 1,
+        "S": 1
+      },
+      {
+        "n": "Élémentaire loyal",
+        "t": "Matérialise un guerrier élémentaire de 30 PV absorbant les assauts.",
+        "L": 1,
+        "S": 1
+      },
+      {
+        "n": "Dragon arcanique",
+        "t": "Matérialise l avatar d un dragon céleste crachant des flammes magiques (4d6 DM).",
+        "L": 1,
+        "S": 1
+      }
+    ]
+  },
+  "ensorceleur-sang": {
+    "nom": "Voie du sang magique",
+    "profil": "ensorceleur",
+    "r": [
+      {
+        "n": "Flammes spontanées",
+        "t": "Enflamme un objet ou crée une gerbe d étincelles magiques au contact.",
+        "L": 0,
+        "S": 1
+      },
+      {
+        "n": "Morsure de sang",
+        "t": "Sacrifie 2 PV pour ajouter +1d6 DM sur sa prochaine attaque magique.",
+        "L": 0,
+        "S": 1
+      },
+      {
+        "n": "Armure écarlate",
+        "t": "Son sang se fige en plaques protectrices : confère +4 en DEF.",
+        "L": 1,
+        "S": 1
+      },
+      {
+        "n": "Furie du sang",
+        "t": "Lorsque ses PV sont sous 50%, tous ses sorts infligent +2d6 DM supplémentaires.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Explosion de sang",
+        "t": "Déflagration de sang magique infligeant 5d6 DM à toutes les créatures adjacentes.",
+        "L": 1,
+        "S": 1
+      }
+    ]
+  },
+  "forgesort-artefacts": {
+    "nom": "Voie des artefacts",
+    "profil": "forgesort",
+    "r": [
+      {
+        "n": "Objet renforcé",
+        "t": "Améliore une arme (+1 att) ou armure (+1 DEF) pour toute la journée.",
+        "L": 1,
+        "S": 0
+      },
+      {
+        "n": "Armure énergétique",
+        "t": "Bénéficie d un champ protecteur absorbant 10 DM par combat.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Arme animée",
+        "t": "Anime une arme qui flotte et attaque seule au contact pendant 1d6 tours.",
+        "L": 1,
+        "S": 1
+      },
+      {
+        "n": "Baguette suprême",
+        "t": "Fabrique une baguette stockant 3 charges de sorts de rangs 1 ou 2.",
+        "L": 1,
+        "S": 0
+      },
+      {
+        "n": "Forge d artefact",
+        "t": "Façonne une arme légendaire conférant +2 en attaque, +2d6 DM et un pouvoir arcanique.",
+        "L": 1,
+        "S": 0
+      }
+    ]
+  },
+  "forgesort-elixirs": {
+    "nom": "Voie des élixirs",
+    "profil": "forgesort",
+    "r": [
+      {
+        "n": "Élixir de vigueur",
+        "t": "Fabrique une potion conférant +2 aux jets de FOR ou DEX temporairement.",
+        "L": 1,
+        "S": 0
+      },
+      {
+        "n": "Potion de rapidité",
+        "t": "Breuvage conférant l effet du sort Hâte pendant 1d4 tours.",
+        "L": 1,
+        "S": 0
+      },
+      {
+        "n": "Breuvage d invulnérabilité",
+        "t": "Octroie une Réduction des Dégâts de 3 pendant 5 tours.",
+        "L": 1,
+        "S": 0
+      },
+      {
+        "n": "Élixir de mutation",
+        "t": "Développe une vision nocturne, des branchies ou une force herculéenne (+4 FOR).",
+        "L": 1,
+        "S": 0
+      },
+      {
+        "n": "Panacée universelle",
+        "t": "Restaure tous les PV, guérit poisons, maladies et supprime tous les états néfastes.",
+        "L": 1,
+        "S": 0
+      }
+    ]
+  },
+  "forgesort-metal": {
+    "nom": "Voie du métal",
+    "profil": "forgesort",
+    "r": [
+      {
+        "n": "Arme fétiche",
+        "t": "Le marteau ou l arme du Forgesort inflige +1d6 DM d énergie arcanique.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Éclats métalliques",
+        "t": "Projette une gerbe d aiguilles d acier infligeant 2d6 DM en éventail à 10 m.",
+        "L": 1,
+        "S": 0
+      },
+      {
+        "n": "Fusion du métal",
+        "t": "Fait rougir ou fondre les armures ou serrures métalliques ennemies.",
+        "L": 1,
+        "S": 1
+      },
+      {
+        "n": "Magnétisme arcanique",
+        "t": "Désarme ou attire les armes métalliques distantes jusqu à 15 mètres.",
+        "L": 1,
+        "S": 1
+      },
+      {
+        "n": "Corps de titane",
+        "t": "Sa peau devient un alliage incassable : gagne +5 en DEF et RD 5.",
+        "L": 1,
+        "S": 1
+      }
+    ]
+  },
+  "forgesort-runes": {
+    "nom": "Voie des runes",
+    "profil": "forgesort",
+    "r": [
+      {
+        "n": "Rune de garde",
+        "t": "Grave une rune qui explose au passage d un ennemi (2d6 DM).",
+        "L": 1,
+        "S": 1
+      },
+      {
+        "n": "Rune de protection",
+        "t": "Grave une rune sur le bouclier ou torse accordant +2 en DEF.",
+        "L": 1,
+        "S": 1
+      },
+      {
+        "n": "Rune de foudre",
+        "t": "Rune projetant un arc électrique de 3d6 DM sur quiconque franchit un seuil.",
+        "L": 1,
+        "S": 1
+      },
+      {
+        "n": "Glyphe de paralysie",
+        "t": "Immobilise et paralyse un monstre pendant 1d4 tours sans jet de sauvegarde.",
+        "L": 1,
+        "S": 1
+      },
+      {
+        "n": "Rune du cataclysme",
+        "t": "Rune majeure provoquant une explosion tellurique de 5d6 DM sur 15 mètres.",
+        "L": 1,
+        "S": 1
+      }
+    ]
+  },
+  "forgesort-automates": {
+    "nom": "Voie des automates",
+    "profil": "forgesort",
+    "r": [
+      {
+        "n": "Familier mécanique",
+        "t": "Construit un petit automate d espionnage agile et discret (chouette, scarabée).",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Tourelle automatique",
+        "t": "Déploie une petite baliste automatique tirant chaque tour à 20m pour 1d6 DM.",
+        "L": 1,
+        "S": 0
+      },
+      {
+        "n": "Automate de combat",
+        "t": "Assemble un golem mécanique de 30 PV maniant masse d armes et bouclier.",
+        "L": 1,
+        "S": 0
+      },
+      {
+        "n": "Blindage renforcé",
+        "t": "L automate gagne +10 PV et une résistance naturelle aux éléments.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Méca-titan",
+        "t": "Construit un titan mécanique géant pilotable infligeant 3d8 DM par coup.",
+        "L": 1,
+        "S": 0
+      }
+    ]
+  },
+  "moine-energie": {
+    "nom": "Voie de l énergie vitale",
+    "profil": "moine",
+    "r": [
+      {
+        "n": "Corps de fer",
+        "t": "Armure naturelle égale à son Modificateur de Sagesse.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Paume vibratoire",
+        "t": "Transmet une onde de choc au contact infligeant 1d8 + SAG DM ignorant l armure.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Guérison du Chi",
+        "t": "Médite en combat : récupère immédiatement [1d8 + Niveau] PV.",
+        "L": 1,
+        "S": 0
+      },
+      {
+        "n": "Barrière spirituelle",
+        "t": "Son aura repousse les attaques : confère un bonus de +3 en DEF pour le combat.",
+        "L": 1,
+        "S": 0
+      },
+      {
+        "n": "Transcendance corporelle",
+        "t": "Immunité totale aux poisons, maladies, vieillissement et malus physiques.",
+        "L": 0,
+        "S": 0
+      }
+    ]
+  },
+  "moine-maitrise": {
+    "nom": "Voie de la maîtrise",
+    "profil": "moine",
+    "r": [
+      {
+        "n": "Frappe à mains nues",
+        "t": "Les coups à mains nues infligent 1d6 DM réels (au lieu de 1d4 temporaires).",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Enchaînement martial",
+        "t": "Peut effectuer deux attaques à mains nues au cours du même tour.",
+        "L": 1,
+        "S": 0
+      },
+      {
+        "n": "Coup étourdissant",
+        "t": "Sur un coup réussi, paralyse ou étourdit l ennemi pour 1 tour (CON DD 15).",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Poings d acier",
+        "t": "Les dégâts à mains nues passent à 1d8 + Mod. FOR ou DEX et comptent comme magiques.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Frappe des 5 points",
+        "t": "Technique mortelle : interrompt le flux vital et inflige 4d8 DM directs.",
+        "L": 1,
+        "S": 0
+      }
+    ]
+  },
+  "moine-meditation": {
+    "nom": "Voie de la méditation",
+    "profil": "moine",
+    "r": [
+      {
+        "n": "Sérénité",
+        "t": "Immunité totale aux provocations, paniques et illusions déstabilisantes.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Pureté du corps",
+        "t": "Résiste naturellement à la faim, soif et températures extrêmes.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Marche sur l eau",
+        "t": "Court et combat sur l eau, les marais et les surfaces instables sans ralentissement.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Projection astrale",
+        "t": "Projette son esprit hors de son corps pour espionner et explorer à distance.",
+        "L": 1,
+        "S": 0
+      },
+      {
+        "n": "Illumination suprême",
+        "t": "Gagne +2 permanent en Sagesse et avantage sur tous les tests d esprit.",
+        "L": 0,
+        "S": 0
+      }
+    ]
+  },
+  "moine-vent": {
+    "nom": "Voie du vent",
+    "profil": "moine",
+    "r": [
+      {
+        "n": "Foulée rapide",
+        "t": "La vitesse de déplacement du moine augmente de +5 mètres par action de mouvement.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Pas léger",
+        "t": "Ne déclenche jamais aucun piège de sol et se déplace sans faire le moindre bruit.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Course de l ombre",
+        "t": "Peut courir sur les parois verticales et murs sur 10 mètres.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Vitesse du faucon",
+        "t": "Vitesse augmentée de +10m supplémentaire et gagne une action de mouvement gratuite par tour.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Téléportation du vent",
+        "t": "Se dématérialise et réapparaît instantanément jusqu à 20 mètres à vue.",
+        "L": 1,
+        "S": 0
+      }
+    ]
+  },
+  "moine-combat": {
+    "nom": "Voie du combat loyal",
+    "profil": "moine",
+    "r": [
+      {
+        "n": "Déviation de projectiles",
+        "t": "Dévie une flèche ou carreau d arbalète sur un test de DEX opposé réussi.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Clé de bras & Projection",
+        "t": "Neutralise et plaque un assaillant au sol en une seule réaction fluide.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Riposte circulaire",
+        "t": "Si un ennemi rate son attaque de contact, le moine lui inflige automatiquement un coup de coude 1d6.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Désarmement fluide",
+        "t": "Arrache l arme de l ennemi et l envoie valser à 5 mètres.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Frappe du dragon",
+        "t": "Coup de pied foudroyant envoyant valser l ennemi à 10m pour 3d6 DM.",
+        "L": 1,
+        "S": 0
+      }
+    ]
+  },
+  "necromancien-mort": {
+    "nom": "Voie de la mort",
+    "profil": "necromancien",
+    "r": [
+      {
+        "n": "Rayon débilitant",
+        "t": "Projette un trait sombre réduisant de -2 la Force de sa victime.",
+        "L": 1,
+        "S": 1
+      },
+      {
+        "n": "Toucher spectral",
+        "t": "Attaque de contact infligeant 1d8 DM d énergie négative ignorant l armure.",
+        "L": 1,
+        "S": 1
+      },
+      {
+        "n": "Drain de vie",
+        "t": "Vole 2d6 PV à une cible pour soigner immédiatement ses propres blessures.",
+        "L": 1,
+        "S": 1
+      },
+      {
+        "n": "Cercle de mort",
+        "t": "Vague funeste infligeant 3d6 DM à tous les vivants à moins de 10 mètres.",
+        "L": 1,
+        "S": 1
+      },
+      {
+        "n": "Doigt de mort",
+        "t": "Pointe un ennemi du doigt : inflige [5d6 + INT] DM nécrotiques directs.",
+        "L": 1,
+        "S": 1
+      }
+    ]
+  },
+  "necromancien-outretombe": {
+    "nom": "Voie de l outre-tombe",
+    "profil": "necromancien",
+    "r": [
+      {
+        "n": "Animation des morts",
+        "t": "Anime le squelette ou cadavre d une créature morte récemment.",
+        "L": 1,
+        "S": 1
+      },
+      {
+        "n": "Squelettes serviteurs",
+        "t": "Contrôle jusqu à 3 squelettes guerriers combattant sous ses ordres.",
+        "L": 1,
+        "S": 1
+      },
+      {
+        "n": "Goule affamée",
+        "t": "Relève un cadavre sous forme de goule au toucher paralysant.",
+        "L": 1,
+        "S": 1
+      },
+      {
+        "n": "Spectre vengeur",
+        "t": "Invoque un fantôme intangible drainant la force vitale des assaillants.",
+        "L": 1,
+        "S": 1
+      },
+      {
+        "n": "Légion des ténèbres",
+        "t": "Lève une armée d outre-tombe submergeant l intégralité de la zone de combat.",
+        "L": 1,
+        "S": 1
+      }
+    ]
+  },
+  "necromancien-sombre": {
+    "nom": "Voie de la sombre magie",
+    "profil": "necromancien",
+    "r": [
+      {
+        "n": "Terreur spectrale",
+        "t": "Frappe d effroi une cible qui subit -2 à toutes ses actions.",
+        "L": 1,
+        "S": 1
+      },
+      {
+        "n": "Ténèbres aveuglantes",
+        "t": "Fait tomber une obscurité magique totale impénétrable sur 10 mètres.",
+        "L": 1,
+        "S": 1
+      },
+      {
+        "n": "Malédiction flétrissante",
+        "t": "Condamne une créature : elle subit 1d6 DM direct chaque fois qu elle rate une action.",
+        "L": 1,
+        "S": 1
+      },
+      {
+        "n": "Nuage de pestilence",
+        "t": "Gaz toxique provoquant vomissements et état Affaibli.",
+        "L": 1,
+        "S": 1
+      },
+      {
+        "n": "Éclipse morbide",
+        "t": "Bloque la lumière du jour et renforce tous les morts-vivants de +2 en attaque et DEF.",
+        "L": 1,
+        "S": 1
+      }
+    ]
+  },
+  "necromancien-demon": {
+    "nom": "Voie du démon",
+    "profil": "necromancien",
+    "r": [
+      {
+        "n": "Pacte ténébreux",
+        "t": "Sacrifie 2 PV pour obtenir +3 sur son prochain test d attaque magique.",
+        "L": 0,
+        "S": 1
+      },
+      {
+        "n": "Cornes démoniaques",
+        "t": "Développe des cornes et une aura de soufre accordant +2 en DEF et intimidation.",
+        "L": 0,
+        "S": 1
+      },
+      {
+        "n": "Flammes infernales",
+        "t": "Projette un jet de feu démoniaque de 2d6 DM brûlant chairs et esprits.",
+        "L": 1,
+        "S": 1
+      },
+      {
+        "n": "Invocation de diablotin",
+        "t": "Invoque un démon ailé agile espionnant et harcelant les ennemis.",
+        "L": 1,
+        "S": 1
+      },
+      {
+        "n": "Possession infernale",
+        "t": "Se transforme temporairement en seigneur démon : +4 FOR, +4 DEF, ailes et trident.",
+        "L": 1,
+        "S": 1
+      }
+    ]
+  },
+  "necromancien-putrefaction": {
+    "nom": "Voie de la putréfaction",
+    "profil": "necromancien",
+    "r": [
+      {
+        "n": "Toucher putride",
+        "t": "Attaque magique au contact infligeant 1d6 DM d acide et décomposition.",
+        "L": 1,
+        "S": 1
+      },
+      {
+        "n": "Nuage fétide",
+        "t": "Odeur nauséabonde empêchant les créatures de respirer et d agir (étourdissement).",
+        "L": 1,
+        "S": 1
+      },
+      {
+        "n": "Chair pourrissante",
+        "t": "Ronge les chairs : la victime ne peut plus récupérer de PV pendant 24h.",
+        "L": 1,
+        "S": 1
+      },
+      {
+        "n": "Gangrène nécrotique",
+        "t": "Les blessures de la cible s infectent pour 1d6 DM supplémentaires par tour.",
+        "L": 1,
+        "S": 1
+      },
+      {
+        "n": "Moisson morbide",
+        "t": "Chaque mort tombant à moins de 20m régénère immédiatement 5 PV au nécromancien.",
+        "L": 0,
+        "S": 0
+      }
+    ]
+  },
+  "rodeur-archer": {
+    "nom": "Voie de l archer",
+    "profil": "rodeur",
+    "r": [
+      {
+        "n": "Tir parfait",
+        "t": "Ignore les pénalités de tir liées à la portée ou au vent pour son prochain jet.",
+        "L": 1,
+        "S": 0
+      },
+      {
+        "n": "Tir rapide double",
+        "t": "Peut tirer deux flèches au même tour avec son arc court ou long.",
+        "L": 1,
+        "S": 0
+      },
+      {
+        "n": "Tir pénétrant",
+        "t": "Sa flèche transperce une première cible pour en toucher une seconde située derrière.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Flèche de rupture",
+        "t": "Brise l armure ou le bouclier adverse en infligeant un malus permanent de -3 en DEF.",
+        "L": 1,
+        "S": 0
+      },
+      {
+        "n": "Pluie de flèches",
+        "t": "Crible une zone de 10m de flèches infligeant 3d6 DM à tous les ennemis.",
+        "L": 1,
+        "S": 0
+      }
+    ]
+  },
+  "rodeur-animal": {
+    "nom": "Voie du compagnon animal",
+    "profil": "rodeur",
+    "r": [
+      {
+        "n": "Fidèle compagnon",
+        "t": "Reçoit un loup, rapace ou félin loyal qui combat à ses côtés.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Ordres d attaque",
+        "t": "Le compagnon animal attaque en coordination, accordant l avantage au rôdeur.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Bête féroce",
+        "t": "Le compagnon animal gagne +10 PV et ses attaques passent à 1d8 + Mod. FOR.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Défense mutuelle",
+        "t": "Tant qu ils sont côte à côte, le rôdeur et son animal bénéficient de +2 en DEF.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Âme animale partagée",
+        "t": "Partage ses sens avec l animal et peut encaisser une attaque mortelle à sa place.",
+        "L": 0,
+        "S": 0
+      }
+    ]
+  },
+  "rodeur-escarmouche": {
+    "nom": "Voie de l escarmouche",
+    "profil": "rodeur",
+    "r": [
+      {
+        "n": "Attaque éclair",
+        "t": "Ajoute son Mod. de DEX en attaque et aux DM lors d un assaut éclair au contact.",
+        "L": 1,
+        "S": 0
+      },
+      {
+        "n": "Repli tactique",
+        "t": "Après une attaque, peut immédiatement se replier de 10m sans riposte ennemie.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Tir en mouvement",
+        "t": "Tire à l arc au milieu d un déplacement sans subir le moindre malus.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Embuscade mortelle",
+        "t": "Lors d un tour de surprise, toutes ses attaques réussies infligent +2d6 DM.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Fantôme des sous-bois",
+        "t": "Disparaît totalement aux yeux des ennemis dès qu il entre dans un couvert végétal.",
+        "L": 0,
+        "S": 0
+      }
+    ]
+  },
+  "rodeur-survie": {
+    "nom": "Voie de la survie",
+    "profil": "rodeur",
+    "r": [
+      {
+        "n": "Sens affûtés",
+        "t": "Bonus de +2 à tous les tests de pistage, de survie et d orientation en pleine nature.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Pistage infaillible",
+        "t": "Retrouve n importe quelle piste vieille de moins de 7 jours même sous la pluie.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Résistance aux éléments",
+        "t": "Immunité aux effets néfastes du froid, du gel et des canicules intenses.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Soins de campagne",
+        "t": "Prépare des onguents avec des plantes rendant 2d6 PV après chaque combat.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Maître des contrées",
+        "t": "Ne peut jamais se perdre et guide son groupe au double de la vitesse normale.",
+        "L": 0,
+        "S": 0
+      }
+    ]
+  },
+  "rodeur-traqueur": {
+    "nom": "Voie du traqueur",
+    "profil": "rodeur",
+    "r": [
+      {
+        "n": "Ennemi juré",
+        "t": "Choisit un type d ennemi : gagne +1d6 aux DM physiques contre lui.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Vigilance constante",
+        "t": "Ne peut jamais être surpris et ajoute son Mod. de SAG à l Initiative.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Piège mortel",
+        "t": "Pose un collet ou piège à mâchoires infligeant 2d6 DM et immobilisant la proie.",
+        "L": 1,
+        "S": 0
+      },
+      {
+        "n": "Chasse implacable",
+        "t": "L ennemi juré ne peut plus se cacher ni fuir : pistage magique permanent.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Némésis suprême",
+        "t": "Bonus contre l ennemi juré passe à +2d6 DM et critique automatique sur 19-20.",
+        "L": 0,
+        "S": 0
+      }
+    ]
+  },
+  "guerrier-combat": {
+    "nom": "Voie du combat",
+    "profil": "guerrier",
+    "r": [
+      {
+        "n": "Initiative héroïque",
+        "t": "Ajoute son niveau d expérience à son score d Initiative.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Fente",
+        "t": "Action limitée : allonge son allonge de combat de 2 mètres et gagne +2 en attaque pour ce coup.",
+        "L": 1,
+        "S": 0
+      },
+      {
+        "n": "Attaque double",
+        "t": "Peut effectuer deux attaques d arme au contact au cours du même tour contre la même cible ou deux cibles proches.",
+        "L": 1,
+        "S": 0
+      },
+      {
+        "n": "Enchaînement",
+        "t": "Chaque fois qu une attaque met un ennemi à 0 PV, obtient une attaque d arme immédiate gratuite contre un autre adversaire.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Tourbillon d acier",
+        "t": "Effectue une attaque sur tous les ennemis à portée avec un bonus de +3 aux dégâts.",
+        "L": 1,
+        "S": 0
+      }
+    ]
+  },
+  "guerrier-resistance": {
+    "nom": "Voie de la résistance",
+    "profil": "guerrier",
+    "r": [
+      {
+        "n": "Robustesse",
+        "t": "Gagne +3 PV max au Rang 1, puis +3 PV additionnels aux rangs 3 et 5.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Armure de fer",
+        "t": "Augmente la protection conférée par toute armure portée de +1 en DEF.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Second souffle",
+        "t": "Action limitée une fois par combat : récupère immédiatement [1d10 + Niveau] PV.",
+        "L": 1,
+        "S": 0
+      },
+      {
+        "n": "Inébranlable",
+        "t": "Immunité aux renversements, étourdissements et malus de positionnement en combat.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Forteresse vivante",
+        "t": "Réduction des Dégâts (RD) de 3 permanente contre toutes les attaques physiques.",
+        "L": 0,
+        "S": 0
+      }
+    ]
+  },
+  "guerrier-bouclier": {
+    "nom": "Voie du bouclier",
+    "profil": "guerrier",
+    "r": [
+      {
+        "n": "Maniement du bouclier",
+        "t": "Ajoute +1 supplémentaire à la valeur de DEF conférée par son bouclier.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Coup de bouclier",
+        "t": "Peut porter une attaque secondaire au bouclier infligeant 1d4 + Mod. FOR et déséquilibrant l adversaire.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Mur de fer",
+        "t": "Peut interposer son bouclier pour annuler complètement une attaque à distance réussie sur lui-même ou un allié adjacent.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Rempart protecteur",
+        "t": "Donne un bonus de +2 en DEF à tous ses alliés situés à moins de 2 mètres de lui.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Bouclier invulnérable",
+        "t": "Une fois par combat, absorbe l intégralité d une attaque magique ou d un souffle élémentaire.",
+        "L": 0,
+        "S": 0
+      }
+    ]
+  },
+  "guerrier-maitre": {
+    "nom": "Voie du maître d armes",
+    "profil": "guerrier",
+    "r": [
+      {
+        "n": "Arme de prédilection",
+        "t": "Choisit un type d arme spécifique : bonus permanent de +1 en attaque avec celle-ci.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Parade martiale",
+        "t": "Une fois par tour en réaction, peut opposer un jet d attaque pour dévier une attaque de contact adverse.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Coup précis",
+        "t": "Augmente le seuil de coup critique de l arme de prédilection de 1 point (ex: 19-20).",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Désarmement",
+        "t": "Sur un coup réussi, peut désarmer un ennemi sans infliger de dégâts sur un test de FOR opposé.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Maître incontesté",
+        "t": "Gagne +2 permanent en attaque et +1d6 aux dégâts avec son arme de prédilection.",
+        "L": 0,
+        "S": 0
+      }
+    ]
+  },
+  "guerrier-chef": {
+    "nom": "Voie du chef de guerre",
+    "profil": "guerrier",
+    "r": [
+      {
+        "n": "Ordre de bataille",
+        "t": "Sacrifie son mouvement pour donner +2 en attaque à un allié au contact.",
+        "L": 1,
+        "S": 0
+      },
+      {
+        "n": "Exhortation",
+        "t": "Donne +2 aux tests de sauvegarde contre la peur et la panique à tout le groupe.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Cri de ralliement",
+        "t": "Une fois par combat, octroie à tous les alliés à portée de voix 1d6 + Mod. CHA Points de Vie temporaires.",
+        "L": 1,
+        "S": 0
+      },
+      {
+        "n": "Stratège éclairé",
+        "t": "Permet à 2 alliés d échanger leur rang d Initiative au début du combat.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Charge héroïque",
+        "t": "Mène la troupe : la charge de tout le groupe inflige +2d6 DM au premier tour.",
+        "L": 1,
+        "S": 0
+      }
+    ]
+  },
+  "voleur-spadassin": {
+    "nom": "Voie du spadassin",
+    "profil": "voleur",
+    "r": [
+      {
+        "n": "Attaque en finesse",
+        "t": "Utilise le Mod. de DEX à la place du Mod. de FOR pour toucher avec les armes légères.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Dérobade",
+        "t": "Gagne +1 en DEF tant qu il porte une armure de cuir ou aucune armure.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Riposte éclair",
+        "t": "Si une attaque de contact le rate, peut riposter immédiatement par une attaque d arme légère.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Feinte magistrale",
+        "t": "Action d attaque : feinte trompeuse privant la cible de son bonus de DEX en DEF au prochain tour.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Danse mortelle",
+        "t": "Peut effectuer un déplacement complet avant et après son attaque sans provoquer d attaque d opportunité.",
+        "L": 1,
+        "S": 0
+      }
+    ]
+  },
+  "voleur-assassin": {
+    "nom": "Voie de l assassin",
+    "profil": "voleur",
+    "r": [
+      {
+        "n": "Attaque sournoise",
+        "t": "Ajoute +1d6 aux dégâts au contact si la cible est prise en tenaille ou surprise.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Frappe chirurgicale",
+        "t": "L attaque sournoise passe à +2d6 aux dégâts.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Ombre fuyante",
+        "t": "Bonus de +5 aux tests de discrétion et capacité de disparaître dans la pénombre.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Poison virulent",
+        "t": "Peut enduire son arme d un poison infligeant 1d6 DM récurrents et affaiblissant la cible.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Coup mortel",
+        "t": "L attaque sournoise passe à +3d6 DM et impose un test de CON DD 15 sous peine d agonie immédiate.",
+        "L": 0,
+        "S": 0
+      }
+    ]
+  },
+  "voleur-aventurier": {
+    "nom": "Voie de l aventurier",
+    "profil": "voleur",
+    "r": [
+      {
+        "n": "Sens du danger",
+        "t": "Ne peut jamais être surpris lors d un tour de surprise et conserve toujours sa DEF.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Chance insolente",
+        "t": "Une fois par partie, peut relancer n importe quel test de dé et choisir le meilleur résultat.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Réflexes félins",
+        "t": "Divise par 2 tous les dégâts subis lors des pièges ou des sorts à zone d effet.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Échappatoire miraculeuse",
+        "t": "Peut se désengager du combat au prix d une simple action gratuite.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Héroïsme roublard",
+        "t": "Gagne +2 points de Chance par niveau et +2 à tous les jets de sauvegarde.",
+        "L": 0,
+        "S": 0
+      }
+    ]
+  },
+  "voleur-deplacement": {
+    "nom": "Voie du déplacement",
+    "profil": "voleur",
+    "r": [
+      {
+        "n": "Agilité féline",
+        "t": "Bonus de +2 à tous les tests de DEX pour sauter, grimper et garder l équilibre.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Saut de chat",
+        "t": "Amortit les chutes de 6 mètres supplémentaires sans subir le moindre dégât.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Course acrobatique",
+        "t": "Vitesse de déplacement augmentée de +5 mètres par action de mouvement.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Roulade d esquive",
+        "t": "Une fois par tour en réaction, gagne +4 en DEF contre une attaque à distance ciblée.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Vitesse prodigieuse",
+        "t": "Peut accomplir deux actions de mouvement et une action d attaque au cours du même tour.",
+        "L": 1,
+        "S": 0
+      }
+    ]
+  },
+  "voleur-roublard": {
+    "nom": "Voie du roublard",
+    "profil": "voleur",
+    "r": [
+      {
+        "n": "Doigts agiles",
+        "t": "Bonus de +2 aux tests de crochetage et d escamotage à mains nues.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Détection des pièges",
+        "t": "Repère automatiquement les pièges et passages secrets à moins de 3 mètres sur test de SAG réussi.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Crochetage express",
+        "t": "Ouvre une serrure en une seule action simple au lieu d une minute complète.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Piégeur astucieux",
+        "t": "Peut poser des chausse-trappes ou petits pièges improvisés en combat en une action.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Maître cambrioleur",
+        "t": "Réussit automatiquement les tests de vol à la tire et crochetage ordinaires sans jet de dé.",
+        "L": 0,
+        "S": 0
+      }
+    ]
+  },
+  "magicien-destructrice": {
+    "nom": "Voie de la magie destructrice",
+    "profil": "magicien",
+    "r": [
+      {
+        "n": "Projectile magique",
+        "t": "Flèche d énergie infaillible infligeant [1d6 + Mod. INT] DM magiques à 30 m de portée.",
+        "L": 1,
+        "S": 1
+      },
+      {
+        "n": "Rayon ardent",
+        "t": "Trait de feu infligeant 2d6 + Mod. INT DM magiques avec risque d embrasement.",
+        "L": 1,
+        "S": 1
+      },
+      {
+        "n": "Boule de feu",
+        "t": "Déflagration explosive de 10 m de diamètre infligeant 3d6 + Mod. INT DM de feu.",
+        "L": 1,
+        "S": 1
+      },
+      {
+        "n": "Tempête de foudre",
+        "t": "Éclairs en chaîne frappant jusqu à 3 cibles distinctes pour 4d6 DM électriques.",
+        "L": 1,
+        "S": 1
+      },
+      {
+        "n": "Désintégration",
+        "t": "Rayon destructeur infligeant [5d6 + Mod. INT] DM bruts. Réduit en cendres si PV = 0.",
+        "L": 1,
+        "S": 1
+      }
+    ]
+  },
+  "magicien-protectrice": {
+    "nom": "Voie de la magie protectrice",
+    "profil": "magicien",
+    "r": [
+      {
+        "n": "Armure de mage",
+        "t": "Bouclier arcanique accordant un bonus de +4 en DEF pour tout le combat.",
+        "L": 1,
+        "S": 1
+      },
+      {
+        "n": "Bouclier d énergie",
+        "t": "En réaction, absorbe jusqu à 10 DM d une attaque physique ou magique imminente.",
+        "L": 0,
+        "S": 1
+      },
+      {
+        "n": "Sphère d isolement",
+        "t": "Crée une bulle d énergie impénétrable de 3 m protégeant le mage pendant 1d4 tours.",
+        "L": 1,
+        "S": 1
+      },
+      {
+        "n": "Mur de force",
+        "t": "Érige une paroi transparente indestructible de 10 m de long barrant le passage.",
+        "L": 1,
+        "S": 1
+      },
+      {
+        "n": "Invulnérabilité magique",
+        "t": "Immunité totale à tous les sorts de rangs 1 à 3 pendant 5 tours de combat.",
+        "L": 1,
+        "S": 1
+      }
+    ]
+  },
+  "magicien-elementaire": {
+    "nom": "Voie de la magie élémentaire",
+    "profil": "magicien",
+    "r": [
+      {
+        "n": "Arme enflammée",
+        "t": "Enchante une arme : inflige +1d6 DM élémentaires de feu pour tout le combat.",
+        "L": 1,
+        "S": 1
+      },
+      {
+        "n": "Rayon de givre",
+        "t": "Trait glacial infligeant 1d6 DM de froid et ralentissant la cible de moitié.",
+        "L": 1,
+        "S": 1
+      },
+      {
+        "n": "Souffle élémentaire",
+        "t": "Cône de 10 mètres de flammes ou de givre infligeant 2d6 DM à toutes les cibles.",
+        "L": 1,
+        "S": 1
+      },
+      {
+        "n": "Tempête élémentaire",
+        "t": "Zone tourbillonnante infligeant 3d6 DM par tour aux créatures qui s y trouvent.",
+        "L": 1,
+        "S": 1
+      },
+      {
+        "n": "Seigneur des éléments",
+        "t": "Invoque un élémentaire majeur de terre, feu, eau ou air servant fidèlement le mage.",
+        "L": 1,
+        "S": 1
+      }
+    ]
+  },
+  "magicien-arcanes": {
+    "nom": "Voie de la magie des arcanes",
+    "profil": "magicien",
+    "r": [
+      {
+        "n": "Agrandissement",
+        "t": "Cible agrandie : confère +2 en FOR et aux DM physiques, mais inflige -2 en DEX.",
+        "L": 1,
+        "S": 1
+      },
+      {
+        "n": "Invisibilité",
+        "t": "Rend une cible totalement invisible jusqu à ce qu elle attaque ou lance un sort offensif.",
+        "L": 1,
+        "S": 1
+      },
+      {
+        "n": "Hâte",
+        "t": "Accélère une créature : octroie une action supplémentaire par tour pendant 1d6 tours.",
+        "L": 1,
+        "S": 1
+      },
+      {
+        "n": "Téléportation",
+        "t": "Téléporte instantanément le mage et un allié jusqu à 50 mètres à vue.",
+        "L": 1,
+        "S": 1
+      },
+      {
+        "n": "Arrêt du temps",
+        "t": "Fige le temps pendant 1 tour complet : le mage agit seul sans que nul ne puisse réagir.",
+        "L": 1,
+        "S": 1
+      }
+    ]
+  },
+  "magicien-universelle": {
+    "nom": "Voie de la magie universelle",
+    "profil": "magicien",
+    "r": [
+      {
+        "n": "Lumière & Détection",
+        "t": "Illumine un objet à volonté et perçoit les auras magiques dans un rayon de 10 m.",
+        "L": 1,
+        "S": 1
+      },
+      {
+        "n": "Main de mage",
+        "t": "Manipule à distance des objets jusqu à 10 kg avec la précision d une main physique.",
+        "L": 1,
+        "S": 1
+      },
+      {
+        "n": "Dissipation de la magie",
+        "t": "Neutralise un effet magique actif sur une cible ou dans une zone sur test d INT réussi.",
+        "L": 1,
+        "S": 1
+      },
+      {
+        "n": "Télékinésie majeure",
+        "t": "Soulève et projette des créatures ou objets lourds (jusqu à 200 kg) infligeant 3d6 DM.",
+        "L": 1,
+        "S": 1
+      },
+      {
+        "n": "Miracle arcanique",
+        "t": "Permet de dupliquer n importe quel sort de rangs 1 à 4 de n importe quelle voie magique.",
+        "L": 1,
+        "S": 1
+      }
+    ]
+  },
+  "pretre-foi": {
+    "nom": "Voie de la foi",
+    "profil": "pretre",
+    "r": [
+      {
+        "n": "Arme d argent",
+        "t": "L arme sacrée inflige +1d6 DM contre les morts-vivants et démons.",
+        "L": 1,
+        "S": 1
+      },
+      {
+        "n": "Bouclier de la foi",
+        "t": "Confère un bonus de +2 en DEF à lui-même ou un allié pour tout le combat.",
+        "L": 1,
+        "S": 1
+      },
+      {
+        "n": "Zèle divin",
+        "t": "Bénéficie d un bonus de +2 en attaque au contact avec son arme sacrée.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Épée de justice",
+        "t": "L arme sacrée devient lumineuse et inflige +2d6 DM sacrés aux impies.",
+        "L": 1,
+        "S": 1
+      },
+      {
+        "n": "Ange gardien",
+        "t": "Invoque une présence céleste absorbant 20 DM et accordant l avantage sur tous les tests.",
+        "L": 1,
+        "S": 1
+      }
+    ]
+  },
+  "pretre-priere": {
+    "nom": "Voie de la prière",
+    "profil": "pretre",
+    "r": [
+      {
+        "n": "Bénédiction",
+        "t": "Accorde un bonus de +1 à tous les tests d attaque et de sauvegarde des alliés à portée.",
+        "L": 1,
+        "S": 1
+      },
+      {
+        "n": "Sanctuaire",
+        "t": "Les ennemis doivent réussir un test de SAG pour pouvoir attaquer le prêtre.",
+        "L": 1,
+        "S": 1
+      },
+      {
+        "n": "Prière de délivrance",
+        "t": "Dissipe immédiatement la paralysie, le sommeil ou la peur sur un allié.",
+        "L": 1,
+        "S": 1
+      },
+      {
+        "n": "Aura sacrée",
+        "t": "Les démons et morts-vivants subissent 1d6 DM chaque tour passé à moins de 5 m du prêtre.",
+        "L": 1,
+        "S": 1
+      },
+      {
+        "n": "Intercession divine",
+        "t": "Une fois par aventure, supplie sa divinité pour obtenir un miracle éclatant.",
+        "L": 1,
+        "S": 1
+      }
+    ]
+  },
+  "pretre-spiritualite": {
+    "nom": "Voie de la spiritualité",
+    "profil": "pretre",
+    "r": [
+      {
+        "n": "Soins légers",
+        "t": "Imposition des mains : restaure [1d8 + Mod. SAG] PV à un compagnon au contact.",
+        "L": 1,
+        "S": 1
+      },
+      {
+        "n": "Soin de groupe",
+        "t": "Une vague d énergie curative rend [1d6 + Mod. SAG] PV à tous les alliés à 10 m.",
+        "L": 1,
+        "S": 1
+      },
+      {
+        "n": "Guérison des poisons",
+        "t": "Purifie le sang d une cible : guérit instantanément toutes les maladies et toxines.",
+        "L": 1,
+        "S": 1
+      },
+      {
+        "n": "Soins majeurs",
+        "t": "Restaure immédiatement [3d8 + Niveau] Points de Vie et supprime l état Affaibli.",
+        "L": 1,
+        "S": 1
+      },
+      {
+        "n": "Résurrection",
+        "t": "Rappelle l âme d un compagnon décédé depuis moins de 24h avec 1 PV.",
+        "L": 1,
+        "S": 1
+      }
+    ]
+  },
+  "pretre-guerresainte": {
+    "nom": "Voie de la guerre sainte",
+    "profil": "pretre",
+    "r": [
+      {
+        "n": "Arme bénie",
+        "t": "Relance tous les résultats de 1 aux dégâts avec son arme sacrée.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Châtiment sacré",
+        "t": "Ajoute son Mod. de SAG aux dégâts d une frappe au contact.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Ferveur martiale",
+        "t": "Gagne +2 en DEF et +2 en attaque au contact tant qu il combat en infériorité numérique.",
+        "L": 0,
+        "S": 0
+      },
+      {
+        "n": "Frappe divine",
+        "t": "Frappe écrasante infligeant 2d8 + Mod. SAG et repoussant l ennemi de 5 mètres.",
+        "L": 1,
+        "S": 1
+      },
+      {
+        "n": "Champion divin",
+        "t": "Prend l apparence d un avatar divin : gagne +4 en FOR, +4 en DEF et vol sacré.",
+        "L": 1,
+        "S": 1
+      }
+    ]
+  },
+  "pretre-jugement": {
+    "nom": "Voie du jugement",
+    "profil": "pretre",
+    "r": [
+      {
+        "n": "Châtiment céleste",
+        "t": "Fait choir la foudre divine sur un mécréant à 20 m pour 1d6 + SAG DM sacrés.",
+        "L": 1,
+        "S": 1
+      },
+      {
+        "n": "Injonction",
+        "t": "Ordonne à une créature de tomber au sol ou de fuir sur test de SAG opposé.",
+        "L": 1,
+        "S": 1
+      },
+      {
+        "n": "Flamme purificatrice",
+        "t": "Colonne de feu divin infligeant 2d6 DM dans une zone de 5 mètres de diamètre.",
+        "L": 1,
+        "S": 1
+      },
+      {
+        "n": "Jugement sans appel",
+        "t": "Marque un ennemi : toutes les attaques réussies contre lui infligent +1d6 DM sacrés.",
+        "L": 1,
+        "S": 1
+      },
+      {
+        "n": "Colère divine",
+        "t": "Déclenche un cataclysme céleste infligeant 4d6 DM sacrés à tous les ennemis à 20 mètres.",
+        "L": 1,
+        "S": 1
+      }
+    ]
+  }
+}
