@@ -30,10 +30,9 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'npm'
 
       - name: Installation des dépendances
-        run: npm ci || npm install
+        run: npm install --legacy-peer-deps
 
       - name: Compilation de l'application
         run: npm run build
