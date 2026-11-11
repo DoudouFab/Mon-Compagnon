@@ -259,11 +259,57 @@ export const CharacterSheetModal: React.FC<CharacterSheetModalProps> = ({
           )}
         </div>
 
+        {/* Capacités raciales */}
+        {Array.isArray((rc as any).cap) && (rc as any).cap.length > 0 && (
+          <div className="bg-[#231c15] border border-[#3d3023] rounded-xl p-3.5 space-y-2">
+            <span className="text-[10px] font-bold text-[#d4a84a] uppercase tracking-wider block">
+              Capacités raciales ({(rc as any).n})
+            </span>
+            {(rc as any).cap.map((k: any, i: number) => (
+              <p key={i} className="text-[11px] text-[#ede3d1]">
+                <b>{k.n} :</b> {k.t}
+              </p>
+            ))}
+          </div>
+        )}
+
         {/* Voies & Capacités acquises */}
         <div className="bg-[#231c15] border border-[#3d3023] rounded-xl p-3.5 space-y-2">
           <span className="text-[10px] font-bold text-[#d4a84a] uppercase tracking-wider block">
             Voies &amp; Rangs de Capacités
           </span>
+          {(() => {
+            const ways: Record<string, number[]> = {};
+            (pj.caps || []).forEach((c) => {
+              (ways[c.wayKey] = ways[c.wayKey] || []).push(c.rank);
+            });
+            return (
+              <div className="space-y-1.5">
+                <div className="text-[11px] text-[#cbb8a7]">
+                  Points de capacité à dépenser : <b className="text-[#f3d48d]">{pj.ptsCap || 0}</b>
+                  {pj.ptsCapCadeaux ? <span> (dont {pj.ptsCapCadeaux} cadeau(x) RP)</span> : null}
+                </div>
+                {Object.keys(ways).map((k) => (
+                  <div
+                    key={k}
+                    className="flex items-center justify-between gap-2 text-[11px] bg-[#181410] border border-[#30251a] px-2.5 py-1.5 rounded-lg"
+                  >
+                    <span className="text-[#ede3d1]">{VOIES_CATALOG[k] ? VOIES_CATALOG[k].nom : k}</span>
+                    <span className="flex items-center gap-1">
+                      {[1, 2, 3, 4, 5].map((r) => (
+                        <span
+                          key={r}
+                          className={`w-3.5 h-3.5 rounded-full border ${
+                            ways[k].includes(r) ? 'bg-[#d4a84a] border-[#f3d48d]' : 'bg-transparent border-[#523d24]'
+                          }`}
+                        />
+                      ))}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
           {pj.caps && pj.caps.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
               {pj.caps.map((c, i) => {

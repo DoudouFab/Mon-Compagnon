@@ -244,8 +244,8 @@ async function setupServer() {
     });
   }
 
-  server.listen(PORT, () => {
-    console.log(`[Chroniques Oubliées Server] Serveur actif sur http://localhost:${PORT}`);
+  server.listen(Number(PORT), '0.0.0.0', () => {
+    console.log(`[Chroniques Oubliées Server] Serveur actif sur http://0.0.0.0:${PORT}`);
   });
 }
 

@@ -255,31 +255,7 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
     onUpdateTableData({ ...tableData, pjs: [...tableData.pjs, ...toAdd] });
   };
 
-  // Diagnostic technique du service temps réel (hors clés/jetons) pour comprendre pourquoi rien n'arrive
-  const rtDiag = (() => {
-    try {
-      const o: any = realtimeTable;
-      const methods = Object.getOwnPropertyNames(Object.getPrototypeOf(o) || {}).filter((k) => k !== 'constructor');
-      const fields: Record<string, any> = {};
-      Object.keys(o).forEach((k) => {
-        if (/key|token|secret|password/i.test(k)) return;
-        const v = o[k];
-        fields[k] =
-          typeof v === 'function'
-            ? 'fonction'
-            : Array.isArray(v)
-            ? `tableau(${v.length})`
-            : v instanceof globalThis.Map
-            ? `Map(${(v as Map<any, any>).size})`
-            : v && typeof v === 'object'
-            ? 'objet'
-            : v;
-      });
-      return JSON.stringify({ methods, fields }, null, 2);
-    } catch (e: any) {
-      return 'Diagnostic indisponible : ' + e.message;
-    }
-  })();
+
 
   // Master Loot Items Catalog (Officiel DRS + Codex Tharnéa + Bonbons Alchimiques)
   const masterLootCatalog: (Equipment & { lootIndex: number; lootCategoryGroup: 'armes' | 'armures' | 'biens' | 'tharnea' | 'bonbons' })[] = React.useMemo(() => {
@@ -1074,117 +1050,60 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
       {/* ==================== 2. GROUPE PJ ==================== */}
       {activeTab === 'groupe' && (
         <div className="space-y-4">
-          {/* Joueurs en ligne (synchro Firebase temps réel) */}
-          <div className="bg-[#181410] border border-[#3d3023] rounded-xl p-4 space-y-3">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <h3 className="font-serif-co text-lg font-bold text-[#f3d48d]">
-                🟢 Joueurs en ligne <span className="text-sm text-[#9e907d]">({onlineHeroes.length})</span>
-              </h3>
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="text-[11px] text-[#9e907d]">
-                  Écouteur actif · {rtStats.events} mise(s) à jour reçue(s)
-                  {rtStats.last ? ` · dernière à ${rtStats.last}` : ''}
-                </span>
-                {onlineHeroes.some((h) => !isHeroInTable(h)) && (
-                  <button
-                    type="button"
-                    onClick={() => addOnlineHeroes(onlineHeroes)}
-                    className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-[#d4a84a] to-[#ab8230] hover:brightness-110 text-black text-xs font-bold flex items-center gap-1.5"
-                  >
-                    <Plus className="w-3.5 h-3.5" /> Tout ajouter à la table
-                  </button>
-                )}
-              </div>
-            </div>
-            <label className="flex items-center gap-2 text-xs text-[#cbb8a7] cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={autoAddPlayers}
-                onChange={(e) => {
-                  setAutoAddPlayers(e.target.checked);
-                  try {
-                    localStorage.setItem('co_mj_auto_add_players', e.target.checked ? '1' : '0');
-                  } catch {}
-                }}
-                className="w-3.5 h-3.5 accent-[#d4a84a]"
-              />
-              Ajouter automatiquement à la table les joueurs qui se connectent
-            </label>
-            <details className="text-[11px] text-[#9e907d]">
-              <summary className="cursor-pointer hover:text-[#ede3d1]">Diagnostic technique (à me copier si rien n'arrive)</summary>
-              <pre className="mt-2 p-2 bg-[#0d0a08] border border-[#3d3023] rounded overflow-x-auto text-[#7db5ff]">{rtDiag}</pre>
-            </details>
-            {onlineHeroes.length === 0 ? (
-              <p className="text-xs text-[#9e907d]">
-                Aucun joueur connecté pour l'instant. Les héros apparaissent ici dès qu'un joueur ouvre ou modifie sa fiche.
-              </p>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {onlineHeroes.map((h, i) => {
-                  const inTable = isHeroInTable(h);
-                  return (
-                    <div
-                      key={(h.id || h.name) + i}
-                      className="flex items-center justify-between gap-2 bg-[#120f0c] border border-[#3d3023] rounded-lg px-3 py-2"
-                    >
-                      <div className="min-w-0">
-                        <div className="text-sm font-bold text-[#ede3d1] truncate">{h.name}</div>
-                        <div className="text-[11px] text-[#9e907d] truncate">
-                          {[h.race, h.profil, (h as any).level ? `niv. ${(h as any).level}` : ''].filter(Boolean).join(' · ')}
-                        </div>
-                      </div>
-                      {inTable ? (
-                        <span className="text-[11px] text-[#7fb069] flex items-center gap-1 shrink-0">
-                          <Check className="w-3.5 h-3.5" /> À la table
-                        </span>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => addOnlineHeroes([h])}
-                          className="px-2.5 py-1 rounded-lg bg-[#231c15] hover:bg-[#32271d] border border-[#3d3023] hover:border-[#d4a84a] text-xs font-semibold text-[#f3d48d] flex items-center gap-1 shrink-0"
-                        >
-                          <Plus className="w-3.5 h-3.5" /> Ajouter
-                        </button>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-
-          <div className="bg-[#181410] border border-[#3d3023] rounded-xl p-4 space-y-3">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          {/* Bloc compact unique : Groupe d'Aventuriers */}
+          <div className="bg-[#181410] border border-[#3d3023] rounded-xl p-3.5 sm:p-4 space-y-3">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
               <div>
-                <h3 className="font-serif-co text-lg font-bold text-[#f3d48d]">
-                  Groupe d'Aventuriers
-                </h3>
-                <span className="text-xs text-[#9e907d]">
-                  Héros enregistrés : <b className="text-[#ede3d1]">{tableData.pjs.length}</b>
-                </span>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h3 className="font-serif-co text-lg font-bold text-[#f3d48d]">
+                    Groupe d'Aventuriers
+                  </h3>
+                  <span className="text-xs px-2 py-0.5 rounded bg-[#231c15] border border-[#3d3023] text-[#ede3d1] font-semibold">
+                    {tableData.pjs.length} héros
+                  </span>
+                  <span
+                    className={`text-[11px] px-2 py-0.5 rounded-full font-medium flex items-center gap-1 ${
+                      onlineHeroes.length > 0
+                        ? 'bg-[#18301c] text-[#7fb069] border border-[#2b5431]'
+                        : 'bg-[#231c15] text-[#9e907d] border border-[#3d3023]'
+                    }`}
+                    title={
+                      onlineHeroes.length > 0
+                        ? `${onlineHeroes.length} joueur(s) connecté(s) en direct à la table`
+                        : 'Aucun joueur connecté en direct pour le moment'
+                    }
+                  >
+                    <span
+                      className={`w-2 h-2 rounded-full ${
+                        onlineHeroes.length > 0 ? 'bg-[#7fb069] animate-pulse' : 'bg-[#665a4c]'
+                      }`}
+                    />
+                    {onlineHeroes.length > 0 ? `${onlineHeroes.length} joueur(s) en ligne` : '0 en ligne'}
+                  </span>
+                </div>
               </div>
 
               <div className="flex flex-wrap items-center gap-2">
                 <button
                   type="button"
                   onClick={() => setIsPnjCreatorOpen(true)}
-                  className="px-3 py-1.5 bg-gradient-to-r from-[#2c4058] to-[#1a293b] hover:brightness-110 border border-[#4d7ca8] text-[#cce3ff] text-xs font-bold rounded-lg flex items-center gap-1.5 shadow-sm"
+                  className="px-2.5 py-1.5 bg-gradient-to-r from-[#2c4058] to-[#1a293b] hover:brightness-110 border border-[#4d7ca8] text-[#cce3ff] text-xs font-bold rounded-lg flex items-center gap-1.5 shadow-sm"
                   title="Créer un nouveau PNJ ou allié officiel et l'intégrer au groupe d'aventuriers"
                 >
-                  <Plus className="w-3.5 h-3.5 text-[#7db5ff]" /> Créer un PNJ / Allié
+                  <Plus className="w-3.5 h-3.5 text-[#7db5ff]" /> PNJ / Allié
                 </button>
 
                 {currentActivePj && (
                   <button
                     onClick={onImportActivePj}
-                    className="px-3 py-1.5 bg-[#231c15] hover:bg-[#32271d] border border-[#d4a84a] text-[#f3d48d] text-xs font-bold rounded-lg flex items-center gap-1.5 shadow-xs"
+                    className="px-2.5 py-1.5 bg-[#231c15] hover:bg-[#32271d] border border-[#d4a84a] text-[#f3d48d] text-xs font-bold rounded-lg flex items-center gap-1.5 shadow-xs"
                   >
                     <Plus className="w-3.5 h-3.5 text-[#d4a84a]" /> Importer PJ Actif ({currentActivePj.name.split(' ')[0]})
                   </button>
                 )}
 
-                <label className="px-3 py-1.5 bg-[#231c15] hover:bg-[#32271d] border border-[#3d3023] text-[#ede3d1] text-xs font-semibold rounded-lg flex items-center gap-1.5 cursor-pointer">
-                  <FileUp className="w-3.5 h-3.5 text-[#d4a84a]" /> Importer Fiches (JSON)
+                <label className="px-2.5 py-1.5 bg-[#231c15] hover:bg-[#32271d] border border-[#3d3023] text-[#ede3d1] text-xs font-semibold rounded-lg flex items-center gap-1.5 cursor-pointer">
+                  <FileUp className="w-3.5 h-3.5 text-[#d4a84a]" /> Importer (JSON)
                   <input
                     type="file"
                     multiple
@@ -1197,19 +1116,62 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                 <button
                   type="button"
                   onClick={() => setIsImportCodeModalOpen(true)}
-                  className="px-3 py-1.5 bg-[#231c15] hover:bg-[#32271d] border border-[#7db5ff]/60 text-[#b5d6ff] text-xs font-bold rounded-lg flex items-center gap-1.5 shadow-xs cursor-pointer"
+                  className="px-2.5 py-1.5 bg-[#231c15] hover:bg-[#32271d] border border-[#7db5ff]/60 text-[#b5d6ff] text-xs font-bold rounded-lg flex items-center gap-1.5 shadow-xs cursor-pointer"
                   title="Coller un code de fiche envoyé par un joueur depuis son téléphone"
                 >
-                  <ClipboardPaste className="w-3.5 h-3.5 text-[#7db5ff]" /> Coller Fiche Joueur
+                  <ClipboardPaste className="w-3.5 h-3.5 text-[#7db5ff]" /> Coller Fiche
                 </button>
 
                 <button
                   onClick={addAllPjToCombat}
-                  className="px-3 py-1.5 bg-[#d4a84a] hover:bg-[#e0b555] text-black text-xs font-bold rounded-lg flex items-center gap-1.5 shadow-xs cursor-pointer"
+                  className="px-2.5 py-1.5 bg-[#d4a84a] hover:bg-[#e0b555] text-black text-xs font-bold rounded-lg flex items-center gap-1.5 shadow-xs cursor-pointer"
                 >
                   <Swords className="w-3.5 h-3.5" /> Envoyer TOUT en Combat
                 </button>
               </div>
+            </div>
+
+            {/* Barre compacte direct : option d'ajout automatique & héros en attente */}
+            <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-[#261f18] text-xs">
+              <label className="flex items-center gap-1.5 text-[11px] text-[#cbb8a7] cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={autoAddPlayers}
+                  onChange={(e) => {
+                    setAutoAddPlayers(e.target.checked);
+                    try {
+                      localStorage.setItem('co_mj_auto_add_players', e.target.checked ? '1' : '0');
+                    } catch {}
+                  }}
+                  className="w-3.5 h-3.5 accent-[#d4a84a]"
+                />
+                <span>Ajouter automatiquement à la table les joueurs qui se connectent</span>
+              </label>
+
+              {onlineHeroes.some((h) => !isHeroInTable(h)) && (
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-[11px] text-[#f3d48d] font-semibold">En attente d'ajout :</span>
+                  {onlineHeroes
+                    .filter((h) => !isHeroInTable(h))
+                    .map((h, i) => (
+                      <button
+                        key={(h.id || h.name) + i}
+                        type="button"
+                        onClick={() => addOnlineHeroes([h])}
+                        className="px-2 py-0.5 rounded bg-[#231c15] hover:bg-[#32271d] border border-[#d4a84a] text-[10px] font-bold text-[#f3d48d] flex items-center gap-1"
+                      >
+                        <Plus className="w-3 h-3" /> {h.name}
+                      </button>
+                    ))}
+                  <button
+                    type="button"
+                    onClick={() => addOnlineHeroes(onlineHeroes)}
+                    className="px-2 py-0.5 rounded bg-gradient-to-r from-[#d4a84a] to-[#ab8230] hover:brightness-110 text-black text-[10px] font-bold flex items-center gap-1"
+                  >
+                    <Plus className="w-3 h-3" /> Tout ajouter
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Filter Bar */}
@@ -1287,6 +1249,10 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                   onUpdateTableData({ ...tableData, pjs: list, combatants: updatedCombatants });
                 };
 
+                const isOnline = onlineHeroes.some(
+                  (h) => (!!h.id && h.id === p.id) || (h.name || '').toLowerCase() === (p.name || '').toLowerCase()
+                );
+
                 return (
                   <div
                     key={p.id || idx}
@@ -1306,6 +1272,12 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                           >
                             {p.isPnj ? p.rolePnj || 'PNJ Allié' : 'PJ'}
                           </span>
+                          {isOnline && (
+                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#18301c] text-[#7fb069] border border-[#2b5431] font-bold flex items-center gap-1">
+                              <span className="w-1.5 h-1.5 rounded-full bg-[#7fb069] animate-pulse" />
+                              En ligne
+                            </span>
+                          )}
                           <button
                             type="button"
                             onClick={() => setSelectedCharacterModal(p)}

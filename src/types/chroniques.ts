@@ -110,6 +110,7 @@ export interface Character {
   etats?: string[];
   isPnj?: boolean;
   rolePnj?: string;
+  dmPatchAt?: number;
 }
 
 export interface Monster {

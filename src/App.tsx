@@ -569,6 +569,27 @@ export default function App() {
       onPeerLeft: (name) => {
         showToast(`🚪 ${name} a quitté la table.`);
       },
+      // Joueur : appliquer en direct les modifications faites par le MJ (PV, PM, états, points de capacité, butin)
+      onHeroesChanged: (heroesMap) => {
+        if (appMode !== 'pj' || !currentPj || !heroesMap) return;
+        const remote = Object.values(heroesMap).find(
+          (h: any) =>
+            h && ((h.id && h.id === currentPj.id) || (h.name && h.name.toLowerCase() === currentPj.name.toLowerCase()))
+        ) as Character | undefined;
+        if (!remote) return;
+        if ((remote.dmPatchAt || 0) <= (currentPj.dmPatchAt || 0)) return;
+        handleUpdateCurrentPj({
+          ...currentPj,
+          hp: remote.hp,
+          pm: remote.pm ?? currentPj.pm,
+          ptsCap: remote.ptsCap,
+          ptsCapCadeaux: remote.ptsCapCadeaux,
+          etats: remote.etats || [],
+          inventaire: remote.inventaire || [],
+          dmPatchAt: remote.dmPatchAt,
+        });
+        showToast('✨ Le Meneur de Jeu a mis à jour ta fiche en direct !');
+      },
       onRoomState: (state) => {
         if (state && Array.isArray(state.heroes)) {
           setConnectedHeroes(state.heroes);
@@ -781,7 +802,23 @@ export default function App() {
         ) : (
           <MjConsole
             tableData={tableData}
-            onUpdateTableData={(updated) => setTableData(updated)}
+            onUpdateTableData={(updated) => {
+              if (liveStatus === 'connected' && appMode === 'mj') {
+                const now = Date.now();
+                updated.pjs.forEach((p: Character) => {
+                  const old = tableData.pjs.find(
+                    (o: Character) => (o.id && o.id === p.id) || (o.name || '').toLowerCase() === (p.name || '').toLowerCase()
+                  );
+                  if (!old || JSON.stringify(old) !== JSON.stringify(p)) {
+                    realtimeTable.updateHero({ ...p, dmPatchAt: now });
+                  }
+                });
+                if (JSON.stringify(updated.combatants) !== JSON.stringify(tableData.combatants)) {
+                  realtimeTable.syncCombat(updated.combatants);
+                }
+              }
+              setTableData(updated);
+            }}
             currentActivePj={currentPj}
             onImportActivePj={handleSendPjToMj}
             isTharneaActive={isTharneaActive}
