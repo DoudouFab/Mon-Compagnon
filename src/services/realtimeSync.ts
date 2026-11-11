@@ -37,6 +37,27 @@ const clean = <T,>(o: T): T => JSON.parse(JSON.stringify(o));
 const heroKey = (h: Character): string =>
   h.id || 'h_' + (h.name || 'sans_nom').toLowerCase().replace(/[^a-z0-9]+/g, '_');
 
+// Normalise les états reçus de Firebase (Firebase RTDB supprime les clés dont la valeur est un tableau vide [])
+export const normalizeEtats = (etats: any): string[] => {
+  if (!etats) return [];
+  if (Array.isArray(etats)) return etats.filter((x): x is string => typeof x === 'string' && !!x.trim());
+  if (typeof etats === 'object') return Object.values(etats).filter((x): x is string => typeof x === 'string' && !!x.trim());
+  return [];
+};
+
+// Normalise un héros pour s'assurer que etats, inventaire, armes, etc. sont toujours des tableaux valides
+export const normalizeHero = (h: any): Character => {
+  if (!h || typeof h !== 'object') return h;
+  return {
+    ...h,
+    etats: normalizeEtats(h.etats),
+    inventaire: Array.isArray(h.inventaire) ? h.inventaire : h.inventaire ? Object.values(h.inventaire) : [],
+    armes: Array.isArray(h.armes) ? h.armes : h.armes ? Object.values(h.armes) : [],
+    customSorts: Array.isArray(h.customSorts) ? h.customSorts : h.customSorts ? Object.values(h.customSorts) : [],
+    caps: Array.isArray(h.caps) ? h.caps : h.caps ? Object.values(h.caps) : [],
+  };
+};
+
 class RealtimeTableManager {
   private currentRoom: string = '';
   private currentRole: 'mj' | 'pj' = 'pj';
@@ -111,15 +132,28 @@ class RealtimeTableManager {
         const roomData = snapshot.val();
         this.emit('onStatusChange', 'connected', `Connecté en direct à la table ${code}`);
 
+        // Normaliser les héros reçus de Firebase (garantit etats: [], inventaire: [], etc.)
+        const rawHeroes = (roomData && roomData.heroes) || {};
+        const normalizedHeroesMap: Record<string, Character> = {};
+        Object.entries(rawHeroes).forEach(([k, h]: [string, any]) => {
+          if (h && typeof h === 'object') {
+            normalizedHeroesMap[k] = normalizeHero(h);
+          }
+        });
+
         // Toujours prévenir l'interface, même salle vide : le MJ voit ainsi « 0 joueur en ligne ».
-        this.emit('onHeroesChanged', (roomData && roomData.heroes) || {});
+        this.emit('onHeroesChanged', normalizedHeroesMap);
 
         if (roomData) {
-          this.emit('onRoomState', roomData);
+          const normalizedRoomData = {
+            ...roomData,
+            heroes: Object.values(normalizedHeroesMap),
+          };
+          this.emit('onRoomState', normalizedRoomData);
 
           // Le MJ est averti une seule fois par nouveau héros (et non à chaque mise à jour de la salle)
           if (roomData.heroes && this.currentRole === 'mj') {
-            Object.entries(roomData.heroes).forEach(([k, h]: [string, any]) => {
+            Object.entries(normalizedHeroesMap).forEach(([k, h]) => {
               if (h && h.name && !this.knownHeroKeys.has(k)) {
                 this.knownHeroKeys.add(k);
                 this.emit('onPeerJoined', h.name, 'pj', h);
@@ -228,7 +262,7 @@ class RealtimeTableManager {
       // Récupérer le héro mis à jour pour déclencher le callback
       const snapshot = await get(heroRef);
       if (snapshot.exists()) {
-        const updatedHero = snapshot.val();
+        const updatedHero = normalizeHero(snapshot.val());
         this.emit('onHeroPatchedByDm', heroId, patch, updatedHero);
       }
     }).catch(err => console.error(err));

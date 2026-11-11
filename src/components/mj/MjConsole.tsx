@@ -222,8 +222,8 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
             }
             return;
           }
-          // Fusion : la fiche distante du joueur met à jour les stats locales
-          const merged = { ...pjs[idx], ...hero };
+          // Fusion : la fiche distante du joueur met à jour les stats locales (y compris la suppression d'états)
+          const merged: Character = { ...pjs[idx], ...hero, etats: hero.etats || [] };
           if (JSON.stringify(merged) !== JSON.stringify(pjs[idx])) {
             pjs[idx] = merged;
             changed = true;

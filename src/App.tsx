@@ -615,7 +615,7 @@ export default function App() {
                 const merged: Character = {
                   ...existing,
                   ...remoteHero,
-                  etats: remoteHero.etats !== undefined ? remoteHero.etats : existing.etats,
+                  etats: remoteHero.etats || [],
                 };
                 if (JSON.stringify(existing) !== JSON.stringify(merged)) {
                   pjs[idx] = merged;
@@ -638,7 +638,7 @@ export default function App() {
                   ...c,
                   hp: match.hp,
                   hpMax: match.hpMaxAuto || match.hpMaxManual || c.hpMax,
-                  etats: match.etats || c.etats || [],
+                  etats: match.etats || [],
                 };
               }
               return c;
