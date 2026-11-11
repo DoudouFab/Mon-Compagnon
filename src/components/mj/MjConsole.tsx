@@ -195,7 +195,7 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
         const hm: any = heroesMap;
         const values: any[] = !hm
           ? []
-          : hm instanceof Map
+          : hm instanceof globalThis.Map
           ? Array.from((hm as Map<any, any>).values())
           : Array.isArray(hm)
           ? hm
@@ -269,7 +269,7 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
             ? 'fonction'
             : Array.isArray(v)
             ? `tableau(${v.length})`
-            : v instanceof Map
+            : v instanceof globalThis.Map
             ? `Map(${(v as Map<any, any>).size})`
             : v && typeof v === 'object'
             ? 'objet'
