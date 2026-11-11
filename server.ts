@@ -238,6 +238,7 @@ async function setupServer() {
     });
     app.use(vite.middlewares);
   } else {
+    app.use('/Mon-Compagnon', express.static(path.resolve(import.meta.dirname, 'dist')));
     app.use(express.static(path.resolve(import.meta.dirname, 'dist')));
     app.get('*', (req, res) => {
       res.sendFile(path.resolve(import.meta.dirname, 'dist', 'index.html'));
