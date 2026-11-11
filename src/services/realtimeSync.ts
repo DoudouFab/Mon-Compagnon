@@ -40,7 +40,7 @@ const heroKey = (h: Character): string =>
 class RealtimeTableManager {
   private currentRoom: string = '';
   private currentRole: 'mj' | 'pj' = 'pj';
-  private callbacks: TableLiveEventCallbacks = {};
+  private listeners: Set<TableLiveEventCallbacks> = new Set();
   private cachedHero: Character | null = null;
   private dbUnsubscribe: (() => void) | null = null;
   private presenceUnsub: (() => void) | null = null;
@@ -54,8 +54,35 @@ class RealtimeTableManager {
     return this.currentRole;
   }
 
+  public subscribe(cbs: TableLiveEventCallbacks): () => void {
+    this.listeners.add(cbs);
+    return () => {
+      this.listeners.delete(cbs);
+    };
+  }
+
   public setCallbacks(cbs: TableLiveEventCallbacks) {
-    this.callbacks = { ...this.callbacks, ...cbs };
+    this.listeners.add(cbs);
+  }
+
+  public removeCallbacks(cbs: TableLiveEventCallbacks) {
+    this.listeners.delete(cbs);
+  }
+
+  private emit<K extends keyof TableLiveEventCallbacks>(
+    key: K,
+    ...args: Parameters<NonNullable<TableLiveEventCallbacks[K]>>
+  ) {
+    for (const listener of Array.from(this.listeners)) {
+      const fn = listener[key] as any;
+      if (typeof fn === 'function') {
+        try {
+          fn(...args);
+        } catch (err) {
+          console.error(`[RealtimeSync emit error on ${String(key)}]`, err);
+        }
+      }
+    }
   }
 
   public connect(roomCode: string, role: 'mj' | 'pj', hero?: Character | null) {
@@ -74,7 +101,7 @@ class RealtimeTableManager {
     this.stopPresence();
     this.knownHeroKeys = new Set<string>();
 
-    this.callbacks.onStatusChange?.('connecting', `Connexion à la table ${code}...`);
+    this.emit('onStatusChange', 'connecting', `Connexion à la table ${code}...`);
 
     try {
       const roomRef = ref(db, 'tables/' + this.currentRoom);
@@ -82,37 +109,37 @@ class RealtimeTableManager {
       // S'inscrire aux changements en temps réel sur Firebase
       const unsubscribe = onValue(roomRef, (snapshot) => {
         const roomData = snapshot.val();
-        this.callbacks.onStatusChange?.('connected', `Connecté en direct à la table ${code}`);
+        this.emit('onStatusChange', 'connected', `Connecté en direct à la table ${code}`);
 
         // Toujours prévenir l'interface, même salle vide : le MJ voit ainsi « 0 joueur en ligne ».
-        this.callbacks.onHeroesChanged?.((roomData && roomData.heroes) || {});
+        this.emit('onHeroesChanged', (roomData && roomData.heroes) || {});
 
         if (roomData) {
-          this.callbacks.onRoomState?.(roomData);
+          this.emit('onRoomState', roomData);
 
           // Le MJ est averti une seule fois par nouveau héros (et non à chaque mise à jour de la salle)
           if (roomData.heroes && this.currentRole === 'mj') {
             Object.entries(roomData.heroes).forEach(([k, h]: [string, any]) => {
               if (h && h.name && !this.knownHeroKeys.has(k)) {
                 this.knownHeroKeys.add(k);
-                this.callbacks.onPeerJoined?.(h.name, 'pj', h);
+                this.emit('onPeerJoined', h.name, 'pj', h);
               }
             });
           }
 
           // Si un nouveau dé a été lancé par quelqu'un d'autre
           if (roomData.lastRoll) {
-            this.callbacks.onDiceRolled?.(roomData.lastRoll);
+            this.emit('onDiceRolled', roomData.lastRoll);
           }
 
           // Si le combat a été mis à jour
           if (roomData.combatants) {
-            this.callbacks.onCombatUpdated?.(roomData.combatants);
+            this.emit('onCombatUpdated', roomData.combatants);
           }
         }
       }, (error) => {
         console.error('[Firebase Sync Error]', error);
-        this.callbacks.onStatusChange?.('error', 'Liaison serveur indisponible.');
+        this.emit('onStatusChange', 'error', 'Liaison serveur indisponible.');
       });
 
       this.dbUnsubscribe = unsubscribe; // onValue renvoie directement la fonction de désabonnement
@@ -122,10 +149,10 @@ class RealtimeTableManager {
 
       // Annoncer l'arrivée du pair (MJ ou PJ) dans la salle
       const clientName = this.cachedHero?.name || (this.currentRole === 'mj' ? 'Meneur de Jeu' : 'Joueur');
-      this.callbacks.onPeerJoined?.(clientName, this.currentRole, this.cachedHero || undefined);
+      this.emit('onPeerJoined', clientName, this.currentRole, this.cachedHero || undefined);
 
     } catch (err: any) {
-      this.callbacks.onStatusChange?.('error', err?.message || 'Erreur de connexion');
+      this.emit('onStatusChange', 'error', err?.message || 'Erreur de connexion');
     }
   }
 
@@ -162,10 +189,10 @@ class RealtimeTableManager {
       remove(ref(db, `tables/${this.currentRoom}/heroes/${heroKey(this.cachedHero)}`)).catch(() => {});
     }
     const clientName = this.cachedHero?.name || (this.currentRole === 'mj' ? 'Meneur de Jeu' : 'Joueur');
-    this.callbacks.onPeerLeft?.(clientName, this.currentRole);
+    this.emit('onPeerLeft', clientName, this.currentRole);
 
     this.currentRoom = '';
-    this.callbacks.onStatusChange?.('disconnected', 'Déconnecté');
+    this.emit('onStatusChange', 'disconnected', 'Déconnecté');
   }
 
   public send(payload: any) {
@@ -188,7 +215,7 @@ class RealtimeTableManager {
 
     const heroRef = ref(db, `tables/${this.currentRoom}/heroes/${heroKey(hero)}`);
     set(heroRef, clean(hero)).then(() => {
-      this.callbacks.onHeroUpdated?.(hero);
+      this.emit('onHeroUpdated', hero);
     }).catch(err => console.error(err));
     if (this.currentRole === 'pj' && !this.presenceUnsub) this.startPresence();
   }
@@ -202,7 +229,7 @@ class RealtimeTableManager {
       const snapshot = await get(heroRef);
       if (snapshot.exists()) {
         const updatedHero = snapshot.val();
-        this.callbacks.onHeroPatchedByDm?.(heroId, patch, updatedHero);
+        this.emit('onHeroPatchedByDm', heroId, patch, updatedHero);
       }
     }).catch(err => console.error(err));
   }
@@ -212,7 +239,7 @@ class RealtimeTableManager {
 
     const combatRef = ref(db, `tables/${this.currentRoom}/combatants`);
     set(combatRef, combatants).then(() => {
-      this.callbacks.onCombatUpdated?.(combatants);
+      this.emit('onCombatUpdated', combatants);
     }).catch(err => console.error(err));
   }
 
@@ -223,7 +250,7 @@ class RealtimeTableManager {
     update(roomRef, {
       lastRoll: { ...roll, timestamp: Date.now() }
     }).then(() => {
-      this.callbacks.onDiceRolled?.(roll);
+      this.emit('onDiceRolled', roll);
     }).catch(err => console.error(err));
   }
 }

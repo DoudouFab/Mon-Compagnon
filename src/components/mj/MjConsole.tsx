@@ -52,6 +52,7 @@ import {
   SORTS_CATALOG,
   VOIES_CATALOG,
   getMod,
+  calcStats,
 } from '../../data/coDatabase';
 import {
   THARNEA_MONSTERS,
@@ -188,9 +189,8 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
 
   React.useEffect(() => {
     let disposed = false;
-    realtimeTable.setCallbacks({
+    const unsub = realtimeTable.subscribe({
       onHeroesChanged: (heroesMap: any) => {
-        console.info('[MJ] onHeroesChanged reçu', heroesMap);
         if (disposed) return;
         const hm: any = heroesMap;
         const values: any[] = !hm
@@ -215,7 +215,6 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
               (!!hero.id && p.id === hero.id) ||
               (p.name || '').toLowerCase() === hero.name.toLowerCase()
           );
-          // Nouveau joueur : ajouté d'office si l'option est active, sinon proposé dans « Joueurs en ligne ».
           if (idx === -1) {
             if (autoAddRef.current) {
               pjs.push(hero);
@@ -223,9 +222,8 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
             }
             return;
           }
-          // Fusion : la fiche distante complète/met à jour la locale, les champs propres au MJ sont conservés.
+          // Fusion : la fiche distante du joueur met à jour les stats locales
           const merged = { ...pjs[idx], ...hero };
-          // Identique à la version locale : on n'écrase rien et on ne déclenche aucune mise à jour.
           if (JSON.stringify(merged) !== JSON.stringify(pjs[idx])) {
             pjs[idx] = merged;
             changed = true;
@@ -234,13 +232,13 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
 
         if (!changed) return;
         const next: MjTableData = { ...current, pjs };
-        tableDataRef.current = next; // évite de perdre une mise à jour si deux événements arrivent avant le rendu
+        tableDataRef.current = next;
         onUpdateTableDataRef.current(next);
       },
     });
-    console.info('[MJ] écouteur onHeroesChanged enregistré');
     return () => {
       disposed = true;
+      unsub();
     };
   }, []);
 
@@ -1226,8 +1224,11 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                 return matchQ && matchProf && matchRace;
               })
               .map((p, idx) => {
-                const hpMax = p.hpMaxManual || p.hpMaxAuto || p.hpBase || 10;
-                const defVal = (p as any).def || 12;
+                const st = calcStats(p);
+                const hpMax = p.hpMaxManual || p.hpMaxAuto || p.hpBase || (st ? st.hpMax : 10);
+                const defVal = (p as any).def || (st ? st.def : 12);
+                const pmMax = p.pmMaxManual !== null && p.pmMaxManual !== undefined ? p.pmMaxManual : (st ? st.pmMax : 0);
+                const pmCurrent = p.pm !== undefined && p.pm !== null ? p.pm : pmMax;
 
                 const handleTogglePjState = (stName: string) => {
                   const list = [...tableData.pjs];
@@ -1348,6 +1349,65 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                           <span>DEF :</span>
                           <span className="text-white">{defVal}</span>
                         </div>
+                      </div>
+
+                      {/* POINTS DE MANA (PM) avec ajustement direct par le MJ */}
+                      <div className="mt-1.5 flex items-center justify-between text-xs bg-[#0f1722] p-2 rounded-lg border border-[#1e3450]">
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const list = [...tableData.pjs];
+                              const cur = list[idx].pm !== undefined && list[idx].pm !== null ? list[idx].pm : pmMax;
+                              const newPm = Math.max(0, (cur ?? pmMax) - 1);
+                              list[idx] = { ...list[idx], pm: newPm };
+                              onUpdateTableData({ ...tableData, pjs: list });
+                            }}
+                            className="w-5 h-5 rounded bg-[#162538] hover:bg-[#203652] text-[#8dbbff] font-bold flex items-center justify-center cursor-pointer border border-[#2e5077]"
+                            title="-1 PM"
+                          >
+                            -
+                          </button>
+                          <span className="flex items-center gap-1 text-[#8dbbff] font-semibold">
+                            <Sparkles className="w-3.5 h-3.5 text-[#8dbbff]" />
+                            <span>PM :</span>
+                          </span>
+                          <b className={pmCurrent <= 0 && pmMax > 0 ? 'text-[#ff5555]' : 'text-[#8dbbff]'}>
+                            {pmCurrent}
+                          </b>
+                          <span className="text-[#688eb8]">/ {pmMax}</span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const list = [...tableData.pjs];
+                              const cur = list[idx].pm !== undefined && list[idx].pm !== null ? list[idx].pm : pmMax;
+                              const newPm = pmMax > 0 ? Math.min(pmMax, (cur ?? pmMax) + 1) : (cur ?? pmMax) + 1;
+                              list[idx] = { ...list[idx], pm: newPm };
+                              onUpdateTableData({ ...tableData, pjs: list });
+                            }}
+                            className="w-5 h-5 rounded bg-[#162538] hover:bg-[#203652] text-[#8dbbff] font-bold flex items-center justify-center cursor-pointer border border-[#2e5077]"
+                            title="+1 PM"
+                          >
+                            +
+                          </button>
+                        </div>
+                        {pmMax > 0 ? (
+                          <div className="flex items-center gap-1.5">
+                            <div className="w-14 h-2 bg-[#090e15] rounded-full overflow-hidden border border-[#203652]">
+                              <div
+                                className="h-full bg-gradient-to-r from-[#3a69a1] to-[#8dbbff] rounded-full transition-all"
+                                style={{
+                                  width: `${Math.max(0, Math.min(100, Math.round((100 * pmCurrent) / pmMax)))}%`,
+                                }}
+                              />
+                            </div>
+                            <span className="text-[10px] text-[#7eaadb] font-mono">
+                              {Math.round((100 * pmCurrent) / pmMax)}%
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-[10px] text-[#556e8c] italic">Sans réserve</span>
+                        )}
                       </div>
 
                       {/* Points de capacité & Cadeau RP */}

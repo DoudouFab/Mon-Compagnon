@@ -237,7 +237,7 @@ export default function App() {
   };
 
   const handleUpdateCurrentPj = (updated: Character) => {
-    if (liveStatus === 'connected') {
+    if (realtimeTable.room) {
       realtimeTable.updateHero(updated);
     }
     setPlayerRoster((prev) => {
@@ -518,7 +518,7 @@ export default function App() {
 
   // Real-time Live Table Callbacks
   useEffect(() => {
-    realtimeTable.setCallbacks({
+    const unsub = realtimeTable.subscribe({
       onStatusChange: (status, msg) => {
         setLiveStatus(status);
         if (msg) showToast(msg);
@@ -569,26 +569,84 @@ export default function App() {
       onPeerLeft: (name) => {
         showToast(`🚪 ${name} a quitté la table.`);
       },
-      // Joueur : appliquer en direct les modifications faites par le MJ (PV, PM, états, points de capacité, butin)
+      // Synchronisation en direct des héros : Joueur (si modifié par MJ) et MJ (si modifié par Joueur)
       onHeroesChanged: (heroesMap) => {
-        if (appMode !== 'pj' || !currentPj || !heroesMap) return;
-        const remote = Object.values(heroesMap).find(
-          (h: any) =>
-            h && ((h.id && h.id === currentPj.id) || (h.name && h.name.toLowerCase() === currentPj.name.toLowerCase()))
-        ) as Character | undefined;
-        if (!remote) return;
-        if ((remote.dmPatchAt || 0) <= (currentPj.dmPatchAt || 0)) return;
-        handleUpdateCurrentPj({
-          ...currentPj,
-          hp: remote.hp,
-          pm: remote.pm ?? currentPj.pm,
-          ptsCap: remote.ptsCap,
-          ptsCapCadeaux: remote.ptsCapCadeaux,
-          etats: remote.etats || [],
-          inventaire: remote.inventaire || [],
-          dmPatchAt: remote.dmPatchAt,
-        });
-        showToast('✨ Le Meneur de Jeu a mis à jour ta fiche en direct !');
+        if (!heroesMap) return;
+        const incomingHeroes: Character[] = Object.values(heroesMap).filter(
+          (h: any) => h && typeof h === 'object' && h.name
+        );
+
+        // 1. Côté Joueur : appliquer en direct les modifications faites par le MJ (PV, PM, états, points de capacité, butin)
+        if (appMode === 'pj' && currentPj) {
+          const remote = incomingHeroes.find(
+            (h) => (h.id && h.id === currentPj.id) || (h.name && h.name.toLowerCase() === currentPj.name.toLowerCase())
+          );
+          if (remote && (remote.dmPatchAt || 0) > (currentPj.dmPatchAt || 0)) {
+            handleUpdateCurrentPj({
+              ...currentPj,
+              hp: remote.hp,
+              pm: remote.pm ?? currentPj.pm,
+              ptsCap: remote.ptsCap,
+              ptsCapCadeaux: remote.ptsCapCadeaux,
+              etats: remote.etats || [],
+              inventaire: remote.inventaire || [],
+              dmPatchAt: remote.dmPatchAt,
+            });
+            showToast('✨ Le Meneur de Jeu a mis à jour ta fiche en direct !');
+          }
+        }
+
+        // 2. Côté Meneur de Jeu (MJ) : appliquer en direct les modifications faites par les Joueurs (PV, PM, états, compétences...)
+        if (appMode === 'mj' && incomingHeroes.length > 0) {
+          setConnectedHeroes(incomingHeroes);
+          setTableData((prev: any) => {
+            const pjs = [...prev.pjs];
+            let changed = false;
+
+            incomingHeroes.forEach((remoteHero) => {
+              const idx = pjs.findIndex(
+                (p: Character) =>
+                  (remoteHero.id && p.id === remoteHero.id) ||
+                  (p.name || '').toLowerCase() === (remoteHero.name || '').toLowerCase()
+              );
+
+              if (idx >= 0) {
+                const existing = pjs[idx];
+                const merged: Character = {
+                  ...existing,
+                  ...remoteHero,
+                  etats: remoteHero.etats !== undefined ? remoteHero.etats : existing.etats,
+                };
+                if (JSON.stringify(existing) !== JSON.stringify(merged)) {
+                  pjs[idx] = merged;
+                  changed = true;
+                }
+              } else {
+                pjs.push(remoteHero);
+                changed = true;
+              }
+            });
+
+            if (!changed) return prev;
+
+            const combatants = prev.combatants.map((c: Combatant) => {
+              const match = incomingHeroes.find(
+                (h) => (h.id && c.pjRefId === h.id) || (h.name && c.n.toLowerCase().startsWith(h.name.toLowerCase()))
+              );
+              if (match) {
+                return {
+                  ...c,
+                  hp: match.hp,
+                  hpMax: match.hpMaxAuto || match.hpMaxManual || c.hpMax,
+                  etats: match.etats || c.etats || [],
+                };
+              }
+              return c;
+            });
+
+            return { ...prev, pjs, combatants };
+          });
+        }
       },
       onRoomState: (state) => {
         if (state && Array.isArray(state.heroes)) {
@@ -607,6 +665,9 @@ export default function App() {
         }
       },
     });
+    return () => {
+      unsub();
+    };
   }, [currentPj, appMode]);
 
   // Connexion automatique à la table mémorisée ou reçue par lien (?table=CODE) : sans ça, personne n'est connecté
