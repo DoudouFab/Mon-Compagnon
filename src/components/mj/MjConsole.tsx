@@ -400,14 +400,40 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
     const list = [...tableData.combatants];
     const c = list[index];
     c.hp = Math.max(0, Math.min(c.hpMax, c.hp + delta));
-    onUpdateTableData({ ...tableData, combatants: list });
+
+    // S'il est lié à un PJ/PNJ du groupe, synchroniser également le groupe
+    const nextPjs = tableData.pjs.map((p) => {
+      if (
+        (c.pjRefId && p.id === c.pjRefId) ||
+        p.id === c.id ||
+        (p.name && c.n && p.name.trim().toLowerCase() === c.n.trim().toLowerCase())
+      ) {
+        return { ...p, hp: c.hp };
+      }
+      return p;
+    });
+
+    onUpdateTableData({ ...tableData, combatants: list, pjs: nextPjs });
   };
 
   const setCombatHp = (index: number, val: number) => {
     const list = [...tableData.combatants];
     const c = list[index];
     c.hp = Math.max(0, Math.min(c.hpMax, val));
-    onUpdateTableData({ ...tableData, combatants: list });
+
+    // S'il est lié à un PJ/PNJ du groupe, synchroniser également le groupe
+    const nextPjs = tableData.pjs.map((p) => {
+      if (
+        (c.pjRefId && p.id === c.pjRefId) ||
+        p.id === c.id ||
+        (p.name && c.n && p.name.trim().toLowerCase() === c.n.trim().toLowerCase())
+      ) {
+        return { ...p, hp: c.hp };
+      }
+      return p;
+    });
+
+    onUpdateTableData({ ...tableData, combatants: list, pjs: nextPjs });
   };
 
   const removeCombatant = (index: number) => {
@@ -424,16 +450,17 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
     const nextStates = exists ? current.filter((s) => s !== stateName) : [...current, stateName];
     c.etats = nextStates;
 
-    // S'il est lié à un PJ du groupe, synchroniser également le groupe
-    let nextPjs = tableData.pjs;
-    if (c.pjRefId || c.isPj) {
-      nextPjs = tableData.pjs.map((p) => {
-        if (p.id === (c.pjRefId || c.id) || p.name === c.n) {
-          return { ...p, etats: nextStates };
-        }
-        return p;
-      });
-    }
+    // S'il est lié à un PJ/PNJ du groupe, synchroniser également le groupe
+    const nextPjs = tableData.pjs.map((p) => {
+      if (
+        (c.pjRefId && p.id === c.pjRefId) ||
+        p.id === c.id ||
+        (p.name && c.n && p.name.trim().toLowerCase() === c.n.trim().toLowerCase())
+      ) {
+        return { ...p, etats: nextStates };
+      }
+      return p;
+    });
     onUpdateTableData({ ...tableData, combatants: list, pjs: nextPjs });
   };
 
@@ -508,6 +535,7 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
       init: (pj.base.DEX || 10) + (pj.rb.DEX || 0),
       notes: `${pj.profil} Niv. ${pj.level} (${pj.race})`,
       pjRefId: pj.id,
+      etats: pj.etats || [],
     };
     onUpdateTableData({
       ...tableData,
@@ -534,6 +562,7 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
         init: (p.base.DEX || 10) + (p.rb.DEX || 0),
         notes: `${p.profil} Niv. ${p.level} (${p.race})`,
         pjRefId: p.id,
+        etats: p.etats || [],
       };
     });
     onUpdateTableData({
@@ -1321,7 +1350,17 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                               const list = [...tableData.pjs];
                               const newHp = Math.max(0, p.hp - 1);
                               list[idx] = { ...list[idx], hp: newHp };
-                              onUpdateTableData({ ...tableData, pjs: list });
+                              const updatedCombatants = tableData.combatants.map((c) => {
+                                if (
+                                  (c.pjRefId && c.pjRefId === p.id) ||
+                                  c.id === p.id ||
+                                  (c.n && p.name && (c.n.trim().toLowerCase() === p.name.trim().toLowerCase() || c.n.startsWith(p.name)))
+                                ) {
+                                  return { ...c, hp: newHp };
+                                }
+                                return c;
+                              });
+                              onUpdateTableData({ ...tableData, pjs: list, combatants: updatedCombatants });
                             }}
                             className="w-5 h-5 rounded bg-[#2b1416] hover:bg-[#3d1a1e] text-[#ff8080] font-bold flex items-center justify-center cursor-pointer border border-[#6d252b]"
                             title="-1 PV"
@@ -1336,7 +1375,17 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                               const list = [...tableData.pjs];
                               const newHp = Math.min(hpMax, p.hp + 1);
                               list[idx] = { ...list[idx], hp: newHp };
-                              onUpdateTableData({ ...tableData, pjs: list });
+                              const updatedCombatants = tableData.combatants.map((c) => {
+                                if (
+                                  (c.pjRefId && c.pjRefId === p.id) ||
+                                  c.id === p.id ||
+                                  (c.n && p.name && (c.n.trim().toLowerCase() === p.name.trim().toLowerCase() || c.n.startsWith(p.name)))
+                                ) {
+                                  return { ...c, hp: newHp };
+                                }
+                                return c;
+                              });
+                              onUpdateTableData({ ...tableData, pjs: list, combatants: updatedCombatants });
                             }}
                             className="w-5 h-5 rounded bg-[#172b1a] hover:bg-[#203d24] text-[#86efac] font-bold flex items-center justify-center cursor-pointer border border-[#276e43]"
                             title="+1 PV"

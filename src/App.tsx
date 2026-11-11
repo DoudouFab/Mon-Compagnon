@@ -864,19 +864,24 @@ export default function App() {
           <MjConsole
             tableData={tableData}
             onUpdateTableData={(updated) => {
-              if (liveStatus === 'connected' && appMode === 'mj') {
+              if (appMode === 'mj' && (liveStatus === 'connected' || realtimeTable.room)) {
                 const now = Date.now();
-                updated.pjs.forEach((p: Character) => {
+                const nextPjs = updated.pjs.map((p: Character) => {
                   const old = tableData.pjs.find(
                     (o: Character) => (o.id && o.id === p.id) || (o.name || '').toLowerCase() === (p.name || '').toLowerCase()
                   );
                   if (!old || JSON.stringify(old) !== JSON.stringify(p)) {
-                    realtimeTable.updateHero({ ...p, dmPatchAt: now });
+                    const patched = { ...p, dmPatchAt: now };
+                    realtimeTable.updateHero(patched);
+                    return patched;
                   }
+                  return p;
                 });
                 if (JSON.stringify(updated.combatants) !== JSON.stringify(tableData.combatants)) {
                   realtimeTable.syncCombat(updated.combatants);
                 }
+                setTableData({ ...updated, pjs: nextPjs });
+                return;
               }
               setTableData(updated);
             }}
