@@ -28,6 +28,7 @@ import {
   MapPin,
   Gift,
   ClipboardPaste,
+  Calculator,
   X,
 } from 'lucide-react';
 import {
@@ -42,6 +43,7 @@ import { StateBadgeList } from '../common/StateBadgeList';
 import { PnjCreatorModal } from './PnjCreatorModal';
 import { CharacterSheetModal } from './CharacterSheetModal';
 import { OsgildLoreMj } from './OsgildLoreMj';
+import { MoneyCalculatorModal } from '../common/MoneyCalculatorModal';
 import {
   BESTIAIRE,
   EQUIPEMENTS,
@@ -62,6 +64,7 @@ import {
 import {
   Character,
   Combatant,
+  CurrencyBourse,
   Equipment,
   Monster,
   PrejudicialState,
@@ -156,6 +159,48 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
   const [grimSearch, setGrimSearch] = useState('');
   const [detailItem, setDetailItem] = useState<DetailItem | null>(null);
   const [selectedCharacterModal, setSelectedCharacterModal] = useState<Character | null>(null);
+  const [moneyCalcTarget, setMoneyCalcTarget] = useState<{ type: 'group' } | { type: 'pj'; pjIndex: number } | null>(null);
+
+  // Finances cumulées du groupe d'aventuriers
+  const groupFinances: CurrencyBourse = tableData.pjs.reduce(
+    (acc, p) => {
+      const b = p.bourse || { po: 0, pa: 0, pc: 0 };
+      acc.po += b.po || 0;
+      acc.pa += b.pa || 0;
+      acc.pc += b.pc || 0;
+      return acc;
+    },
+    { po: 0, pa: 0, pc: 0 }
+  );
+  const groupTotalCopper = (groupFinances.po || 0) * 100 + (groupFinances.pa || 0) * 10 + (groupFinances.pc || 0);
+  const groupTotalGold = (groupTotalCopper / 100).toFixed(2);
+  const avgGoldPerPj = tableData.pjs.length > 0 ? (groupTotalCopper / (tableData.pjs.length * 100)).toFixed(2) : '0.00';
+
+  const handleUpdatePjBourse = (idx: number, newBourse: CurrencyBourse) => {
+    const list = [...tableData.pjs];
+    list[idx] = { ...list[idx], bourse: newBourse };
+    onUpdateTableData({ ...tableData, pjs: list });
+  };
+
+  const handleDistributeLootToAll = (share: CurrencyBourse) => {
+    if (tableData.pjs.length === 0) {
+      alert("Aucun aventurier dans le groupe.");
+      return;
+    }
+    const updatedPjs = tableData.pjs.map((p) => {
+      const cur = p.bourse || { po: 0, pa: 0, pc: 0 };
+      return {
+        ...p,
+        bourse: {
+          po: Math.max(0, (cur.po || 0) + (share.po || 0)),
+          pa: Math.max(0, (cur.pa || 0) + (share.pa || 0)),
+          pc: Math.max(0, (cur.pc || 0) + (share.pc || 0)),
+        },
+      };
+    });
+    onUpdateTableData({ ...tableData, pjs: updatedPjs });
+    alert(`Butin distribué à tous les ${updatedPjs.length} aventuriers : +${share.po} PO, ${share.pa} PA, ${share.pc} PC chacun !`);
+  };
 
   // Add custom combatant state
   const [isAddCombatantOpen, setIsAddCombatantOpen] = useState(false);
@@ -1158,6 +1203,57 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
               </div>
             </div>
 
+            {/* Case Finance du Groupe (Trésorerie Cumulée en temps réel) */}
+            <div className="p-3 bg-gradient-to-r from-[#241a10] via-[#1c150e] to-[#140e0a] border border-[#d4a84a]/60 rounded-xl flex flex-col md:flex-row md:items-center justify-between gap-3 shadow-inner">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-lg bg-[#d4a84a]/20 border border-[#d4a84a]/40 text-[#f3d48d] shadow-xs shrink-0">
+                  <Coins className="w-5 h-5 text-[#f3d48d]" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-serif-co text-sm font-bold text-[#f3d48d]">
+                      Finances du Groupe (Cumul en direct)
+                    </span>
+                    <span className="text-[10px] bg-[#140e0a] border border-[#4d3623] px-2 py-0.5 rounded text-[#cbd5e1] font-mono">
+                      {tableData.pjs.length} PJ à la table
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-[#a0907d]">
+                    Règle officielle COF : <b>1 PO = 10 PA</b> • <b>1 PA = 10 PC</b> (1 PO = 100 PC) • ~{avgGoldPerPj} PO / aventurier
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2.5 flex-wrap">
+                {/* Badges monnaies cumulées */}
+                <div className="flex items-center gap-1.5 bg-[#0e0906] p-1.5 rounded-lg border border-[#3d2b1c] text-xs font-mono font-bold">
+                  <span className="text-[#f1c40f] bg-[#241a10] px-2 py-0.5 rounded border border-[#523d24]">
+                    🟡 {groupFinances.po} PO
+                  </span>
+                  <span className="text-[#cbd5e1] bg-[#1b2029] px-2 py-0.5 rounded border border-[#364254]">
+                    ⚪ {groupFinances.pa} PA
+                  </span>
+                  <span className="text-[#f59e0b] bg-[#2b1810] px-2 py-0.5 rounded border border-[#542d1a]">
+                    🟤 {groupFinances.pc} PC
+                  </span>
+                </div>
+
+                <div className="text-xs font-mono font-bold text-[#f3d48d] bg-[#140e0a] px-2.5 py-1.5 rounded-lg border border-[#4d3623]">
+                  ≈ {groupTotalGold} PO <span className="text-[10px] text-[#9e907d]">({groupTotalCopper} PC)</span>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setMoneyCalcTarget({ type: 'group' })}
+                  className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-[#d4a84a] to-[#ab8230] hover:brightness-110 text-[#1a1208] text-xs font-bold flex items-center gap-1.5 shadow-md cursor-pointer transition-all shrink-0"
+                  title="Ouvrir la Calculatrice Ancienne pour le groupe (partage de butin équitable, calculs et conversion)"
+                >
+                  <Calculator className="w-3.5 h-3.5 text-[#1a1208]" />
+                  <span>Partager Butin / Abaque</span>
+                </button>
+              </div>
+            </div>
+
             {/* Barre compacte direct : option d'ajout automatique & héros en attente */}
             <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-[#261f18] text-xs">
               <label className="flex items-center gap-1.5 text-[11px] text-[#cbb8a7] cursor-pointer select-none">
@@ -1480,6 +1576,117 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                           <Gift className="w-3 h-3 text-[#f3d48d]" />
                           <span>+1 Pt Cadeau RP</span>
                         </button>
+                      </div>
+
+                      {/* Bourse individuelle du héros (PO, PA, PC) visible et modifiable en direct par le MJ */}
+                      <div className="mt-2 bg-[#17110c] border border-[#d4a84a]/40 rounded-lg p-2 text-xs space-y-1.5 shadow-xs">
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold text-[#f3d48d] flex items-center gap-1 text-[11px]">
+                            <Coins className="w-3.5 h-3.5 text-[#d4a84a]" /> Bourse :
+                          </span>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[10px] text-[#ede3d1] font-mono font-bold">
+                              ≈ {(( ((p.bourse?.po || 0) * 100) + ((p.bourse?.pa || 0) * 10) + (p.bourse?.pc || 0) ) / 100).toFixed(2)} PO
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => setMoneyCalcTarget({ type: 'pj', pjIndex: idx })}
+                              className="p-1 rounded bg-[#241a10] hover:bg-[#3d2c1c] text-[#f3d48d] border border-[#523d24] cursor-pointer"
+                              title={`Ouvrir la Calculatrice Ancienne pour ${p.name}`}
+                            >
+                              <Calculator className="w-3 h-3" />
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-3 gap-1.5 text-center">
+                          {/* PO */}
+                          <div className="bg-[#21160d] border border-[#523b24] rounded p-1 flex items-center justify-between">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const cur = p.bourse || { po: 0, pa: 0, pc: 0 };
+                                handleUpdatePjBourse(idx, { ...cur, po: Math.max(0, (cur.po || 0) - 1) });
+                              }}
+                              className="w-4 h-4 rounded bg-[#120b06] hover:bg-[#2b170c] text-[#ede3d1] font-bold text-[10px] flex items-center justify-center cursor-pointer border border-[#3d2716]"
+                              title="-1 PO"
+                            >
+                              -
+                            </button>
+                            <span className="text-[11px] font-mono font-bold text-[#f3d48d]">
+                              {p.bourse?.po || 0} <span className="text-[9px] text-[#9e907d]">PO</span>
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const cur = p.bourse || { po: 0, pa: 0, pc: 0 };
+                                handleUpdatePjBourse(idx, { ...cur, po: (cur.po || 0) + 1 });
+                              }}
+                              className="w-4 h-4 rounded bg-[#120b06] hover:bg-[#2b170c] text-[#f3d48d] font-bold text-[10px] flex items-center justify-center cursor-pointer border border-[#3d2716]"
+                              title="+1 PO"
+                            >
+                              +
+                            </button>
+                          </div>
+
+                          {/* PA */}
+                          <div className="bg-[#171b22] border border-[#364254] rounded p-1 flex items-center justify-between">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const cur = p.bourse || { po: 0, pa: 0, pc: 0 };
+                                handleUpdatePjBourse(idx, { ...cur, pa: Math.max(0, (cur.pa || 0) - 1) });
+                              }}
+                              className="w-4 h-4 rounded bg-[#0e1117] hover:bg-[#1d2633] text-[#ede3d1] font-bold text-[10px] flex items-center justify-center cursor-pointer border border-[#2a374a]"
+                              title="-1 PA"
+                            >
+                              -
+                            </button>
+                            <span className="text-[11px] font-mono font-bold text-[#cbd5e1]">
+                              {p.bourse?.pa || 0} <span className="text-[9px] text-[#7d8c9e]">PA</span>
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const cur = p.bourse || { po: 0, pa: 0, pc: 0 };
+                                handleUpdatePjBourse(idx, { ...cur, pa: (cur.pa || 0) + 1 });
+                              }}
+                              className="w-4 h-4 rounded bg-[#0e1117] hover:bg-[#1d2633] text-[#cbd5e1] font-bold text-[10px] flex items-center justify-center cursor-pointer border border-[#2a374a]"
+                              title="+1 PA"
+                            >
+                              +
+                            </button>
+                          </div>
+
+                          {/* PC */}
+                          <div className="bg-[#21140e] border border-[#522918] rounded p-1 flex items-center justify-between">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const cur = p.bourse || { po: 0, pa: 0, pc: 0 };
+                                handleUpdatePjBourse(idx, { ...cur, pc: Math.max(0, (cur.pc || 0) - 1) });
+                              }}
+                              className="w-4 h-4 rounded bg-[#120a06] hover:bg-[#2e1509] text-[#ede3d1] font-bold text-[10px] flex items-center justify-center cursor-pointer border border-[#3d1c0e]"
+                              title="-1 PC"
+                            >
+                              -
+                            </button>
+                            <span className="text-[11px] font-mono font-bold text-[#f59e0b]">
+                              {p.bourse?.pc || 0} <span className="text-[9px] text-[#9e6d42]">PC</span>
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const cur = p.bourse || { po: 0, pa: 0, pc: 0 };
+                                handleUpdatePjBourse(idx, { ...cur, pc: (cur.pc || 0) + 1 });
+                              }}
+                              className="w-4 h-4 rounded bg-[#120a06] hover:bg-[#2e1509] text-[#f59e0b] font-bold text-[10px] flex items-center justify-center cursor-pointer border border-[#3d1c0e]"
+                              title="+1 PC"
+                            >
+                              +
+                            </button>
+                          </div>
+                        </div>
                       </div>
 
                       {/* ÉTATS PRÉJUDICIABLES */}
@@ -3352,6 +3559,32 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
             </div>
           </div>
         </div>
+      )}
+
+      {/* Modale Calculatrice & Partage de Butin */}
+      {moneyCalcTarget && (
+        <MoneyCalculatorModal
+          isOpen={true}
+          onClose={() => setMoneyCalcTarget(null)}
+          currentBourse={
+            moneyCalcTarget.type === 'group'
+              ? groupFinances
+              : tableData.pjs[moneyCalcTarget.pjIndex]?.bourse || { po: 0, pa: 0, pc: 0 }
+          }
+          onUpdateBourse={(newBourse) => {
+            if (moneyCalcTarget.type === 'pj') {
+              handleUpdatePjBourse(moneyCalcTarget.pjIndex, newBourse);
+            }
+          }}
+          characterName={
+            moneyCalcTarget.type === 'group'
+              ? 'Caisse Commune du Groupe'
+              : tableData.pjs[moneyCalcTarget.pjIndex]?.name
+          }
+          partyCount={tableData.pjs.length}
+          isMj={true}
+          onDistributeToAllPjs={handleDistributeLootToAll}
+        />
       )}
 
       {/* Discreet Signature */}

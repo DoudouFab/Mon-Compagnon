@@ -676,7 +676,6 @@ export const MoneyCalculatorModal: React.FC<MoneyCalculatorModalProps> = ({
                   <button
                     type="button"
                     onClick={handleCalcEquals}
-                    rowSpan={2}
                     className="row-span-2 p-2.5 rounded-lg bg-[#d4a84a] hover:bg-[#e0b555] text-black font-bold text-lg cursor-pointer flex items-center justify-center shadow-md"
                   >
                     =

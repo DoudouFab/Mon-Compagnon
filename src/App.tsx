@@ -257,6 +257,19 @@ export default function App() {
       }
       return nextRoster;
     });
+
+    // Synchronisation immédiate vers la table MJ
+    setTableData((prevTable: any) => {
+      const pjs = [...prevTable.pjs];
+      const pIdx = pjs.findIndex(
+        (p: Character) => (p.id && p.id === updated.id) || (p.name || '').toLowerCase() === (updated.name || '').toLowerCase()
+      );
+      if (pIdx >= 0) {
+        pjs[pIdx] = { ...pjs[pIdx], ...updated };
+        return { ...prevTable, pjs };
+      }
+      return prevTable;
+    });
   };
 
   const handleAddCharacter = (newChar: Character) => {
@@ -865,26 +878,51 @@ export default function App() {
           <MjConsole
             tableData={tableData}
             onUpdateTableData={(updated) => {
-              if (appMode === 'mj' && (liveStatus === 'connected' || realtimeTable.room)) {
-                const now = Date.now();
-                const nextPjs = updated.pjs.map((p: Character) => {
-                  const old = tableData.pjs.find(
-                    (o: Character) => (o.id && o.id === p.id) || (o.name || '').toLowerCase() === (p.name || '').toLowerCase()
-                  );
-                  if (!old || JSON.stringify(old) !== JSON.stringify(p)) {
-                    const patched = { ...p, dmPatchAt: now };
+              const now = Date.now();
+              const isLive = liveStatus === 'connected' || Boolean(realtimeTable.room);
+              const nextPjs = updated.pjs.map((p: Character) => {
+                const old = tableData.pjs.find(
+                  (o: Character) => (o.id && o.id === p.id) || (o.name || '').toLowerCase() === (p.name || '').toLowerCase()
+                );
+                if (!old || JSON.stringify(old) !== JSON.stringify(p)) {
+                  const patched = { ...p, dmPatchAt: now };
+                  if (isLive) {
                     realtimeTable.updateHero(patched);
-                    return patched;
+                  }
+                  return patched;
+                }
+                return p;
+              });
+
+              if (isLive && JSON.stringify(updated.combatants) !== JSON.stringify(tableData.combatants)) {
+                realtimeTable.syncCombat(updated.combatants);
+              }
+
+              // Synchronise le roster des joueurs locaux pour répercussion immédiate en mode PJ
+              setPlayerRoster((prevRoster) => {
+                let changed = false;
+                const newRoster = prevRoster.map((p) => {
+                  const match = nextPjs.find(
+                    (up: Character) => (up.id && up.id === p.id) || (up.name || '').toLowerCase() === (p.name || '').toLowerCase()
+                  );
+                  if (match && JSON.stringify(match) !== JSON.stringify(p)) {
+                    changed = true;
+                    return { ...p, ...match };
                   }
                   return p;
                 });
-                if (JSON.stringify(updated.combatants) !== JSON.stringify(tableData.combatants)) {
-                  realtimeTable.syncCombat(updated.combatants);
+                if (changed) {
+                  try {
+                    localStorage.setItem('co_player_roster', JSON.stringify(newRoster));
+                    const active = newRoster.find((p) => p.id === activePjId);
+                    if (active) localStorage.setItem('co_pj_local', JSON.stringify(active));
+                  } catch {}
+                  return newRoster;
                 }
-                setTableData({ ...updated, pjs: nextPjs });
-                return;
-              }
-              setTableData(updated);
+                return prevRoster;
+              });
+
+              setTableData({ ...updated, pjs: nextPjs });
             }}
             currentActivePj={currentPj}
             onImportActivePj={handleSendPjToMj}

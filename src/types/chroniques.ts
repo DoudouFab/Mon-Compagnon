@@ -148,6 +148,7 @@ export interface Equipment {
   nom?: string;
   cat?: string;
   type?: string;
+  t?: string;
   prix?: string;
   dm?: string;
   degats?: string;

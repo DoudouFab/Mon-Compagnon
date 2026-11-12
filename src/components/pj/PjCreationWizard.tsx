@@ -84,6 +84,7 @@ export const PjCreationWizard: React.FC<PjCreationWizardProps> = ({
   const mods = CARAC_LIST.map((c) => getMod(baseStats[c] || 10));
   const modSum = mods.reduce((a, b) => a + b, 0);
   const pairsCount = CARAC_LIST.map((c) => baseStats[c] || 10).filter((v) => v % 2 === 0).length;
+  const impairsCount = 6 - pairsCount;
 
   const availableWays = Object.entries(VOIES_CATALOG).filter(
     ([, v]) => v.profil === profilId || v.profil === 'race:' + raceId
@@ -112,7 +113,7 @@ export const PjCreationWizard: React.FC<PjCreationWizardProps> = ({
   };
 
   const maxStatBudget = statMode === 'heroique' ? 6 : 4;
-  const maxStatBase = statMode === 'heroique' ? 17 : 16;
+  const maxStatBase = 18;
   const minStatBase = 8;
 
   // Règle 1 : Total exact des modificateurs
@@ -121,9 +122,10 @@ export const PjCreationWizard: React.FC<PjCreationWizardProps> = ({
   const isPairsCountValid = pairsCount <= 2;
   const canProceedStep2 = isModSumValid && isPairsCountValid;
 
-  // Présélections 100% officielles et conformes (Total = +4, exactement 2 scores pairs)
+  // Présélections 100% officielles et conformes (Total = +4, max 2 scores pairs)
   const STAT_PRESETS = [
     { label: '⚔️ Guerrier / Contact', stats: { FOR: 16, DEX: 13, CON: 13, INT: 11, SAG: 10, CHA: 9 } }, // +3 +1 +1 0 0 -1 = +4 | Pairs: 16, 10 (2 pairs)
+    { label: '💥 Spécialiste Force (18)', stats: { FOR: 18, DEX: 11, CON: 11, INT: 11, SAG: 11, CHA: 11 } }, // +4 0 0 0 0 0 = +4 | Pairs: 18 (1 pair)
     { label: '🏹 Agile / Distance', stats: { FOR: 11, DEX: 16, CON: 13, INT: 11, SAG: 12, CHA: 9 } },  // 0 +3 +1 0 +1 -1 = +4 | Pairs: 16, 12 (2 pairs)
     { label: '🔮 Érudit / Magie', stats: { FOR: 9, DEX: 13, CON: 11, INT: 16, SAG: 14, CHA: 9 } },     // -1 +1 0 +3 +2 -1 = +4 | Pairs: 16, 14 (2 pairs)
     { label: '✨ Dévot / Prêtre', stats: { FOR: 13, DEX: 11, CON: 14, INT: 9, SAG: 16, CHA: 9 } },     // +1 0 +2 -1 +3 -1 = +4 | Pairs: 14, 16 (2 pairs)
@@ -147,7 +149,7 @@ export const PjCreationWizard: React.FC<PjCreationWizardProps> = ({
   const handleStatChange = (c: CaracName, val: number) => {
     if (val < minStatBase) return;
     if (val > maxStatBase) {
-      alert(`Plafond officiel niveau 1 : Le score de base maximum est de ${maxStatBase} (modificateur +3) avant bonus racial.`);
+      alert(`Plafond officiel niveau 1 : Le score de base maximum est de 18 (modificateur +4) avant bonus racial.`);
       return;
     }
     const currentVal = baseStats[c] || 10;
@@ -748,61 +750,211 @@ export const PjCreationWizard: React.FC<PjCreationWizardProps> = ({
                 </div>
               </div>
 
-              {/* Bourse & Pécule initial officiel */}
-              <div className="p-3.5 bg-[#1a1410] border border-[#d4a84a]/50 rounded-xl space-y-3">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              {/* Bourse & Pécule initial officiel : Choix des 2 possibilités */}
+              <div className="p-4 bg-gradient-to-r from-[#241a10] via-[#1c150e] to-[#140e0a] border-2 border-[#d4a84a] rounded-xl space-y-3.5 shadow-xl">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#3d2f21] pb-2.5">
                   <div>
-                    <b className="text-xs font-bold uppercase tracking-wider text-[#f3d48d] flex items-center gap-1.5">
-                      <Coins className="w-4 h-4 text-[#e5a93c]" />
-                      Bourse & Pécule initial de l&apos;Aventurier :
-                    </b>
-                    <p className="text-[11px] text-[#9e907d]">
-                      Règle officielle COF : paquetage gratuit + 10 PO fixe ou tirage aux dés (3d6 × 10 PA).
+                    <h4 className="font-serif-co text-sm font-bold text-[#f3d48d] flex items-center gap-2">
+                      <Coins className="w-4 h-4 text-[#d4a84a]" />
+                      <span>Bourse &amp; Pécule de Départ : Choisissez votre Méthode</span>
+                    </h4>
+                    <p className="text-[11px] text-[#a0907d]">
+                      Règle officielle COF (Livre de base p. 147) : Choisissez librement entre les 2 possibilités prévues par les règles.
                     </p>
                   </div>
-                  <div className="flex items-center gap-1.5 text-xs font-mono font-bold text-[#ede3d1] bg-[#120f0c] px-2.5 py-1 rounded border border-[#3d3023] shrink-0">
-                    <span className="text-[#f1c40f]">🟡 {startingBourse.po} PO</span>
-                    <span className="text-[#cbd5e1]">⚪ {startingBourse.pa} PA</span>
-                    <span className="text-[#d97706]">🟤 {startingBourse.pc} PC</span>
+                  <div className="flex items-center gap-2 bg-[#0e0a07] px-3 py-1.5 rounded-lg border border-[#4d3623] shrink-0">
+                    <span className="text-[10px] text-[#9e907d] uppercase font-bold">Votre Bourse :</span>
+                    <span className="text-xs font-mono font-bold text-[#f1c40f]">🟡 {startingBourse.po} PO</span>
+                    <span className="text-xs font-mono font-bold text-[#cbd5e1]">⚪ {startingBourse.pa} PA</span>
+                    <span className="text-xs font-mono font-bold text-[#f59e0b]">🟤 {startingBourse.pc} PC</span>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <button
-                    type="button"
+                {/* Les 2 Possibilités officielles */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {/* POSSIBILITÉ 1 : PÉCULE FIXE DE 10 PO */}
+                  <div
                     onClick={() => {
                       setBourseMode('standard');
                       setStartingBourse({ po: 10, pa: 0, pc: 0 });
-                      setDiceRollInfo(null);
                     }}
-                    className={`p-2.5 rounded-lg border text-left cursor-pointer transition-all ${
+                    className={`p-3.5 rounded-xl border-2 cursor-pointer transition-all flex flex-col justify-between ${
                       bourseMode === 'standard'
-                        ? 'bg-[#2b1f13] border-[#d4a84a] text-[#f3d48d]'
-                        : 'bg-[#18130e] border-[#302318] text-[#9e907d] hover:border-[#523d29]'
+                        ? 'bg-[#2b1f13] border-[#d4a84a] shadow-lg shadow-[#d4a84a]/10 ring-1 ring-[#d4a84a]/40'
+                        : 'bg-[#18130e] border-[#302318] hover:border-[#634b31] opacity-75 hover:opacity-100'
                     }`}
                   >
-                    <b className="text-xs block text-[#ede3d1]">📦 Pécule Fixe Standard (Recommandé)</b>
-                    <span className="text-[11px] text-[#9e907d]">10 PO (soit 100 PA) de départ fixe</span>
-                  </button>
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${
+                            bourseMode === 'standard' ? 'border-[#d4a84a] bg-[#d4a84a]' : 'border-[#665440]'
+                          }`}>
+                            {bourseMode === 'standard' && <div className="w-1.5 h-1.5 rounded-full bg-black" />}
+                          </div>
+                          <b className="text-xs font-bold text-[#ede3d1]">
+                            Possibilité 1 : Montant Fixe
+                          </b>
+                        </div>
+                        <span className="text-[10px] uppercase font-bold text-[#f3d48d] bg-[#3d2b16] px-2 py-0.5 rounded border border-[#6b4c26]">
+                          Recommandé
+                        </span>
+                      </div>
 
-                  <button
-                    type="button"
-                    onClick={rollStartingDice}
-                    className={`p-2.5 rounded-lg border text-left cursor-pointer transition-all ${
+                      <div className="text-2xl font-serif-co font-bold text-[#f3d48d] mb-1 flex items-center gap-1.5">
+                        <span>10 PO</span>
+                        <span className="text-xs font-mono text-[#cbd5e1] font-normal">(soit 100 PA)</span>
+                      </div>
+
+                      <p className="text-xs text-[#cbb8a7] leading-relaxed">
+                        Chaque héros débute avec exactement <b>10 pièces d&apos;or</b>. C&apos;est la méthode officielle recommandée pour démarrer rapidement sans déséquilibre financier entre les joueurs.
+                      </p>
+                    </div>
+
+                    <div className="mt-3 pt-2 border-t border-[#3d2f21] flex items-center justify-between text-[11px]">
+                      <span className="text-[#9e907d]">Sécurité &amp; Équilibre</span>
+                      {bourseMode === 'standard' && (
+                        <span className="text-[#86efac] font-bold flex items-center gap-1">
+                          <Check className="w-3.5 h-3.5" /> Sélectionné
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* POSSIBILITÉ 2 : TIRAGE AUX DÉS (3d6 × 10 PA) */}
+                  <div
+                    onClick={() => {
+                      if (bourseMode !== 'dice') {
+                        rollStartingDice();
+                      }
+                    }}
+                    className={`p-3.5 rounded-xl border-2 cursor-pointer transition-all flex flex-col justify-between ${
                       bourseMode === 'dice'
-                        ? 'bg-[#2b1f13] border-[#d4a84a] text-[#f3d48d]'
-                        : 'bg-[#18130e] border-[#302318] text-[#9e907d] hover:border-[#523d29]'
+                        ? 'bg-[#2b1f13] border-[#d4a84a] shadow-lg shadow-[#d4a84a]/10 ring-1 ring-[#d4a84a]/40'
+                        : 'bg-[#18130e] border-[#302318] hover:border-[#634b31] opacity-75 hover:opacity-100'
                     }`}
                   >
-                    <b className="text-xs block text-[#ede3d1] flex items-center gap-1">
-                      <Dice5 className="w-3.5 h-3.5 text-[#d4a84a]" /> Tirage aux Dés (3d6 × 10 PA)
-                    </b>
-                    <span className="text-[11px] text-[#9e907d]">
-                      {diceRollInfo
-                        ? `Résultat : [${diceRollInfo.rolls.join(' + ')}] = ${diceRollInfo.totalPA} PA (${startingBourse.po} PO, ${startingBourse.pa} PA)`
-                        : 'Cliquer pour lancer 3d6 × 10 PA (moyenne 105 PA)'}
-                    </span>
-                  </button>
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${
+                            bourseMode === 'dice' ? 'border-[#d4a84a] bg-[#d4a84a]' : 'border-[#665440]'
+                          }`}>
+                            {bourseMode === 'dice' && <div className="w-1.5 h-1.5 rounded-full bg-black" />}
+                          </div>
+                          <b className="text-xs font-bold text-[#ede3d1] flex items-center gap-1">
+                            <Dice5 className="w-3.5 h-3.5 text-[#d4a84a]" />
+                            Possibilité 2 : Tirage aux Dés
+                          </b>
+                        </div>
+                        <span className="text-[10px] uppercase font-bold text-[#7eaadb] bg-[#142338] px-2 py-0.5 rounded border border-[#2b4c7a]">
+                          3d6 × 10 PA
+                        </span>
+                      </div>
+
+                      <div className="text-2xl font-serif-co font-bold text-[#f3d48d] mb-1 flex items-center gap-1.5">
+                        {diceRollInfo ? (
+                          <>
+                            <span>{startingBourse.po} PO {startingBourse.pa > 0 ? `et ${startingBourse.pa} PA` : ''}</span>
+                            <span className="text-xs font-mono text-[#cbd5e1] font-normal">({diceRollInfo.totalPA} PA)</span>
+                          </>
+                        ) : (
+                          <span className="text-lg text-[#9e907d]">30 à 180 PA (moy. 105)</span>
+                        )}
+                      </div>
+
+                      <p className="text-xs text-[#cbb8a7] leading-relaxed">
+                        Tirage officiel : <b>3d6 × 10 PA</b>. Permet de commencer avec une bourse plus garnie si la chance vous sourit, ou plus modeste !
+                      </p>
+
+                      {/* Visual Dice Display */}
+                      {diceRollInfo && (
+                        <div className="mt-2.5 p-2 bg-[#140e0a] rounded-lg border border-[#3d2b1c] flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-1.5">
+                            {diceRollInfo.rolls.map((r, rIdx) => (
+                              <span
+                                key={rIdx}
+                                className="w-7 h-7 rounded bg-[#2b1f13] border border-[#d4a84a]/60 text-[#f3d48d] font-bold text-xs flex items-center justify-center font-mono shadow-xs"
+                              >
+                                {r}
+                              </span>
+                            ))}
+                            <span className="text-xs text-[#9e907d] font-mono">
+                              = {diceRollInfo.rolls.reduce((a, b) => a + b, 0)} × 10 = {diceRollInfo.totalPA} PA
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="mt-3 pt-2 border-t border-[#3d2f21] flex items-center justify-between">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          rollStartingDice();
+                        }}
+                        className="px-3 py-1 bg-gradient-to-r from-[#d4a84a] to-[#ab8230] hover:brightness-110 text-black text-xs font-bold rounded-lg flex items-center gap-1 shadow-xs cursor-pointer"
+                      >
+                        <RefreshCw className="w-3 h-3 text-black" />
+                        <span>{diceRollInfo ? 'Relancer les 3d6' : 'Lancer les 3d6'}</span>
+                      </button>
+
+                      {bourseMode === 'dice' && (
+                        <span className="text-[#86efac] text-[11px] font-bold flex items-center gap-1">
+                          <Check className="w-3.5 h-3.5" /> Sélectionné
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Option alternative : Ajustement personnalisé */}
+                <div className="pt-2 border-t border-[#30251a] flex flex-wrap items-center justify-between gap-2 text-xs">
+                  <span className="text-[11px] text-[#9e907d]">
+                    Accord spécial du MJ ? Ajustez librement les pièces :
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1">
+                      <span className="text-[10px] text-[#f1c40f] font-bold">PO:</span>
+                      <input
+                        type="number"
+                        min="0"
+                        value={startingBourse.po}
+                        onChange={(e) => {
+                          setBourseMode('custom');
+                          setStartingBourse((prev) => ({ ...prev, po: Math.max(0, parseInt(e.target.value) || 0) }));
+                        }}
+                        className="w-14 px-1.5 py-0.5 bg-[#0f0b08] border border-[#4d3623] rounded text-center text-xs font-mono font-bold text-[#f3d48d] outline-none"
+                      />
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <span className="text-[10px] text-[#cbd5e1] font-bold">PA:</span>
+                      <input
+                        type="number"
+                        min="0"
+                        value={startingBourse.pa}
+                        onChange={(e) => {
+                          setBourseMode('custom');
+                          setStartingBourse((prev) => ({ ...prev, pa: Math.max(0, parseInt(e.target.value) || 0) }));
+                        }}
+                        className="w-14 px-1.5 py-0.5 bg-[#0f0b08] border border-[#3b4759] rounded text-center text-xs font-mono font-bold text-[#cbd5e1] outline-none"
+                      />
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <span className="text-[10px] text-[#f59e0b] font-bold">PC:</span>
+                      <input
+                        type="number"
+                        min="0"
+                        value={startingBourse.pc}
+                        onChange={(e) => {
+                          setBourseMode('custom');
+                          setStartingBourse((prev) => ({ ...prev, pc: Math.max(0, parseInt(e.target.value) || 0) }));
+                        }}
+                        className="w-14 px-1.5 py-0.5 bg-[#0f0b08] border border-[#522919] rounded text-center text-xs font-mono font-bold text-[#f59e0b] outline-none"
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>

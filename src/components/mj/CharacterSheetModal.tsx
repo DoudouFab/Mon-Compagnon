@@ -15,6 +15,7 @@ import {
   Package,
   BookOpen,
   Info,
+  Coins,
 } from 'lucide-react';
 import { Character, CaracName, ProfilData } from '../../types/chroniques';
 import { calcStats, CARAC_LIST, PROFILS, RACES, VOIES_CATALOG } from '../../data/coDatabase';
@@ -338,6 +339,35 @@ export const CharacterSheetModal: React.FC<CharacterSheetModalProps> = ({
           ) : (
             <p className="text-xs text-[#9e907d] italic">Aucune capacité apprise.</p>
           )}
+        </div>
+
+        {/* Bourse du Héros */}
+        <div className="bg-[#231c15] border border-[#d4a84a]/50 rounded-xl p-3.5 space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-bold text-[#d4a84a] uppercase tracking-wider flex items-center gap-1.5">
+              <Coins className="w-3.5 h-3.5" /> Bourse &amp; Trésorerie de l'Aventurier
+            </span>
+            <span className="text-xs font-mono font-bold text-[#f3d48d]">
+              Valeur totale : ≈ {(( ((pj.bourse?.po || 0) * 100) + ((pj.bourse?.pa || 0) * 10) + (pj.bourse?.pc || 0) ) / 100).toFixed(2)} PO
+            </span>
+          </div>
+          <div className="grid grid-cols-3 gap-2 text-center text-xs">
+            <div className="p-2 bg-[#181410] border border-[#523d24] rounded-lg">
+              <span className="text-[10px] text-[#9e907d] block">🟡 Or (PO)</span>
+              <b className="font-serif-co text-lg text-[#f3d48d]">{pj.bourse?.po || 0}</b>
+            </div>
+            <div className="p-2 bg-[#181410] border border-[#3b4759] rounded-lg">
+              <span className="text-[10px] text-[#9e907d] block">⚪ Argent (PA)</span>
+              <b className="font-serif-co text-lg text-[#cbd5e1]">{pj.bourse?.pa || 0}</b>
+            </div>
+            <div className="p-2 bg-[#181410] border border-[#522919] rounded-lg">
+              <span className="text-[10px] text-[#9e907d] block">🟤 Cuivre (PC)</span>
+              <b className="font-serif-co text-lg text-[#f59e0b]">{pj.bourse?.pc || 0}</b>
+            </div>
+          </div>
+          <p className="text-[11px] text-[#9e907d] italic text-right">
+            1 PO = 10 PA • 1 PA = 10 PC (1 PO = 100 PC)
+          </p>
         </div>
 
         {/* Inventaire emporté */}

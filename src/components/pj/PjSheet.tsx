@@ -30,6 +30,7 @@ import {
   Send,
   Coins,
   Calculator,
+  RefreshCw,
 } from 'lucide-react';
 import { OSGILD_REGIONS, OSGILD_DEITIES, OSGILD_ACADEMIES } from '../../data/osgildLore';
 import { DetailModal, DetailItem } from '../DetailModal';
@@ -90,6 +91,7 @@ export const PjSheet: React.FC<PjSheetProps> = ({
   const [activeTab, setActiveTab] = useState<'fiche' | 'voies' | 'sorts' | 'sac' | 'lore'>('fiche');
   const [isPtsCapInfoOpen, setIsPtsCapInfoOpen] = useState<boolean>(false);
   const [isTransferModalOpen, setIsTransferModalOpen] = useState<boolean>(false);
+  const [isMoneyCalcOpen, setIsMoneyCalcOpen] = useState<boolean>(false);
 
   // Drawer & Modals state
   const [catalogDrawer, setCatalogDrawer] = useState<'armes' | 'armures' | 'biens' | 'sorts' | 'tharnea' | null>(null);
@@ -185,6 +187,14 @@ export const PjSheet: React.FC<PjSheetProps> = ({
   const pmCurrent = pj.pm !== undefined && pj.pm !== null ? pj.pm : (st ? st.pmMax : 0);
   const pmMax = st ? st.pmMax : 0;
   const pmPct = pmMax > 0 ? Math.max(0, Math.min(100, Math.round((100 * pmCurrent) / pmMax))) : 0;
+
+  // Currency Bourse (PO, PA, PC)
+  const currentBourse = pj.bourse || { po: 0, pa: 0, pc: 0 };
+  const totalCopper = (currentBourse.po || 0) * 100 + (currentBourse.pa || 0) * 10 + (currentBourse.pc || 0);
+  const totalGold = (totalCopper / 100).toFixed(2);
+  const handleUpdateBourse = (nextBourse: { po: number; pa: number; pc: number }) => {
+    onUpdatePj({ ...pj, bourse: nextBourse });
+  };
 
   // Spells (from ways ranks + custom)
   const allSpells: SpellItem[] = [];
@@ -1362,6 +1372,239 @@ export const PjSheet: React.FC<PjSheetProps> = ({
                   Aucune arme équipée pour le moment. Cliquez sur « Ajouter Arme » pour en équiper une.
                 </p>
               )}
+            </div>
+          </div>
+
+          {/* ==================== BOURSE & FINANCES DE L'AVENTURIER (PO • PA • PC) ==================== */}
+          <div className="print-card bg-[#181410] border border-[#d4a84a]/50 rounded-xl p-4 shadow-lg space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#3d3023] pb-2.5">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 rounded-lg bg-[#d4a84a]/20 border border-[#d4a84a]/40 text-[#f3d48d]">
+                  <Coins className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="font-serif-co text-base font-bold text-[#f3d48d] flex items-center gap-2">
+                    <span>Bourse &amp; Trésorerie de l'Aventurier</span>
+                  </h3>
+                  <p className="text-[11px] text-[#9e907d]">
+                    Règle officielle COF : <b>1 PO = 10 PA</b> • <b>1 PA = 10 PC</b> (1 PO = 100 PC)
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 flex-wrap">
+                <div className="text-xs font-mono font-bold bg-[#120f0c] px-2.5 py-1 rounded-lg border border-[#3d3023] text-[#ede3d1]">
+                  Valeur totale : <b className="text-[#f3d48d]">≈ {totalGold} PO</b> <span className="text-[#9e907d]">({totalCopper} PC)</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsMoneyCalcOpen(true)}
+                  className="no-print px-3 py-1.5 rounded-lg bg-gradient-to-r from-[#d4a84a] to-[#ab8230] hover:brightness-110 text-[#1a1208] text-xs font-bold flex items-center gap-1.5 shadow-md cursor-pointer transition-all"
+                  title="Ouvrir la Calculatrice Ancienne (transactions, rendu de monnaie, partage de butin et abaque)"
+                >
+                  <Calculator className="w-3.5 h-3.5 text-[#1a1208]" />
+                  <span>Calculatrice &amp; Butin</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Grille des 3 monnaies : PO, PA, PC */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+              {/* Pièces d'Or */}
+              <div className="bg-[#241a10] border border-[#d4a84a]/60 rounded-xl p-3 flex flex-col justify-between shadow-xs">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-[#f3d48d] flex items-center gap-1.5">
+                    <span className="text-base select-none">🟡</span> Pièces d'Or (PO)
+                  </span>
+                  <span className="text-[10px] text-[#9e907d] font-mono">1 PO = 10 PA</span>
+                </div>
+                <div className="my-1.5 flex items-center justify-between">
+                  <input
+                    type="number"
+                    min="0"
+                    value={currentBourse.po || 0}
+                    onChange={(e) => handleUpdateBourse({ ...currentBourse, po: Math.max(0, parseInt(e.target.value) || 0) })}
+                    className="w-20 bg-[#120c07] border border-[#5c4028] focus:border-[#d4a84a] rounded-lg px-2 py-1 text-lg font-bold font-serif-co text-[#f3d48d] outline-none"
+                  />
+                  <div className="flex items-center gap-1 no-print">
+                    <button
+                      type="button"
+                      onClick={() => handleUpdateBourse({ ...currentBourse, po: Math.max(0, (currentBourse.po || 0) - 1) })}
+                      className="w-7 h-7 rounded bg-[#170e08] hover:bg-[#2e1d10] text-[#ede3d1] font-bold text-xs border border-[#4d341f] flex items-center justify-center cursor-pointer"
+                      title="-1 PO"
+                    >
+                      -1
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleUpdateBourse({ ...currentBourse, po: (currentBourse.po || 0) + 1 })}
+                      className="w-7 h-7 rounded bg-[#170e08] hover:bg-[#2e1d10] text-[#f3d48d] font-bold text-xs border border-[#4d341f] flex items-center justify-center cursor-pointer"
+                      title="+1 PO"
+                    >
+                      +1
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleUpdateBourse({ ...currentBourse, po: (currentBourse.po || 0) + 5 })}
+                      className="px-1.5 h-7 rounded bg-[#332110] hover:bg-[#4a3017] text-[#f3d48d] font-bold text-[10px] border border-[#6b4722] flex items-center justify-center cursor-pointer"
+                      title="+5 PO"
+                    >
+                      +5
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Pièces d'Argent */}
+              <div className="bg-[#1b1e24] border border-[#8ea0b5]/60 rounded-xl p-3 flex flex-col justify-between shadow-xs">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-[#cbd5e1] flex items-center gap-1.5">
+                    <span className="text-base select-none">⚪</span> Pièces d'Argent (PA)
+                  </span>
+                  <span className="text-[10px] text-[#8ea0b5] font-mono">1 PA = 10 PC</span>
+                </div>
+                <div className="my-1.5 flex items-center justify-between">
+                  <input
+                    type="number"
+                    min="0"
+                    value={currentBourse.pa || 0}
+                    onChange={(e) => handleUpdateBourse({ ...currentBourse, pa: Math.max(0, parseInt(e.target.value) || 0) })}
+                    className="w-20 bg-[#0f1217] border border-[#3b4759] focus:border-[#8ea0b5] rounded-lg px-2 py-1 text-lg font-bold font-serif-co text-[#cbd5e1] outline-none"
+                  />
+                  <div className="flex items-center gap-1 no-print">
+                    <button
+                      type="button"
+                      onClick={() => handleUpdateBourse({ ...currentBourse, pa: Math.max(0, (currentBourse.pa || 0) - 1) })}
+                      className="w-7 h-7 rounded bg-[#13161c] hover:bg-[#252c38] text-[#ede3d1] font-bold text-xs border border-[#3b4759] flex items-center justify-center cursor-pointer"
+                      title="-1 PA"
+                    >
+                      -1
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleUpdateBourse({ ...currentBourse, pa: (currentBourse.pa || 0) + 1 })}
+                      className="w-7 h-7 rounded bg-[#13161c] hover:bg-[#252c38] text-[#cbd5e1] font-bold text-xs border border-[#3b4759] flex items-center justify-center cursor-pointer"
+                      title="+1 PA"
+                    >
+                      +1
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleUpdateBourse({ ...currentBourse, pa: (currentBourse.pa || 0) + 5 })}
+                      className="px-1.5 h-7 rounded bg-[#253040] hover:bg-[#334257] text-[#cbd5e1] font-bold text-[10px] border border-[#4d607a] flex items-center justify-center cursor-pointer"
+                      title="+5 PA"
+                    >
+                      +5
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Pièces de Cuivre */}
+              <div className="bg-[#241712] border border-[#b87333]/60 rounded-xl p-3 flex flex-col justify-between shadow-xs">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-[#f59e0b] flex items-center gap-1.5">
+                    <span className="text-base select-none">🟤</span> Pièces de Cuivre (PC)
+                  </span>
+                  <span className="text-[10px] text-[#b87333] font-mono">10 PC = 1 PA</span>
+                </div>
+                <div className="my-1.5 flex items-center justify-between">
+                  <input
+                    type="number"
+                    min="0"
+                    value={currentBourse.pc || 0}
+                    onChange={(e) => handleUpdateBourse({ ...currentBourse, pc: Math.max(0, parseInt(e.target.value) || 0) })}
+                    className="w-20 bg-[#140b07] border border-[#522919] focus:border-[#f59e0b] rounded-lg px-2 py-1 text-lg font-bold font-serif-co text-[#f59e0b] outline-none"
+                  />
+                  <div className="flex items-center gap-1 no-print">
+                    <button
+                      type="button"
+                      onClick={() => handleUpdateBourse({ ...currentBourse, pc: Math.max(0, (currentBourse.pc || 0) - 1) })}
+                      className="w-7 h-7 rounded bg-[#170e0a] hover:bg-[#331c13] text-[#ede3d1] font-bold text-xs border border-[#4d281a] flex items-center justify-center cursor-pointer"
+                      title="-1 PC"
+                    >
+                      -1
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleUpdateBourse({ ...currentBourse, pc: (currentBourse.pc || 0) + 1 })}
+                      className="w-7 h-7 rounded bg-[#170e0a] hover:bg-[#331c13] text-[#f59e0b] font-bold text-xs border border-[#4d281a] flex items-center justify-center cursor-pointer"
+                      title="+1 PC"
+                    >
+                      +1
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleUpdateBourse({ ...currentBourse, pc: (currentBourse.pc || 0) + 5 })}
+                      className="px-1.5 h-7 rounded bg-[#3d1f14] hover:bg-[#522919] text-[#f59e0b] font-bold text-[10px] border border-[#733a24] flex items-center justify-center cursor-pointer"
+                      title="+5 PC"
+                    >
+                      +5
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Actions rapides de change & optimisation */}
+            <div className="no-print pt-1 flex items-center justify-between gap-2 flex-wrap text-xs">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const totalCu = (currentBourse.po || 0) * 100 + (currentBourse.pa || 0) * 10 + (currentBourse.pc || 0);
+                    const newPo = Math.floor(totalCu / 100);
+                    const rem = totalCu % 100;
+                    const newPa = Math.floor(rem / 10);
+                    const newPc = rem % 10;
+                    handleUpdateBourse({ po: newPo, pa: newPa, pc: newPc });
+                  }}
+                  className="px-2.5 py-1 bg-[#140e0a] hover:bg-[#261b13] border border-[#4d3623] text-[#f3d48d] rounded-md font-semibold flex items-center gap-1 cursor-pointer transition-colors"
+                  title="Convertir le cuivre en argent et l'argent en or pour alléger la bourse"
+                >
+                  <RefreshCw className="w-3 h-3 text-[#d4a84a]" /> Optimiser la monnaie
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if ((currentBourse.po || 0) < 1) {
+                      alert("Pas assez de Pièces d'Or pour faire la monnaie.");
+                      return;
+                    }
+                    handleUpdateBourse({
+                      po: (currentBourse.po || 0) - 1,
+                      pa: (currentBourse.pa || 0) + 10,
+                      pc: currentBourse.pc || 0,
+                    });
+                  }}
+                  className="px-2 py-1 bg-[#140e0a] hover:bg-[#261b13] border border-[#4d3623] text-[#ede3d1] rounded-md font-semibold cursor-pointer transition-colors"
+                  title="Casser 1 PO en 10 PA"
+                >
+                  1 PO ➔ 10 PA
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if ((currentBourse.pa || 0) < 1) {
+                      alert("Pas assez de Pièces d'Argent pour faire la monnaie.");
+                      return;
+                    }
+                    handleUpdateBourse({
+                      po: currentBourse.po || 0,
+                      pa: (currentBourse.pa || 0) - 1,
+                      pc: (currentBourse.pc || 0) + 10,
+                    });
+                  }}
+                  className="px-2 py-1 bg-[#140e0a] hover:bg-[#261b13] border border-[#4d3623] text-[#ede3d1] rounded-md font-semibold cursor-pointer transition-colors"
+                  title="Casser 1 PA en 10 PC"
+                >
+                  1 PA ➔ 10 PC
+                </button>
+              </div>
+
+              <span className="text-[11px] text-[#9e907d] italic">
+                Synchronisé en direct avec la console MJ
+              </span>
             </div>
           </div>
 
@@ -3158,6 +3401,17 @@ export const PjSheet: React.FC<PjSheetProps> = ({
           onSendLocal={onSendToMjTable}
         />
       )}
+
+      {/* ==================== CALCULATRICE ANCIENNE & BOURSE MODAL ==================== */}
+      <MoneyCalculatorModal
+        isOpen={isMoneyCalcOpen}
+        onClose={() => setIsMoneyCalcOpen(false)}
+        currentBourse={currentBourse}
+        onUpdateBourse={handleUpdateBourse}
+        characterName={pj.name}
+        partyCount={rosterCount || 4}
+        isMj={false}
+      />
 
       {/* Discreet Signature */}
       <div className="text-right text-[10px] text-[#4d3d2e] font-mono tracking-wider pt-2 select-none">
