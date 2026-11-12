@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Header } from './components/Header';
 import { PjSheet } from './components/pj/PjSheet';
 import { PjCreationWizard } from './components/pj/PjCreationWizard';
@@ -25,8 +25,10 @@ import { ShareModal } from './components/ShareModal';
 import { CharacterRosterHub } from './components/pj/CharacterRosterHub';
 import { MjPasswordModal } from './components/common/MjPasswordModal';
 import { LiveTableModal } from './components/common/LiveTableModal';
+import { TableFeedDrawer } from './components/common/TableFeedDrawer';
 import { realtimeTable, LiveConnectionStatus } from './services/realtimeSync';
-import { Character, Combatant } from './types/chroniques';
+import { Character, Combatant, TableFeedEntry } from './types/chroniques';
+import { buildHeroDiffEvents, isFeedEntryVisibleToPj } from './utils/heroDiffLog';
 
 export default function App() {
   const [isMjAuthorized, setIsMjAuthorized] = useState<boolean>(() => {
@@ -70,6 +72,31 @@ export default function App() {
   });
   const [liveStatus, setLiveStatus] = useState<LiveConnectionStatus>('disconnected');
   const [connectedHeroes, setConnectedHeroes] = useState<Character[]>([]);
+
+  // Journal des notifications & Messagerie MJ <-> PJ
+  const [isFeedDrawerOpen, setIsFeedDrawerOpen] = useState(false);
+  const [tableFeed, setTableFeed] = useState<TableFeedEntry[]>(() => {
+    try {
+      const saved = localStorage.getItem('co_table_feed');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed.slice(-200);
+      }
+    } catch {}
+    return [];
+  });
+  const [lastReadMap, setLastReadMap] = useState<Record<string, number>>(() => {
+    try {
+      const saved = localStorage.getItem('co_table_feed_read');
+      if (saved) return JSON.parse(saved) || {};
+    } catch {}
+    return {};
+  });
+  const hasRemoteFeedRef = useRef(false);
+  const isFeedDrawerOpenRef = useRef(isFeedDrawerOpen);
+  isFeedDrawerOpenRef.current = isFeedDrawerOpen;
+  const tableFeedRef = useRef(tableFeed);
+  tableFeedRef.current = tableFeed;
 
   // Pack Extension Tharnéa / Codex de l'Obscure toggle state
   const [isTharneaActive, setIsTharneaActive] = useState<boolean>(() => {
@@ -285,7 +312,33 @@ export default function App() {
     }
   };
 
+  const appendFeedEntries = (entries: TableFeedEntry[]) => {
+    if (!entries || entries.length === 0) return;
+    setTableFeed((prev) => {
+      const map = new Map<string, TableFeedEntry>();
+      prev.forEach((e) => map.set(e.id, e));
+      entries.forEach((e) => map.set(e.id, e));
+      return Array.from(map.values())
+        .sort((a, b) => a.timestamp - b.timestamp)
+        .slice(-200);
+    });
+    if (realtimeTable.room) {
+      entries.forEach((e) => realtimeTable.sendFeedEntry(e));
+    }
+  };
+
   const handleUpdateCurrentPj = (updated: Character) => {
+    const prevPj = currentPjRef.current;
+    if (
+      prevPj &&
+      ((prevPj.id && prevPj.id === updated.id) ||
+        (prevPj.name || '').toLowerCase() === (updated.name || '').toLowerCase())
+    ) {
+      const diffEvents = buildHeroDiffEvents(prevPj, updated, 'pj');
+      if (diffEvents.length > 0) {
+        appendFeedEntries(diffEvents);
+      }
+    }
     if (realtimeTable.room && appModeRef.current === 'pj') {
       realtimeTable.updateHero(updated);
     }
@@ -554,6 +607,60 @@ export default function App() {
     return () => clearTimeout(timer);
   }, [tableData]);
 
+  // Persist table feed (debounced)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      try {
+        localStorage.setItem('co_table_feed', JSON.stringify(tableFeed.slice(-200)));
+      } catch (e) {
+        console.error(e);
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [tableFeed]);
+
+  // Scope courant pour le compteur de non-lus (strictement isolé par PJ ou MJ)
+  const readScopeKey = appMode === 'mj' ? 'mj' : currentPj?.id || currentPj?.name || 'pj';
+
+  const visibleFeedEntries = useMemo(() => {
+    if (appMode === 'mj') return tableFeed;
+    return tableFeed.filter((entry) => isFeedEntryVisibleToPj(entry, currentPj));
+  }, [tableFeed, appMode, currentPj]);
+
+  // Marquer comme lu quand le volet latéral est ouvert
+  useEffect(() => {
+    if (!isFeedDrawerOpen) return;
+    const latestTs =
+      visibleFeedEntries.length > 0
+        ? visibleFeedEntries[visibleFeedEntries.length - 1].timestamp
+        : Date.now();
+    setLastReadMap((prev) => {
+      const nextTs = Math.max(prev[readScopeKey] || 0, latestTs);
+      if (prev[readScopeKey] === nextTs) return prev;
+      const updated = { ...prev, [readScopeKey]: nextTs };
+      try {
+        localStorage.setItem('co_table_feed_read', JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
+  }, [isFeedDrawerOpen, visibleFeedEntries, readScopeKey]);
+
+  const unreadFeedCount = useMemo(() => {
+    if (isFeedDrawerOpen) return 0;
+    const lastRead = lastReadMap[readScopeKey] || 0;
+    return visibleFeedEntries.filter((e) => e.timestamp > lastRead).length;
+  }, [isFeedDrawerOpen, visibleFeedEntries, lastReadMap, readScopeKey]);
+
+  const mjComposerPjs = useMemo(() => {
+    const map = new Map<string, Character>();
+    [...tableData.pjs, ...connectedHeroes].forEach((p) => {
+      if (!p || !p.name) return;
+      const key = p.id || p.name.toLowerCase();
+      if (!map.has(key)) map.set(key, p);
+    });
+    return Array.from(map.values());
+  }, [tableData.pjs, connectedHeroes]);
+
   // Toast notification auto-dismiss
   useEffect(() => {
     if (notification) {
@@ -685,6 +792,54 @@ export default function App() {
           }
         }
       },
+      onFeedUpdated: (remoteEntries) => {
+        if (!Array.isArray(remoteEntries)) return;
+        const mode = appModeRef.current;
+        const curPj = currentPjRef.current;
+        const wasAlreadySynced = hasRemoteFeedRef.current;
+
+        if (remoteEntries.length === 0) {
+          if (wasAlreadySynced) {
+            hasRemoteFeedRef.current = false;
+            setTableFeed([]);
+          }
+          return;
+        }
+
+        hasRemoteFeedRef.current = true;
+        const prevIds = new Set(tableFeedRef.current.map((e) => e.id));
+
+        if (wasAlreadySynced && !isFeedDrawerOpenRef.current) {
+          const newlyArrivedMsgs = remoteEntries.filter((e) => {
+            if (prevIds.has(e.id) || e.kind !== 'message') return false;
+            if (mode === 'mj') return e.senderRole !== 'mj';
+            return (
+              isFeedEntryVisibleToPj(e, curPj) &&
+              !(
+                e.senderRole === 'pj' &&
+                curPj &&
+                ((e.senderHeroId && e.senderHeroId === curPj.id) ||
+                  e.senderName.toLowerCase() === curPj.name.toLowerCase())
+              )
+            );
+          });
+          const lastNew = newlyArrivedMsgs[newlyArrivedMsgs.length - 1];
+          if (lastNew) {
+            showToast(
+              `${lastNew.scope === 'secret' ? '🔒 Message secret' : '💬 Message'} de ${lastNew.senderName} : ${lastNew.summary.slice(0, 60)}${lastNew.summary.length > 60 ? '…' : ''}`
+            );
+          }
+        }
+
+        setTableFeed((prev) => {
+          const map = new Map<string, TableFeedEntry>();
+          prev.forEach((e) => map.set(e.id, e));
+          remoteEntries.forEach((e) => map.set(e.id, e));
+          return Array.from(map.values())
+            .sort((a, b) => a.timestamp - b.timestamp)
+            .slice(-200);
+        });
+      },
     });
     return () => {
       unsub();
@@ -734,7 +889,64 @@ export default function App() {
       showToast(`Héros "${currentPj.name}" ajouté à l'équipe MJ !`);
     }
 
+    appendFeedEntries([
+      {
+        id: `ev_${Date.now()}_${Math.random().toString(36).slice(2, 7)}_sync`,
+        timestamp: Date.now(),
+        kind: 'event',
+        scope: 'secret',
+        senderRole: 'pj',
+        senderName: currentPj.name,
+        senderHeroId: currentPj.id,
+        targetHeroId: currentPj.id,
+        targetHeroName: currentPj.name,
+        category: 'fiche',
+        summary: 'Fiche transmise / synchronisée avec la table du MJ',
+      },
+    ]);
+
     setTableData({ ...tableData, pjs });
+  };
+
+  const handleSendFeedMessage = ({
+    text,
+    scope,
+    targetHero,
+  }: {
+    text: string;
+    scope: 'all' | 'secret';
+    targetHero?: Character | null;
+  }) => {
+    const isMj = appMode === 'mj';
+    const senderName = isMj ? 'Meneur de Jeu' : currentPj?.name || 'Aventurier';
+    const resolvedTarget = scope === 'secret' ? (isMj ? targetHero : currentPj) : null;
+
+    const newMsg: TableFeedEntry = {
+      id: `msg_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+      timestamp: Date.now(),
+      kind: 'message',
+      scope,
+      senderRole: isMj ? 'mj' : 'pj',
+      senderName,
+      senderHeroId: isMj ? undefined : currentPj?.id,
+      targetHeroId: resolvedTarget?.id,
+      targetHeroName: resolvedTarget?.name,
+      category: 'chat',
+      summary: text,
+    };
+    appendFeedEntries([newMsg]);
+  };
+
+  const handleClearFeed = () => {
+    setTableFeed([]);
+    hasRemoteFeedRef.current = false;
+    try {
+      localStorage.removeItem('co_table_feed');
+    } catch {}
+    if (realtimeTable.room) {
+      realtimeTable.clearFeed();
+    }
+    showToast('Journal et messages effacés.');
   };
 
   // Global Drag & Drop for JSON files
@@ -844,6 +1056,8 @@ export default function App() {
         onOpenLiveTable={() => setIsLiveTableOpen(true)}
         liveStatus={liveStatus}
         liveRoomCode={liveRoomCode}
+        onOpenFeed={() => setIsFeedDrawerOpen(true)}
+        unreadFeedCount={unreadFeedCount}
       />
 
       {/* Toast Notification Banner */}
@@ -896,6 +1110,12 @@ export default function App() {
                     (o.id && o.id === p.id) || (o.name || '').toLowerCase() === (p.name || '').toLowerCase()
                 );
                 if (!old || JSON.stringify(stripPatch(old)) !== JSON.stringify(stripPatch(p))) {
+                  if (old) {
+                    const diffEvents = buildHeroDiffEvents(old, p, 'mj');
+                    if (diffEvents.length > 0) {
+                      appendFeedEntries(diffEvents);
+                    }
+                  }
                   const patched = { ...p, dmPatchAt: now };
                   if (isLive) {
                     realtimeTable.updateHero(patched);
@@ -1022,6 +1242,20 @@ export default function App() {
         liveStatus={liveStatus}
         connectedHeroes={connectedHeroes}
         showToast={showToast}
+      />
+
+      {/* Side Drawer: Scoped Notifications History & MJ <-> PJ Messaging */}
+      <TableFeedDrawer
+        isOpen={isFeedDrawerOpen}
+        onClose={() => setIsFeedDrawerOpen(false)}
+        appMode={appMode}
+        currentPj={currentPj}
+        pjsList={mjComposerPjs}
+        entries={visibleFeedEntries}
+        onSendMessage={handleSendFeedMessage}
+        onClearFeed={handleClearFeed}
+        isLiveConnected={liveStatus === 'connected'}
+        liveRoomCode={liveRoomCode}
       />
     </div>
   );

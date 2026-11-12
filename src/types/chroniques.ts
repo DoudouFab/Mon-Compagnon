@@ -213,3 +213,18 @@ export interface Combatant {
   pjRefId?: string;
   etats?: string[];
 }
+
+export interface TableFeedEntry {
+  id: string;
+  timestamp: number;
+  kind: 'event' | 'message';
+  scope: 'all' | 'secret';
+  senderRole: 'mj' | 'pj';
+  senderName: string;
+  senderHeroId?: string;
+  targetHeroId?: string;
+  targetHeroName?: string;
+  category?: 'hp' | 'pm' | 'bourse' | 'inventaire' | 'etats' | 'capacite' | 'fiche' | 'chat';
+  summary: string;
+  detail?: string;
+}

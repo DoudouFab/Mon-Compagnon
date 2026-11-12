@@ -14,6 +14,7 @@ import {
   Unlock,
   Share2,
   Radio,
+  MessageSquare,
 } from 'lucide-react';
 import { Character } from '../types/chroniques';
 
@@ -36,6 +37,8 @@ interface HeaderProps {
   onOpenLiveTable?: () => void;
   liveStatus?: 'disconnected' | 'connecting' | 'connected' | 'error';
   liveRoomCode?: string;
+  onOpenFeed?: () => void;
+  unreadFeedCount?: number;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -57,6 +60,8 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenLiveTable,
   liveStatus = 'disconnected',
   liveRoomCode = '',
+  onOpenFeed,
+  unreadFeedCount = 0,
 }) => {
   const openOtherInNewTab = () => {
     const targetHash = appMode === 'pj' ? '#mj001' : '#pj';
@@ -279,6 +284,26 @@ export const Header: React.FC<HeaderProps> = ({
             >
               <Radio className={`w-3.5 h-3.5 ${liveStatus === 'connected' ? 'text-green-400 animate-pulse' : 'text-[#d4a84a]'}`} />
               <span>{liveStatus === 'connected' ? `En Direct (${liveRoomCode})` : 'Table en Direct'}</span>
+            </button>
+          )}
+
+          {onOpenFeed && (
+            <button
+              onClick={onOpenFeed}
+              className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm cursor-pointer border whitespace-nowrap shrink-0 ${
+                unreadFeedCount > 0
+                  ? 'bg-[#2c1f12] hover:bg-[#3a2816] text-[#f3d48d] border-[#d4a84a]'
+                  : 'bg-[#231c15] hover:bg-[#32271d] text-[#ede3d1] border-[#3d3023]'
+              }`}
+              title="Ouvrir le volet Historique des notifications & Messagerie MJ / PJ"
+            >
+              <MessageSquare className="w-3.5 h-3.5 text-[#d4a84a]" />
+              <span>Messages</span>
+              {unreadFeedCount > 0 && (
+                <span className="ml-0.5 px-1.5 py-0.2 rounded-full bg-[#9c2a2b] text-white text-[10px] font-mono tabular-nums font-bold">
+                  {unreadFeedCount > 99 ? '99+' : unreadFeedCount}
+                </span>
+              )}
             </button>
           )}
 

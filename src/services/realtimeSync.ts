@@ -1,6 +1,6 @@
 import { initializeApp } from "firebase/app";
 import { getDatabase, ref, set, onValue, update, get, remove, onDisconnect } from "firebase/database";
-import { Character, Combatant } from '../types/chroniques';
+import { Character, Combatant, TableFeedEntry } from '../types/chroniques';
 
 export type LiveConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'error';
 
@@ -14,6 +14,7 @@ export interface TableLiveEventCallbacks {
   onPeerLeft?: (clientName: string, role: string) => void;
   onRoomState?: (state: any) => void;
   onHeroesChanged?: (heroesMap: Record<string, Character>) => void;
+  onFeedUpdated?: (entries: TableFeedEntry[]) => void;
 }
 
 // Configuration Firebase intégrée avec vos identifiants
@@ -77,6 +78,8 @@ class RealtimeTableManager {
   private lastCombatJson: string = '';
   private lastRollTimestamp: number = 0;
   private lastWrittenHeroByKey: Map<string, string> = new Map();
+  private lastFeed: TableFeedEntry[] = [];
+  private lastFeedJson: string = '';
 
   public get room(): string {
     return this.currentRoom;
@@ -88,6 +91,10 @@ class RealtimeTableManager {
 
   public getLastHeroes(): Character[] {
     return Object.values(this.lastHeroesMap);
+  }
+
+  public getLastFeed(): TableFeedEntry[] {
+    return this.lastFeed;
   }
 
   public setRole(role: 'mj' | 'pj', hero?: Character | null) {
@@ -164,6 +171,8 @@ class RealtimeTableManager {
     this.lastCombatJson = '';
     this.lastRollTimestamp = 0;
     this.lastWrittenHeroByKey.clear();
+    this.lastFeed = [];
+    this.lastFeedJson = '';
 
     this.setStatus('connecting', `Connexion à la table ${code}...`);
 
@@ -226,6 +235,23 @@ class RealtimeTableManager {
               this.emit('onCombatUpdated', roomData.combatants);
             }
           }
+
+          // Historique des notifications et messages (MJ <-> PJ)
+          const rawFeed = roomData.feed && typeof roomData.feed === 'object' ? Object.values(roomData.feed) : [];
+          const normalizedFeed = (rawFeed as any[])
+            .filter((item) => item && typeof item === 'object' && item.id && item.summary)
+            .sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0))
+            .slice(-200) as TableFeedEntry[];
+          const feedJson = JSON.stringify(normalizedFeed);
+          if (feedJson !== this.lastFeedJson) {
+            this.lastFeedJson = feedJson;
+            this.lastFeed = normalizedFeed;
+            this.emit('onFeedUpdated', normalizedFeed);
+          }
+        } else if (this.lastFeedJson !== '[]') {
+          this.lastFeedJson = '[]';
+          this.lastFeed = [];
+          this.emit('onFeedUpdated', []);
         }
       }, (error) => {
         console.error('[Firebase Sync Error]', error);
@@ -290,6 +316,8 @@ class RealtimeTableManager {
     this.lastCombatJson = '';
     this.lastRollTimestamp = 0;
     this.lastWrittenHeroByKey.clear();
+    this.lastFeed = [];
+    this.lastFeedJson = '';
     this.setStatus('disconnected', 'Déconnecté');
   }
 
@@ -361,6 +389,18 @@ class RealtimeTableManager {
     update(roomRef, {
       lastRoll: clean({ ...roll, timestamp: ts })
     }).catch(err => console.error(err));
+  }
+
+  public sendFeedEntry(entry: TableFeedEntry) {
+    if (!this.currentRoom || !entry?.id) return;
+    const entryRef = ref(db, `tables/${this.currentRoom}/feed/${entry.id}`);
+    set(entryRef, clean(entry)).catch((err) => console.error('[Firebase Feed Error]', err));
+  }
+
+  public clearFeed() {
+    if (!this.currentRoom) return;
+    const feedRef = ref(db, `tables/${this.currentRoom}/feed`);
+    remove(feedRef).catch((err) => console.error('[Firebase Clear Feed Error]', err));
   }
 }
 
