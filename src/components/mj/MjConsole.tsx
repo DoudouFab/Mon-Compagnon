@@ -74,6 +74,7 @@ import {
   SpellItem,
 } from '../../types/chroniques';
 import { realtimeTable } from '../../services/realtimeSync';
+import { getPjColor } from '../../utils/pjColors';
 
 interface MjTableData {
   pjs: Character[];
@@ -923,10 +924,29 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                 const globalIdx = tableData.combatants.indexOf(c);
                 const pct = Math.max(0, Math.min(100, Math.round((100 * c.hp) / Math.max(1, c.hpMax))));
                 const barCol = pct > 50 ? '#6fa85b' : pct > 25 ? '#c97d32' : '#cf5544';
+                const matchedPj = c.isPj
+                  ? tableData.pjs.find(
+                      (p) =>
+                        (c.pjRefId && p.id === c.pjRefId) ||
+                        (p.name && c.n.toLowerCase().startsWith(p.name.toLowerCase()))
+                    )
+                  : undefined;
+                const pjCol = c.isPj
+                  ? getPjColor(matchedPj || { id: c.pjRefId, name: c.n }, tableData.pjs)
+                  : null;
 
                 return (
                   <div
                     key={c.id || idx}
+                    style={
+                      pjCol
+                        ? {
+                            borderColor: pjCol.borderHex,
+                            borderLeftColor: pjCol.hex,
+                            backgroundImage: `linear-gradient(${pjCol.softBg}, ${pjCol.softBg})`,
+                          }
+                        : undefined
+                    }
                     className={`p-3.5 bg-[#181410] border-l-4 rounded-xl border border-[#3d3023] space-y-2.5 shadow-sm ${
                       c.isPj ? 'border-l-[#d4a84a]' : 'border-l-[#9c2a2b]'
                     }`}
@@ -934,15 +954,36 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                       <div className="flex flex-wrap items-center gap-2">
                         <span
-                          className={`text-xs px-2 py-0.5 rounded font-bold uppercase tracking-wider ${
+                          style={
+                            pjCol
+                              ? {
+                                  backgroundColor: pjCol.tagBg,
+                                  color: pjCol.hex,
+                                  borderColor: pjCol.borderHex,
+                                }
+                              : undefined
+                          }
+                          className={`text-xs px-2 py-0.5 rounded font-bold uppercase tracking-wider border ${
                             c.isPj
-                              ? 'bg-[#3b2a1a] text-[#f3d48d] border border-[#d4a84a]/40'
-                              : 'bg-[#381616] text-[#ff9d9d] border border-[#6d2525]'
+                              ? 'bg-[#3b2a1a] text-[#f3d48d] border-[#d4a84a]/40'
+                              : 'bg-[#381616] text-[#ff9d9d] border-[#6d2525]'
                           }`}
                         >
                           {c.isPj ? 'PJ' : 'Monstre'}
                         </span>
-                        <b className="font-serif-co text-base text-[#ede3d1]">{c.n}</b>
+                        <b
+                          className="font-serif-co text-base flex items-center gap-1.5"
+                          style={{ color: pjCol ? pjCol.hex : '#ede3d1' }}
+                        >
+                          {pjCol && (
+                            <span
+                              className="w-2.5 h-2.5 rounded-full shrink-0"
+                              style={{ backgroundColor: pjCol.hex }}
+                              aria-hidden="true"
+                            />
+                          )}
+                          <span>{c.n}</span>
+                        </b>
 
                         {/* DÉFENSE / CA (Très mise en évidence) */}
                         <div
@@ -1321,6 +1362,7 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                 return matchQ && matchProf && matchRace;
               })
               .map((p, idx) => {
+                const pjIdx = tableData.pjs.indexOf(p);
                 const st = calcStats(p);
                 const hpMax = p.hpMaxManual || p.hpMaxAuto || p.hpBase || (st ? st.hpMax : 10);
                 const defVal = (p as any).def || (st ? st.def : 12);
@@ -1328,13 +1370,14 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                 const pmCurrent = p.pm !== undefined && p.pm !== null ? p.pm : pmMax;
 
                 const handleTogglePjState = (stName: string) => {
+                  if (pjIdx < 0) return;
                   const list = [...tableData.pjs];
-                  const current = list[idx].etats || [];
+                  const current = list[pjIdx].etats || [];
                   const exists = current.includes(stName);
                   const newStates = exists
                     ? current.filter((s) => s !== stName)
                     : [...current, stName];
-                  list[idx] = { ...list[idx], etats: newStates };
+                  list[pjIdx] = { ...list[pjIdx], etats: newStates };
 
                   // Sync also combatant if present in tableData.combatants
                   const updatedCombatants = tableData.combatants.map((c) => {
@@ -1350,10 +1393,19 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                 const isOnline = onlineHeroes.some(
                   (h) => (!!h.id && h.id === p.id) || (h.name || '').toLowerCase() === (p.name || '').toLowerCase()
                 );
+                const pjCol = !p.isPnj ? getPjColor(p, tableData.pjs) : null;
 
                 return (
                   <div
                     key={p.id || idx}
+                    style={
+                      pjCol
+                        ? {
+                            borderColor: pjCol.borderHex,
+                            backgroundImage: `linear-gradient(${pjCol.softBg}, ${pjCol.softBg})`,
+                          }
+                        : undefined
+                    }
                     className={`p-4 bg-[#181410] border rounded-xl flex flex-col justify-between space-y-3 ${
                       p.isPnj ? 'border-[#3b597a]' : 'border-[#3d3023]'
                     }`}
@@ -1362,10 +1414,19 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                       <div className="flex items-center justify-between mb-1">
                         <div className="flex items-center gap-1.5 flex-wrap">
                           <span
-                            className={`text-[10px] px-2 py-0.5 rounded font-bold uppercase ${
+                            style={
+                              pjCol
+                                ? {
+                                    backgroundColor: pjCol.tagBg,
+                                    color: pjCol.hex,
+                                    borderColor: pjCol.borderHex,
+                                  }
+                                : undefined
+                            }
+                            className={`text-[10px] px-2 py-0.5 rounded font-bold uppercase border ${
                               p.isPnj
-                                ? 'bg-[#18283a] text-[#7db5ff] border border-[#2b4c6f]'
-                                : 'bg-[#291e13] text-[#f3d48d] border border-[#d4a84a]/40'
+                                ? 'bg-[#18283a] text-[#7db5ff] border-[#2b4c6f]'
+                                : 'bg-[#291e13] text-[#f3d48d] border-[#d4a84a]/40'
                             }`}
                           >
                             {p.isPnj ? p.rolePnj || 'PNJ Allié' : 'PJ'}
@@ -1379,18 +1440,27 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                           <button
                             type="button"
                             onClick={() => setSelectedCharacterModal(p)}
+                            style={pjCol ? { color: pjCol.hex } : undefined}
                             className="font-serif-co text-base text-[#f3d48d] hover:text-[#fff] hover:underline cursor-pointer flex items-center gap-1.5 font-bold"
                             title="Cliquer pour afficher la fiche complète (Page 1 PJ en mode pop-up)"
                           >
+                            {pjCol && (
+                              <span
+                                className="w-2.5 h-2.5 rounded-full shrink-0"
+                                style={{ backgroundColor: pjCol.hex }}
+                                aria-hidden="true"
+                              />
+                            )}
                             <span>{p.name}</span>
-                            <ExternalLink className="w-3.5 h-3.5 text-[#d4a84a]" />
+                            <ExternalLink className="w-3.5 h-3.5 opacity-80" />
                           </button>
                         </div>
 
                         <button
                           onClick={() => {
+                            if (pjIdx < 0) return;
                             const list = [...tableData.pjs];
-                            list.splice(idx, 1);
+                            list.splice(pjIdx, 1);
                             onUpdateTableData({ ...tableData, pjs: list });
                           }}
                           className="p-1 rounded text-[#9e907d] hover:text-[#cf5544]"
@@ -1415,9 +1485,10 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                           <button
                             type="button"
                             onClick={() => {
+                              if (pjIdx < 0) return;
                               const list = [...tableData.pjs];
                               const newHp = Math.max(0, p.hp - 1);
-                              list[idx] = { ...list[idx], hp: newHp };
+                              list[pjIdx] = { ...list[pjIdx], hp: newHp };
                               const updatedCombatants = tableData.combatants.map((c) => {
                                 if (
                                   (c.pjRefId && c.pjRefId === p.id) ||
@@ -1440,9 +1511,10 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                           <button
                             type="button"
                             onClick={() => {
+                              if (pjIdx < 0) return;
                               const list = [...tableData.pjs];
                               const newHp = Math.min(hpMax, p.hp + 1);
-                              list[idx] = { ...list[idx], hp: newHp };
+                              list[pjIdx] = { ...list[pjIdx], hp: newHp };
                               const updatedCombatants = tableData.combatants.map((c) => {
                                 if (
                                   (c.pjRefId && c.pjRefId === p.id) ||
@@ -1474,10 +1546,11 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                           <button
                             type="button"
                             onClick={() => {
+                              if (pjIdx < 0) return;
                               const list = [...tableData.pjs];
-                              const cur = list[idx].pm !== undefined && list[idx].pm !== null ? list[idx].pm : pmMax;
+                              const cur = list[pjIdx].pm !== undefined && list[pjIdx].pm !== null ? list[pjIdx].pm : pmMax;
                               const newPm = Math.max(0, (cur ?? pmMax) - 1);
-                              list[idx] = { ...list[idx], pm: newPm };
+                              list[pjIdx] = { ...list[pjIdx], pm: newPm };
                               onUpdateTableData({ ...tableData, pjs: list });
                             }}
                             className="w-5 h-5 rounded bg-[#162538] hover:bg-[#203652] text-[#8dbbff] font-bold flex items-center justify-center cursor-pointer border border-[#2e5077]"
@@ -1496,10 +1569,11 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                           <button
                             type="button"
                             onClick={() => {
+                              if (pjIdx < 0) return;
                               const list = [...tableData.pjs];
-                              const cur = list[idx].pm !== undefined && list[idx].pm !== null ? list[idx].pm : pmMax;
+                              const cur = list[pjIdx].pm !== undefined && list[pjIdx].pm !== null ? list[pjIdx].pm : pmMax;
                               const newPm = pmMax > 0 ? Math.min(pmMax, (cur ?? pmMax) + 1) : (cur ?? pmMax) + 1;
-                              list[idx] = { ...list[idx], pm: newPm };
+                              list[pjIdx] = { ...list[pjIdx], pm: newPm };
                               onUpdateTableData({ ...tableData, pjs: list });
                             }}
                             className="w-5 h-5 rounded bg-[#162538] hover:bg-[#203652] text-[#8dbbff] font-bold flex items-center justify-center cursor-pointer border border-[#2e5077]"
@@ -1535,10 +1609,11 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                         <button
                           type="button"
                           onClick={() => {
+                            if (pjIdx < 0) return;
                             const list = [...tableData.pjs];
-                            const currentPts = list[idx].ptsCap || 0;
-                            const gifts = (list[idx].ptsCapCadeaux || 0) + 1;
-                            list[idx] = { ...list[idx], ptsCap: currentPts + 1, ptsCapCadeaux: gifts };
+                            const currentPts = list[pjIdx].ptsCap || 0;
+                            const gifts = (list[pjIdx].ptsCapCadeaux || 0) + 1;
+                            list[pjIdx] = { ...list[pjIdx], ptsCap: currentPts + 1, ptsCapCadeaux: gifts };
                             onUpdateTableData({ ...tableData, pjs: list });
                             alert(`🎁 +1 Point de Capacité Cadeau offert à ${p.name} pour son excellent Roleplay ! (Nouveau total : ${currentPts + 1})`);
                           }}
@@ -1562,7 +1637,7 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                             </span>
                             <button
                               type="button"
-                              onClick={() => setMoneyCalcTarget({ type: 'pj', pjIndex: idx })}
+                              onClick={() => pjIdx >= 0 && setMoneyCalcTarget({ type: 'pj', pjIndex: pjIdx })}
                               className="p-1 rounded bg-[#241a10] hover:bg-[#3d2c1c] text-[#f3d48d] border border-[#523d24] cursor-pointer"
                               title={`Ouvrir la Calculatrice Ancienne pour ${p.name}`}
                             >
@@ -1577,8 +1652,9 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                             <button
                               type="button"
                               onClick={() => {
+                                if (pjIdx < 0) return;
                                 const cur = p.bourse || { po: 0, pa: 0, pc: 0 };
-                                handleUpdatePjBourse(idx, { ...cur, po: Math.max(0, (cur.po || 0) - 1) });
+                                handleUpdatePjBourse(pjIdx, { ...cur, po: Math.max(0, (cur.po || 0) - 1) });
                               }}
                               className="w-4 h-4 rounded bg-[#120b06] hover:bg-[#2b170c] text-[#ede3d1] font-bold text-[10px] flex items-center justify-center cursor-pointer border border-[#3d2716]"
                               title="-1 PO"
@@ -1591,8 +1667,9 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                             <button
                               type="button"
                               onClick={() => {
+                                if (pjIdx < 0) return;
                                 const cur = p.bourse || { po: 0, pa: 0, pc: 0 };
-                                handleUpdatePjBourse(idx, { ...cur, po: (cur.po || 0) + 1 });
+                                handleUpdatePjBourse(pjIdx, { ...cur, po: (cur.po || 0) + 1 });
                               }}
                               className="w-4 h-4 rounded bg-[#120b06] hover:bg-[#2b170c] text-[#f3d48d] font-bold text-[10px] flex items-center justify-center cursor-pointer border border-[#3d2716]"
                               title="+1 PO"
@@ -1606,8 +1683,9 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                             <button
                               type="button"
                               onClick={() => {
+                                if (pjIdx < 0) return;
                                 const cur = p.bourse || { po: 0, pa: 0, pc: 0 };
-                                handleUpdatePjBourse(idx, { ...cur, pa: Math.max(0, (cur.pa || 0) - 1) });
+                                handleUpdatePjBourse(pjIdx, { ...cur, pa: Math.max(0, (cur.pa || 0) - 1) });
                               }}
                               className="w-4 h-4 rounded bg-[#0e1117] hover:bg-[#1d2633] text-[#ede3d1] font-bold text-[10px] flex items-center justify-center cursor-pointer border border-[#2a374a]"
                               title="-1 PA"
@@ -1620,8 +1698,9 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                             <button
                               type="button"
                               onClick={() => {
+                                if (pjIdx < 0) return;
                                 const cur = p.bourse || { po: 0, pa: 0, pc: 0 };
-                                handleUpdatePjBourse(idx, { ...cur, pa: (cur.pa || 0) + 1 });
+                                handleUpdatePjBourse(pjIdx, { ...cur, pa: (cur.pa || 0) + 1 });
                               }}
                               className="w-4 h-4 rounded bg-[#0e1117] hover:bg-[#1d2633] text-[#cbd5e1] font-bold text-[10px] flex items-center justify-center cursor-pointer border border-[#2a374a]"
                               title="+1 PA"
@@ -1635,8 +1714,9 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                             <button
                               type="button"
                               onClick={() => {
+                                if (pjIdx < 0) return;
                                 const cur = p.bourse || { po: 0, pa: 0, pc: 0 };
-                                handleUpdatePjBourse(idx, { ...cur, pc: Math.max(0, (cur.pc || 0) - 1) });
+                                handleUpdatePjBourse(pjIdx, { ...cur, pc: Math.max(0, (cur.pc || 0) - 1) });
                               }}
                               className="w-4 h-4 rounded bg-[#120a06] hover:bg-[#2e1509] text-[#ede3d1] font-bold text-[10px] flex items-center justify-center cursor-pointer border border-[#3d1c0e]"
                               title="-1 PC"
@@ -1649,8 +1729,9 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                             <button
                               type="button"
                               onClick={() => {
+                                if (pjIdx < 0) return;
                                 const cur = p.bourse || { po: 0, pa: 0, pc: 0 };
-                                handleUpdatePjBourse(idx, { ...cur, pc: (cur.pc || 0) + 1 });
+                                handleUpdatePjBourse(pjIdx, { ...cur, pc: (cur.pc || 0) + 1 });
                               }}
                               className="w-4 h-4 rounded bg-[#120a06] hover:bg-[#2e1509] text-[#f59e0b] font-bold text-[10px] flex items-center justify-center cursor-pointer border border-[#3d1c0e]"
                               title="+1 PC"

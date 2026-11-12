@@ -61,8 +61,8 @@ const broadcastToRoom = (roomCode: string, payload: any, senderWs?: WebSocket) =
   }
 };
 
-// Setup WebSocket Server
-const wss = new WebSocketServer({ server });
+// Setup WebSocket Server (scopé sur /ws pour ne pas interférer avec d'autres upgrades HTTP)
+const wss = new WebSocketServer({ server, path: '/ws' });
 
 wss.on('connection', (ws: WebSocket) => {
   ws.on('message', (messageRaw: string) => {
@@ -233,7 +233,7 @@ async function setupServer() {
   if (!isProduction) {
     const { createServer: createViteServer } = await import('vite');
     const vite = await createViteServer({
-      server: { middlewareMode: true },
+      server: { middlewareMode: true, hmr: false },
       appType: 'spa',
     });
     app.use(vite.middlewares);

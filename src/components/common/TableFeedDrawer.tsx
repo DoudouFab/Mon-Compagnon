@@ -15,6 +15,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import { Character, TableFeedEntry } from '../../types/chroniques';
+import { getPjColor } from '../../utils/pjColors';
 
 interface TableFeedDrawerProps {
   isOpen: boolean;
@@ -278,6 +279,15 @@ export const TableFeedDrawer: React.FC<TableFeedDrawerProps> = ({
             filteredEntries.map((item) => {
               const isMessage = item.kind === 'message';
               const isSecret = item.scope === 'secret';
+              const heroRef =
+                item.kind === 'message'
+                  ? item.senderRole === 'pj'
+                    ? { id: item.senderHeroId, name: item.senderName }
+                    : isSecret
+                    ? { id: item.targetHeroId, name: item.targetHeroName }
+                    : null
+                  : { id: item.targetHeroId || item.senderHeroId, name: item.targetHeroName || item.senderName };
+              const pjCol = heroRef ? getPjColor(heroRef, pjsList) : null;
 
               if (isMessage) {
                 const isOwn =
@@ -291,8 +301,18 @@ export const TableFeedDrawer: React.FC<TableFeedDrawerProps> = ({
                 return (
                   <div
                     key={item.id}
+                    style={
+                      pjCol
+                        ? {
+                            borderColor: isSecret ? 'rgba(180, 68, 82, 0.7)' : pjCol.borderHex,
+                            backgroundImage: `linear-gradient(${pjCol.softBg}, ${pjCol.softBg})`,
+                          }
+                        : undefined
+                    }
                     className={`rounded-xl p-3 border text-xs space-y-1.5 ${
-                      isSecret
+                      pjCol
+                        ? 'bg-[#16120e]'
+                        : isSecret
                         ? 'bg-[#211517] border-[#75333b]'
                         : isOwn
                         ? 'bg-[#221a12] border-[#6b4f26]'
@@ -301,20 +321,35 @@ export const TableFeedDrawer: React.FC<TableFeedDrawerProps> = ({
                   >
                     <div className="flex items-center justify-between gap-2 text-[11px]">
                       <div className="flex items-center gap-1.5 min-w-0 font-semibold">
+                        {pjCol && (
+                          <span
+                            className="w-2 h-2 rounded-full shrink-0"
+                            style={{ backgroundColor: pjCol.hex }}
+                            aria-hidden="true"
+                          />
+                        )}
                         {isSecret ? (
                           <Lock className="w-3 h-3 text-[#fca5a5] shrink-0" />
                         ) : (
                           <Users className="w-3 h-3 text-[#d4a84a] shrink-0" />
                         )}
                         <span
-                          className={`truncate ${
-                            item.senderRole === 'mj' ? 'text-[#ffb8b8]' : 'text-[#f3d48d]'
-                          }`}
+                          className="truncate"
+                          style={{
+                            color: item.senderRole === 'mj' ? '#ffb8b8' : pjCol ? pjCol.hex : '#f3d48d',
+                          }}
                         >
                           {item.senderName}
                         </span>
                         <span className="text-[#8a7c69]">·</span>
-                        <span className={isSecret ? 'text-[#fca5a5]' : 'text-[#9e907d]'}>
+                        <span
+                          className={isSecret ? 'text-[#fca5a5]' : 'text-[#9e907d]'}
+                          style={
+                            isSecret && item.senderRole === 'mj' && pjCol
+                              ? { color: pjCol.hex }
+                              : undefined
+                          }
+                        >
                           {isSecret
                             ? item.senderRole === 'mj'
                               ? `Secret → ${item.targetHeroName || 'PJ'}`
@@ -338,13 +373,31 @@ export const TableFeedDrawer: React.FC<TableFeedDrawerProps> = ({
               return (
                 <div
                   key={item.id}
-                  className="rounded-lg px-3 py-2 bg-[#1a1510] border border-[#2f251c] text-xs flex items-start gap-2.5"
+                  style={
+                    pjCol
+                      ? {
+                          borderColor: pjCol.borderHex,
+                          backgroundImage: `linear-gradient(${pjCol.softBg}, ${pjCol.softBg})`,
+                        }
+                      : undefined
+                  }
+                  className="rounded-lg px-3 py-2 bg-[#16120e] border border-[#2f251c] text-xs flex items-start gap-2.5"
                 >
                   <div className="mt-0.5">{getCategoryIcon(item.category)}</div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2 text-[11px] text-[#9e907d]">
-                      <span className="font-semibold text-[#f3d48d] truncate">
-                        {item.targetHeroName || item.senderName}
+                      <span
+                        className="font-semibold truncate flex items-center gap-1.5"
+                        style={{ color: pjCol ? pjCol.hex : '#f3d48d' }}
+                      >
+                        {pjCol && (
+                          <span
+                            className="w-2 h-2 rounded-full shrink-0"
+                            style={{ backgroundColor: pjCol.hex }}
+                            aria-hidden="true"
+                          />
+                        )}
+                        <span className="truncate">{item.targetHeroName || item.senderName}</span>
                       </span>
                       <span className="text-[10px] font-mono tabular-nums shrink-0">
                         {formatTime(item.timestamp)}
@@ -396,24 +449,38 @@ export const TableFeedDrawer: React.FC<TableFeedDrawerProps> = ({
               </button>
             </div>
 
-            {appMode === 'mj' && msgScope === 'secret' && (
-              <select
-                value={selectedTargetId}
-                onChange={(e) => setSelectedTargetId(e.target.value)}
-                aria-label="Destinataire secret"
-                className="flex-1 min-w-[130px] bg-[#100d0a] border border-[#75333b] rounded-lg px-2.5 py-1.5 text-[11px] text-[#fecaca] outline-none focus:border-[#d4a84a]"
-              >
-                {pjsList.length === 0 ? (
-                  <option value="">Aucun PJ disponible</option>
-                ) : (
-                  pjsList.map((pj) => (
-                    <option key={pj.id || pj.name} value={pj.id || pj.name}>
-                      Pour : {pj.name}
-                    </option>
-                  ))
-                )}
-              </select>
-            )}
+            {appMode === 'mj' && msgScope === 'secret' && (() => {
+              const targetObj = pjsList.find((pj) => (pj.id || pj.name) === selectedTargetId) || pjsList[0];
+              const targetCol = targetObj ? getPjColor(targetObj, pjsList) : null;
+              return (
+                <div className="flex items-center gap-1.5 flex-1 min-w-[130px]">
+                  {targetCol && (
+                    <span
+                      className="w-2.5 h-2.5 rounded-full shrink-0"
+                      style={{ backgroundColor: targetCol.hex }}
+                      aria-hidden="true"
+                    />
+                  )}
+                  <select
+                    value={selectedTargetId}
+                    onChange={(e) => setSelectedTargetId(e.target.value)}
+                    aria-label="Destinataire secret"
+                    style={targetCol ? { borderColor: targetCol.borderHex, color: targetCol.hex } : undefined}
+                    className="w-full bg-[#100d0a] border border-[#75333b] rounded-lg px-2.5 py-1.5 text-[11px] font-semibold text-[#fecaca] outline-none focus:border-[#d4a84a]"
+                  >
+                    {pjsList.length === 0 ? (
+                      <option value="">Aucun PJ disponible</option>
+                    ) : (
+                      pjsList.map((pj) => (
+                        <option key={pj.id || pj.name} value={pj.id || pj.name} className="text-[#ede3d1] bg-[#100d0a]">
+                          Pour : {pj.name}
+                        </option>
+                      ))
+                    )}
+                  </select>
+                </div>
+              );
+            })()}
           </div>
 
           {/* Input + Send */}

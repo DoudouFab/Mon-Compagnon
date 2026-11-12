@@ -1250,7 +1250,7 @@ export default function App() {
         onClose={() => setIsFeedDrawerOpen(false)}
         appMode={appMode}
         currentPj={currentPj}
-        pjsList={mjComposerPjs}
+        pjsList={appMode === 'mj' ? mjComposerPjs : currentPj ? [currentPj] : []}
         entries={visibleFeedEntries}
         onSendMessage={handleSendFeedMessage}
         onClearFeed={handleClearFeed}

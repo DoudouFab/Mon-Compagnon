@@ -218,10 +218,12 @@ export function isFeedEntryVisibleToPj(
   const pjId = pj.id;
   const pjName = (pj.name || '').trim().toLowerCase();
 
-  if (pjId && (entry.targetHeroId === pjId || entry.senderHeroId === pjId)) {
-    return true;
+  // Correspondance stricte par ID dès que les deux identifiants existent
+  if (pjId && (entry.targetHeroId || entry.senderHeroId)) {
+    return entry.targetHeroId === pjId || entry.senderHeroId === pjId;
   }
 
+  // Fallback par nom uniquement si aucun ID cible/expéditeur n'est présent
   if (pjName) {
     const targetName = (entry.targetHeroName || '').trim().toLowerCase();
     if (targetName && targetName === pjName) return true;

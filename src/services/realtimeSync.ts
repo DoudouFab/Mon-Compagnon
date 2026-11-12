@@ -33,7 +33,7 @@ const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
 // Firebase refuse les valeurs "undefined" : on nettoie la fiche avant écriture.
-const clean = <T,>(o: T): T => JSON.parse(JSON.stringify(o));
+const clean = <T,>(o: T): T => (o === undefined ? (null as unknown as T) : JSON.parse(JSON.stringify(o)));
 // Clé stable d'un héros dans la base (certains personnages n'ont pas d'id).
 const heroKey = (h: Character): string =>
   h.id || 'h_' + (h.name || 'sans_nom').toLowerCase().replace(/[^a-z0-9]+/g, '_');
