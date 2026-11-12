@@ -50,6 +50,11 @@ export const normalizeHero = (h: any): Character => {
   if (!h || typeof h !== 'object') return h;
   return {
     ...h,
+    bourse: {
+      po: typeof h.bourse?.po === 'number' ? Math.max(0, h.bourse.po) : (h.po !== undefined ? Math.max(0, Number(h.po)) : 0),
+      pa: typeof h.bourse?.pa === 'number' ? Math.max(0, h.bourse.pa) : (h.pa !== undefined ? Math.max(0, Number(h.pa)) : 0),
+      pc: typeof h.bourse?.pc === 'number' ? Math.max(0, h.bourse.pc) : (h.pc !== undefined ? Math.max(0, Number(h.pc)) : 0),
+    },
     etats: normalizeEtats(h.etats),
     inventaire: Array.isArray(h.inventaire) ? h.inventaire : h.inventaire ? Object.values(h.inventaire) : [],
     armes: Array.isArray(h.armes) ? h.armes : h.armes ? Object.values(h.armes) : [],

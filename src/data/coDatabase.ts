@@ -112,7 +112,33 @@ function buildFullSpellsCatalog(): SpellItem[] {
 export const SORTS_CATALOG: SpellItem[] = buildFullSpellsCatalog();
 
 export const BESTIAIRE: Monster[] = bestiaireRaw as Monster[];
-export const EQUIPEMENTS: Equipment[] = equipementsRaw as Equipment[];
+
+export const ALL_PJ_EQUIPMENT: Equipment[] = [
+  ...ARMES_CATALOG.map((w) => ({
+    ...w,
+    cat: w.t?.includes('Distance') ? 'Armes Distance' : w.t?.includes('Poudre') ? 'Armes Poudre' : 'Armes Contact',
+    prix: (w as any).prix || (w.t?.includes('Poudre') ? '15 pa' : '5 pa'),
+    desc: (w as any).props || (w as any).desc || '',
+  })),
+  ...ARMURES_CATALOG.map((a) => ({
+    ...a,
+    cat: a.t?.includes('Bouclier') ? 'Boucliers' : 'Armures',
+    prix: (a as any).prix || '8 pa',
+    desc: (a as any).props || (a as any).desc || '',
+  })),
+  ...BIENS_CATALOG.map((b) => ({
+    ...b,
+    cat: b.n.toLowerCase().includes('tente') || b.n.toLowerCase().includes('paillasse') || b.n.toLowerCase().includes('camp') ? 'Campement' : 'Aventure',
+    prix: (b as any).prix || '2 pa',
+  })),
+  ...(equipementsRaw as Equipment[]).filter(
+    (e: any) =>
+      !['Armes Contact', 'Armes Distance', 'Armes Poudre', 'Armures', 'Boucliers'].includes(e.cat) &&
+      !BIENS_CATALOG.some((b) => b.n.toLowerCase() === e.n.toLowerCase())
+  ),
+] as Equipment[];
+
+export const EQUIPEMENTS: Equipment[] = ALL_PJ_EQUIPMENT;
 const ETATS_METADATA: Record<string, Partial<PrejudicialState>> = {
   Affaibli: {
     icon: '🥀',
@@ -380,5 +406,6 @@ export const SAMPLE_HERO: Character = {
   arm: 'Demi-plaque',
   bou: 'Grand bouclier',
   bonus: { pv: 0, def: 0, init: 0 },
+  bourse: { po: 15, pa: 25, pc: 30 },
   persoTraits: 'Chevalier errant au code d honneur rigoureux. Protecteur des innocents et loyal envers ses compagnons.'
 };

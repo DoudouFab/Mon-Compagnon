@@ -111,6 +111,13 @@ export interface Character {
   isPnj?: boolean;
   rolePnj?: string;
   dmPatchAt?: number;
+  bourse?: { po: number; pa: number; pc: number };
+}
+
+export interface CurrencyBourse {
+  po: number;
+  pa: number;
+  pc: number;
 }
 
 export interface Monster {

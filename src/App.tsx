@@ -588,6 +588,7 @@ export default function App() {
               pm: remote.pm ?? currentPj.pm,
               ptsCap: remote.ptsCap,
               ptsCapCadeaux: remote.ptsCapCadeaux,
+              bourse: remote.bourse || currentPj.bourse || { po: 0, pa: 0, pc: 0 },
               etats: remote.etats || [],
               inventaire: remote.inventaire || [],
               dmPatchAt: remote.dmPatchAt,

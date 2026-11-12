@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { X, Check, ArrowRight, ArrowLeft, Sparkles, Info, Shield, Dice5, RefreshCw } from 'lucide-react';
+import { X, Check, ArrowRight, ArrowLeft, Sparkles, Info, Shield, Dice5, RefreshCw, Coins } from 'lucide-react';
 import { DetailModal, DetailItem } from '../DetailModal';
 import { CARAC_LIST, PROFILS, RACES, VOIES_CATALOG, getMod } from '../../data/coDatabase';
-import { CaracName, Character } from '../../types/chroniques';
+import { CaracName, Character, CurrencyBourse } from '../../types/chroniques';
 import { STARTING_PACKAGES_BY_PROFIL, ARMOR_RESTRICTIONS_BY_PROFIL, RACIAL_ARMOR_NOTES } from '../../data/startingGearData';
 import { generateRandomPhysicalStats, getRaceLimitsDescription } from '../../data/racePhysicalStats';
 
@@ -35,14 +35,20 @@ export const PjCreationWizard: React.FC<PjCreationWizardProps> = ({
   const [rcOption, setRcOption] = useState<number>(0);
   const [profilId, setProfilId] = useState<string>('barbare');
   const [baseStats, setBaseStats] = useState<Record<CaracName, number>>({
-    FOR: 14,
-    DEX: 12,
-    CON: 14,
-    INT: 10,
+    FOR: 16,
+    DEX: 13,
+    CON: 13,
+    INT: 11,
     SAG: 10,
-    CHA: 10,
+    CHA: 9,
   });
+  const [statMode, setStatMode] = useState<'standard' | 'heroique'>('standard');
   const [selectedCaps, setSelectedCaps] = useState<string[]>([]);
+
+  // Starting money (Bourse de départ)
+  const [bourseMode, setBourseMode] = useState<'standard' | 'dice' | 'custom'>('standard');
+  const [startingBourse, setStartingBourse] = useState<CurrencyBourse>({ po: 10, pa: 0, pc: 0 });
+  const [diceRollInfo, setDiceRollInfo] = useState<{ rolls: number[]; totalPA: number } | null>(null);
 
   // Identity asked at the end
   const [name, setName] = useState<string>('');
@@ -105,10 +111,62 @@ export const PjCreationWizard: React.FC<PjCreationWizardProps> = ({
     setPoids(stats.poids);
   };
 
+  const maxStatBudget = statMode === 'heroique' ? 6 : 4;
+  const maxStatBase = statMode === 'heroique' ? 17 : 16;
+  const minStatBase = 8;
+
+  // Règle 1 : Total exact des modificateurs
+  const isModSumValid = modSum === maxStatBudget;
+  // Règle 2 : Maximum 2 scores pairs (et 4 scores impairs) selon la règle officielle COF
+  const isPairsCountValid = pairsCount <= 2;
+  const canProceedStep2 = isModSumValid && isPairsCountValid;
+
+  // Présélections 100% officielles et conformes (Total = +4, exactement 2 scores pairs)
+  const STAT_PRESETS = [
+    { label: '⚔️ Guerrier / Contact', stats: { FOR: 16, DEX: 13, CON: 13, INT: 11, SAG: 10, CHA: 9 } }, // +3 +1 +1 0 0 -1 = +4 | Pairs: 16, 10 (2 pairs)
+    { label: '🏹 Agile / Distance', stats: { FOR: 11, DEX: 16, CON: 13, INT: 11, SAG: 12, CHA: 9 } },  // 0 +3 +1 0 +1 -1 = +4 | Pairs: 16, 12 (2 pairs)
+    { label: '🔮 Érudit / Magie', stats: { FOR: 9, DEX: 13, CON: 11, INT: 16, SAG: 14, CHA: 9 } },     // -1 +1 0 +3 +2 -1 = +4 | Pairs: 16, 14 (2 pairs)
+    { label: '✨ Dévot / Prêtre', stats: { FOR: 13, DEX: 11, CON: 14, INT: 9, SAG: 16, CHA: 9 } },     // +1 0 +2 -1 +3 -1 = +4 | Pairs: 14, 16 (2 pairs)
+    { label: '🎭 Social / Barde', stats: { FOR: 9, DEX: 14, CON: 11, INT: 13, SAG: 9, CHA: 16 } },     // -1 +2 0 +1 -1 +3 = +4 | Pairs: 14, 16 (2 pairs)
+    { label: '⚖️ Polyvalent', stats: { FOR: 14, DEX: 13, CON: 12, INT: 11, SAG: 11, CHA: 11 } },       // +2 +1 +1 0 0 0 = +4 | Pairs: 14, 12 (2 pairs)
+  ];
+
+  const rollStartingDice = () => {
+    const d1 = Math.floor(Math.random() * 6) + 1;
+    const d2 = Math.floor(Math.random() * 6) + 1;
+    const d3 = Math.floor(Math.random() * 6) + 1;
+    const sum = d1 + d2 + d3;
+    const totalPA = sum * 10;
+    const po = Math.floor(totalPA / 10);
+    const pa = totalPA % 10;
+    setStartingBourse({ po, pa, pc: 0 });
+    setDiceRollInfo({ rolls: [d1, d2, d3], totalPA });
+    setBourseMode('dice');
+  };
+
   const handleStatChange = (c: CaracName, val: number) => {
+    if (val < minStatBase) return;
+    if (val > maxStatBase) {
+      alert(`Plafond officiel niveau 1 : Le score de base maximum est de ${maxStatBase} (modificateur +3) avant bonus racial.`);
+      return;
+    }
+    const currentVal = baseStats[c] || 10;
+    if (val > currentVal) {
+      const currentMod = getMod(currentVal);
+      const newMod = getMod(val);
+      const modDiff = newMod - currentMod;
+      if (modDiff > 0 && modSum + modDiff > maxStatBudget) {
+        alert(
+          `Barrière de création : Le budget total des modificateurs (+${maxStatBudget} en mode ${
+            statMode === 'heroique' ? 'Héroïque' : 'Standard'
+          }) est déjà atteint ! Baissez une autre caractéristique pour augmenter celle-ci.`
+        );
+        return;
+      }
+    }
     setBaseStats((prev) => ({
       ...prev,
-      [c]: Math.max(3, Math.min(18, val)),
+      [c]: val,
     }));
   };
 
@@ -121,6 +179,29 @@ export const PjCreationWizard: React.FC<PjCreationWizardProps> = ({
   };
 
   const handleNext = () => {
+    // Step 2: Caractéristiques (Barrières strictes)
+    if (step === 2) {
+      if (!isModSumValid) {
+        alert(
+          `Barrière de création active :\nLa somme de vos modificateurs doit être exactement de +${maxStatBudget} (actuellement ${
+            modSum >= 0 ? '+' + modSum : modSum
+          } en mode ${statMode === 'heroique' ? 'Héroïque' : 'Standard'}).\n\nVeuillez ajuster vos valeurs pour respecter ce total.`
+        );
+        return;
+      }
+      if (!isPairsCountValid) {
+        alert(
+          `Barrière de création active :\nRègle officielle des scores pairs/impairs non respectée !\nVous avez actuellement ${pairsCount} caractéristiques paires.\nLa règle officielle de Chroniques Oubliées exige un maximum de 2 scores pairs (et au moins 4 scores impairs) pour éviter toute optimisation artificielle.\n\nVeuillez ajuster vos scores pour avoir au maximum 2 valeurs paires.`
+        );
+        return;
+      }
+      for (const c of CARAC_LIST) {
+        if ((baseStats[c] || 10) > maxStatBase) {
+          alert(`Barrière de création : Au niveau 1, aucune caractéristique de base ne peut dépasser ${maxStatBase} avant bonus racial.`);
+          return;
+        }
+      }
+    }
     // Step 3: Capacités de départ
     if (step === 3 && selectedCaps.length < 2) {
       if (
@@ -184,6 +265,11 @@ export const PjCreationWizard: React.FC<PjCreationWizardProps> = ({
       inventaire: pkg.inventaire ? [...pkg.inventaire] : [],
       customSorts: [],
       bonus: { pv: 0, def: 0, init: 0 },
+      bourse: {
+        po: startingBourse.po || 0,
+        pa: startingBourse.pa || 0,
+        pc: startingBourse.pc || 0,
+      },
       persoTraits: `${currentRace.traits} Vocation : ${currentProfil.traits}`,
     };
 
@@ -379,24 +465,93 @@ export const PjCreationWizard: React.FC<PjCreationWizardProps> = ({
           {/* STEP 2: Caractéristiques */}
           {step === 2 && (
             <div className="space-y-4">
-              <div className="p-3 bg-[#1e1511] border border-[#d4a84a]/40 rounded-xl text-xs space-y-1 text-[#cbb8a7]">
-                <p>
-                  Répartissez vos scores de base selon la méthode officielle (ou ajustez librement).
-                </p>
-                <div className="flex items-center gap-4 text-[11px] font-mono">
-                  <span>
-                    Somme des modificateurs :{' '}
-                    <b className={modSum === 4 ? 'text-[#6fa85b]' : 'text-[#f3d48d]'}>
-                      {modSum > 0 ? `+${modSum}` : modSum}
-                    </b>{' '}
-                    (Standard : +4)
-                  </span>
-                  <span>
-                    Scores pairs : <b>{pairsCount}/6</b> (Recommandé : 2 pairs)
-                  </span>
+              {/* Mode Toggle & Presets */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 bg-[#1e1511] border border-[#d4a84a]/40 rounded-xl text-xs">
+                <div>
+                  <b className="text-[#f3d48d] block font-serif-co text-sm">Mode de répartition des Caractéristiques :</b>
+                  <p className="text-[#9e907d] text-[11px]">
+                    Mode officiel Standard (+4 max, 2 pairs) ou Héroïque (+6 max).
+                  </p>
+                </div>
+                <div className="flex items-center gap-1 bg-[#120f0c] p-1 rounded-lg border border-[#3d3023] shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setStatMode('standard')}
+                    className={`px-3 py-1 rounded text-xs font-bold transition-all cursor-pointer ${
+                      statMode === 'standard'
+                        ? 'bg-[#d4a84a] text-black shadow-xs'
+                        : 'text-[#9e907d] hover:text-[#ede3d1]'
+                    }`}
+                  >
+                    Standard (+4)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setStatMode('heroique')}
+                    className={`px-3 py-1 rounded text-xs font-bold transition-all cursor-pointer ${
+                      statMode === 'heroique'
+                        ? 'bg-[#d4a84a] text-black shadow-xs'
+                        : 'text-[#9e907d] hover:text-[#ede3d1]'
+                    }`}
+                  >
+                    Héroïque (+6)
+                  </button>
                 </div>
               </div>
 
+              {/* Quick Presets Bar */}
+              <div className="space-y-1.5">
+                <span className="text-[11px] font-bold text-[#9e907d] uppercase tracking-wider block">
+                  ⚡ Archétypes équilibrés officiels (Conformes 100% aux 2 règles) :
+                </span>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+                  {STAT_PRESETS.map((p, pIdx) => (
+                    <button
+                      key={pIdx}
+                      type="button"
+                      onClick={() => setBaseStats({ ...p.stats })}
+                      className="px-2.5 py-1.5 rounded-lg bg-[#221a14] hover:bg-[#32251a] border border-[#3d3023] hover:border-[#d4a84a] text-[11px] font-semibold text-[#ede3d1] text-left transition-colors cursor-pointer flex items-center justify-between"
+                    >
+                      <span>{p.label}</span>
+                      <span className="text-[10px] text-[#9e907d] font-mono">OK</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Strict Dual-Rule Verification Banner */}
+              <div className={`p-3 rounded-xl border text-xs space-y-1.5 ${
+                canProceedStep2
+                  ? 'bg-[#122410] border-[#276e43] text-[#86efac]'
+                  : 'bg-[#2b1414] border-[#8a3328] text-[#ffb0a3]'
+              }`}>
+                <div className="flex flex-wrap items-center justify-between gap-2 font-bold">
+                  <span className="flex items-center gap-1.5">
+                    {canProceedStep2 ? '✅ Barrières de création respectées' : '⚠️ Barrière de création active'}
+                  </span>
+                  <div className="flex items-center gap-3 text-xs font-mono">
+                    <span className={isModSumValid ? 'text-[#86efac]' : 'text-[#ff6b6b]'}>
+                      Somme des modificateurs : <b>{modSum > 0 ? `+${modSum}` : modSum} / +{maxStatBudget}</b>
+                    </span>
+                    <span>•</span>
+                    <span className={isPairsCountValid ? 'text-[#86efac]' : 'text-[#ff6b6b]'}>
+                      Scores pairs : <b>{pairsCount} / 2 max</b> ({impairsCount} impairs)
+                    </span>
+                  </div>
+                </div>
+                {!canProceedStep2 && (
+                  <p className="text-[11px] text-[#ffc5be] leading-relaxed">
+                    {!isModSumValid && (
+                      <span>• La somme de vos modificateurs doit être exactement de +{maxStatBudget} (actuellement {modSum > 0 ? '+' + modSum : modSum}). </span>
+                    )}
+                    {!isPairsCountValid && (
+                      <span>• Règle officielle COF : vous avez {pairsCount} caractéristiques paires (maximum autorisé : 2 pairs et 4 impairs pour éviter l&apos;optimisation excessive).</span>
+                    )}
+                  </p>
+                )}
+              </div>
+
+              {/* Stat Grid */}
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {CARAC_LIST.map((c) => {
                   const val = baseStats[c] || 10;
@@ -404,18 +559,36 @@ export const PjCreationWizard: React.FC<PjCreationWizardProps> = ({
                   const rMod = raceBonus[c] || 0;
                   const total = val + rMod;
                   const totalMod = getMod(total);
+                  const isEven = val % 2 === 0;
+
+                  const canIncrease = val < maxStatBase && (modSum < maxStatBudget || getMod(val + 1) === mod);
+                  const canDecrease = val > minStatBase;
 
                   return (
                     <div
                       key={c}
-                      className="p-3.5 bg-[#1e1913] border border-[#3d3023] rounded-xl flex flex-col items-center gap-2"
+                      className={`p-3.5 bg-[#1e1913] border rounded-xl flex flex-col items-center gap-2 transition-all ${
+                        isEven ? 'border-[#523d29]' : 'border-[#30251c]'
+                      }`}
                     >
-                      <span className="font-serif-co font-bold text-sm text-[#f3d48d]">{c}</span>
+                      <div className="flex items-center justify-between w-full px-1">
+                        <span className="font-serif-co font-bold text-sm text-[#f3d48d]">{c}</span>
+                        <span className={`text-[10px] px-1.5 py-0.2 rounded font-mono font-bold ${
+                          isEven ? 'bg-[#3b2a1a] text-[#f3d48d]' : 'bg-[#1a1510] text-[#9e907d]'
+                        }`}>
+                          {isEven ? 'Pair' : 'Impair'}
+                        </span>
+                      </div>
                       <div className="flex items-center gap-2">
                         <button
                           type="button"
+                          disabled={!canDecrease}
                           onClick={() => handleStatChange(c, val - 1)}
-                          className="w-7 h-7 rounded bg-[#2c1f14] hover:bg-[#3d2b1c] text-[#ede3d1] font-bold flex items-center justify-center cursor-pointer border border-[#4d3623]"
+                          className={`w-7 h-7 rounded font-bold flex items-center justify-center border transition-all ${
+                            canDecrease
+                              ? 'bg-[#2c1f14] hover:bg-[#3d2b1c] text-[#ede3d1] border-[#4d3623] cursor-pointer'
+                              : 'bg-[#18130e] text-[#5c4a3a] border-[#2b1f14] cursor-not-allowed opacity-50'
+                          }`}
                         >
                           -
                         </button>
@@ -424,8 +597,13 @@ export const PjCreationWizard: React.FC<PjCreationWizardProps> = ({
                         </span>
                         <button
                           type="button"
+                          disabled={!canIncrease}
                           onClick={() => handleStatChange(c, val + 1)}
-                          className="w-7 h-7 rounded bg-[#2c1f14] hover:bg-[#3d2b1c] text-[#ede3d1] font-bold flex items-center justify-center cursor-pointer border border-[#4d3623]"
+                          className={`w-7 h-7 rounded font-bold flex items-center justify-center border transition-all ${
+                            canIncrease
+                              ? 'bg-[#2c1f14] hover:bg-[#3d2b1c] text-[#ede3d1] border-[#4d3623] cursor-pointer'
+                              : 'bg-[#18130e] text-[#5c4a3a] border-[#2b1f14] cursor-not-allowed opacity-50'
+                          }`}
                         >
                           +
                         </button>
@@ -567,6 +745,64 @@ export const PjCreationWizard: React.FC<PjCreationWizardProps> = ({
                       <span className="text-[10px] text-[#9e907d]">{item.desc || item.note || ''}</span>
                     </div>
                   ))}
+                </div>
+              </div>
+
+              {/* Bourse & Pécule initial officiel */}
+              <div className="p-3.5 bg-[#1a1410] border border-[#d4a84a]/50 rounded-xl space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div>
+                    <b className="text-xs font-bold uppercase tracking-wider text-[#f3d48d] flex items-center gap-1.5">
+                      <Coins className="w-4 h-4 text-[#e5a93c]" />
+                      Bourse & Pécule initial de l&apos;Aventurier :
+                    </b>
+                    <p className="text-[11px] text-[#9e907d]">
+                      Règle officielle COF : paquetage gratuit + 10 PO fixe ou tirage aux dés (3d6 × 10 PA).
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-xs font-mono font-bold text-[#ede3d1] bg-[#120f0c] px-2.5 py-1 rounded border border-[#3d3023] shrink-0">
+                    <span className="text-[#f1c40f]">🟡 {startingBourse.po} PO</span>
+                    <span className="text-[#cbd5e1]">⚪ {startingBourse.pa} PA</span>
+                    <span className="text-[#d97706]">🟤 {startingBourse.pc} PC</span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setBourseMode('standard');
+                      setStartingBourse({ po: 10, pa: 0, pc: 0 });
+                      setDiceRollInfo(null);
+                    }}
+                    className={`p-2.5 rounded-lg border text-left cursor-pointer transition-all ${
+                      bourseMode === 'standard'
+                        ? 'bg-[#2b1f13] border-[#d4a84a] text-[#f3d48d]'
+                        : 'bg-[#18130e] border-[#302318] text-[#9e907d] hover:border-[#523d29]'
+                    }`}
+                  >
+                    <b className="text-xs block text-[#ede3d1]">📦 Pécule Fixe Standard (Recommandé)</b>
+                    <span className="text-[11px] text-[#9e907d]">10 PO (soit 100 PA) de départ fixe</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={rollStartingDice}
+                    className={`p-2.5 rounded-lg border text-left cursor-pointer transition-all ${
+                      bourseMode === 'dice'
+                        ? 'bg-[#2b1f13] border-[#d4a84a] text-[#f3d48d]'
+                        : 'bg-[#18130e] border-[#302318] text-[#9e907d] hover:border-[#523d29]'
+                    }`}
+                  >
+                    <b className="text-xs block text-[#ede3d1] flex items-center gap-1">
+                      <Dice5 className="w-3.5 h-3.5 text-[#d4a84a]" /> Tirage aux Dés (3d6 × 10 PA)
+                    </b>
+                    <span className="text-[11px] text-[#9e907d]">
+                      {diceRollInfo
+                        ? `Résultat : [${diceRollInfo.rolls.join(' + ')}] = ${diceRollInfo.totalPA} PA (${startingBourse.po} PO, ${startingBourse.pa} PA)`
+                        : 'Cliquer pour lancer 3d6 × 10 PA (moyenne 105 PA)'}
+                    </span>
+                  </button>
                 </div>
               </div>
             </div>
@@ -765,6 +1001,21 @@ export const PjCreationWizard: React.FC<PjCreationWizardProps> = ({
                   {startingPackage.armes.map((w) => w.n).join(', ')} • {startingPackage.arm || 'Sans armure'} • Sacoche et vivres de campagne
                 </p>
               </div>
+
+              {/* Starter Purse Recap */}
+              <div className="bg-[#231c15] p-3 rounded-lg border border-[#d4a84a]/50 text-xs flex items-center justify-between">
+                <div>
+                  <b className="text-xs text-[#f3d48d] uppercase tracking-wider block">
+                    Bourse de départ :
+                  </b>
+                  <span className="text-[#9e907d]">Pécule officiel attribué</span>
+                </div>
+                <div className="flex items-center gap-2 font-mono font-bold text-sm bg-[#120f0c] px-3 py-1.5 rounded border border-[#3d3023]">
+                  <span className="text-[#f1c40f]">🟡 {startingBourse.po} PO</span>
+                  <span className="text-[#cbd5e1]">⚪ {startingBourse.pa} PA</span>
+                  <span className="text-[#d97706]">🟤 {startingBourse.pc} PC</span>
+                </div>
+              </div>
             </div>
           )}
         </div>
@@ -789,7 +1040,12 @@ export const PjCreationWizard: React.FC<PjCreationWizardProps> = ({
 
           <button
             onClick={handleNext}
-            className="flex items-center gap-1.5 px-6 py-2 bg-gradient-to-r from-[#d4a84a] to-[#b38833] hover:from-[#e0b555] hover:to-[#c4973c] text-black font-bold rounded-lg text-xs shadow-md transition-all cursor-pointer"
+            disabled={step === 2 && !canProceedStep2}
+            className={`flex items-center gap-1.5 px-6 py-2 font-bold rounded-lg text-xs shadow-md transition-all ${
+              step === 2 && !canProceedStep2
+                ? 'bg-[#2a1d17] text-[#7d6550] border border-[#3d2a1d] cursor-not-allowed opacity-60'
+                : 'bg-gradient-to-r from-[#d4a84a] to-[#b38833] hover:from-[#e0b555] hover:to-[#c4973c] text-black cursor-pointer'
+            }`}
           >
             {step === 6 ? (
               <>

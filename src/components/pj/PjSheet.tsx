@@ -28,6 +28,8 @@ import {
   MapPin,
   AlertCircle,
   Send,
+  Coins,
+  Calculator,
 } from 'lucide-react';
 import { OSGILD_REGIONS, OSGILD_DEITIES, OSGILD_ACADEMIES } from '../../data/osgildLore';
 import { DetailModal, DetailItem } from '../DetailModal';
@@ -37,10 +39,12 @@ import { DeleteCharacterModal } from './DeleteCharacterModal';
 import { TableTransferModal } from './TableTransferModal';
 import { OsgildLorePj } from './OsgildLorePj';
 import { THARNEA_ARTIFACTS } from '../../data/tharneaSupplement';
+import { MoneyCalculatorModal } from '../common/MoneyCalculatorModal';
 import {
   ARMES_CATALOG,
   ARMURES_CATALOG,
   BIENS_CATALOG,
+  ALL_PJ_EQUIPMENT,
   CARAC_LIST,
   EQUIPEMENTS,
   ETATS,
