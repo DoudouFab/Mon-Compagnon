@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Header } from './components/Header';
 import { PjSheet } from './components/pj/PjSheet';
 import { PjCreationWizard } from './components/pj/PjCreationWizard';
@@ -138,10 +138,12 @@ export default function App() {
       }
       setAppMode('mj');
       window.location.hash = '#mj001';
+      if (realtimeTable.room) realtimeTable.setRole('mj', currentPjRef.current);
       return;
     }
     setAppMode(mode);
     window.location.hash = '#pj';
+    if (realtimeTable.room) realtimeTable.setRole('pj', currentPjRef.current);
   };
 
   const handleCopyLink = (type: 'pj' | 'mj') => {
@@ -174,6 +176,7 @@ export default function App() {
     setIsMjAuthorized(false);
     setAppMode('pj');
     window.location.hash = '#pj';
+    if (realtimeTable.room) realtimeTable.setRole('pj', currentPjRef.current);
     try {
       localStorage.removeItem('cof_mj_access');
       sessionStorage.removeItem('cof_mj_auth');
@@ -186,6 +189,7 @@ export default function App() {
     setIsMjAuthorized(true);
     setAppMode('mj');
     window.location.hash = '#mj001';
+    if (realtimeTable.room) realtimeTable.setRole('mj', currentPjRef.current);
     showToast('🔓 Accès MJ déverrouillé ! Bienvenue dans la Console du Meneur.');
   };
 
@@ -226,6 +230,16 @@ export default function App() {
     playerRoster.find((p) => p.id === activePjId) ||
     (playerRoster.length > 0 ? playerRoster[0] : null);
 
+  // Refs stables pour les callbacks temps réel (évite de recréer les écouteurs ou lire des closures obsolètes)
+  const appModeRef = useRef(appMode);
+  appModeRef.current = appMode;
+  const currentPjRef = useRef(currentPj);
+  currentPjRef.current = currentPj;
+  const activePjIdRef = useRef(activePjId);
+  activePjIdRef.current = activePjId;
+  const liveStatusRef = useRef(liveStatus);
+  liveStatusRef.current = liveStatus;
+
   const handleSelectPj = (pj: Character) => {
     const pjId = pj.id || 'pj_' + Date.now();
     setActivePjId(pjId);
@@ -236,12 +250,13 @@ export default function App() {
     showToast(`Héros "${pj.name}" sélectionné !`);
   };
 
-  const handleUpdateCurrentPj = (updated: Character) => {
-    if (realtimeTable.room) {
-      realtimeTable.updateHero(updated);
-    }
+  // Application purement locale d'une mise à jour PJ (utilisée par la synchro distante sans réécrire sur Firebase)
+  const applyLocalPjUpdate = (updated: Character, syncToMjTable = true) => {
     setPlayerRoster((prev) => {
       const idx = prev.findIndex((p) => p.id === updated.id);
+      if (idx >= 0 && JSON.stringify(prev[idx]) === JSON.stringify(updated)) {
+        return prev;
+      }
       let nextRoster: Character[];
       if (idx >= 0) {
         nextRoster = [...prev];
@@ -249,27 +264,32 @@ export default function App() {
       } else {
         nextRoster = [...prev, updated];
       }
-      try {
-        localStorage.setItem('co_player_roster', JSON.stringify(nextRoster));
-        localStorage.setItem('co_pj_local', JSON.stringify(updated));
-      } catch (e) {
-        console.error(e);
-      }
       return nextRoster;
     });
 
-    // Synchronisation immédiate vers la table MJ
-    setTableData((prevTable: any) => {
-      const pjs = [...prevTable.pjs];
-      const pIdx = pjs.findIndex(
-        (p: Character) => (p.id && p.id === updated.id) || (p.name || '').toLowerCase() === (updated.name || '').toLowerCase()
-      );
-      if (pIdx >= 0) {
-        pjs[pIdx] = { ...pjs[pIdx], ...updated };
-        return { ...prevTable, pjs };
-      }
-      return prevTable;
-    });
+    if (syncToMjTable) {
+      setTableData((prevTable: any) => {
+        const pjs = [...prevTable.pjs];
+        const pIdx = pjs.findIndex(
+          (p: Character) =>
+            (p.id && p.id === updated.id) || (p.name || '').toLowerCase() === (updated.name || '').toLowerCase()
+        );
+        if (pIdx >= 0) {
+          const merged = { ...pjs[pIdx], ...updated };
+          if (JSON.stringify(pjs[pIdx]) === JSON.stringify(merged)) return prevTable;
+          pjs[pIdx] = merged;
+          return { ...prevTable, pjs };
+        }
+        return prevTable;
+      });
+    }
+  };
+
+  const handleUpdateCurrentPj = (updated: Character) => {
+    if (realtimeTable.room && appModeRef.current === 'pj') {
+      realtimeTable.updateHero(updated);
+    }
+    applyLocalPjUpdate(updated, true);
   };
 
   const handleAddCharacter = (newChar: Character) => {
@@ -497,24 +517,41 @@ export default function App() {
     };
   });
 
-  // Persist PJ
+  const tableDataRef = useRef(tableData);
+  tableDataRef.current = tableData;
+
+  // Persist PJ & roster (debounced pour éviter les blocages UI lors des clics rapides)
   useEffect(() => {
-    if (currentPj) {
+    const timer = setTimeout(() => {
       try {
-        localStorage.setItem('co_pj_local', JSON.stringify(currentPj));
+        localStorage.setItem('co_player_roster', JSON.stringify(playerRoster));
+        if (currentPj) {
+          localStorage.setItem('co_pj_local', JSON.stringify(currentPj));
+        }
       } catch (e) {
         console.error(e);
       }
-    }
-  }, [currentPj]);
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [playerRoster, currentPj]);
 
-  // Persist MJ state
+  // Persist MJ state (debounced + uniquement les données dynamiques pjs/combatants pour ne pas sérialiser 400 Ko à chaque clic)
   useEffect(() => {
-    try {
-      localStorage.setItem('co_mj_table', JSON.stringify(tableData));
-    } catch (e) {
-      console.error(e);
-    }
+    const timer = setTimeout(() => {
+      try {
+        const dynamicPayload: Record<string, any> = {
+          pjs: tableData.pjs,
+          combatants: tableData.combatants,
+        };
+        if (tableData.bestiaire !== BESTIAIRE) {
+          dynamicPayload.bestiaire = tableData.bestiaire;
+        }
+        localStorage.setItem('co_mj_table', JSON.stringify(dynamicPayload));
+      } catch (e) {
+        console.error(e);
+      }
+    }, 350);
+    return () => clearTimeout(timer);
   }, [tableData]);
 
   // Toast notification auto-dismiss
@@ -529,48 +566,21 @@ export default function App() {
     setNotification(msg);
   };
 
-  // Real-time Live Table Callbacks
+  // Real-time Live Table Callbacks (monté une seule fois grâce aux refs)
   useEffect(() => {
     const unsub = realtimeTable.subscribe({
       onStatusChange: (status, msg) => {
         setLiveStatus(status);
         if (msg) showToast(msg);
       },
-      onHeroUpdated: (hero) => {
-        setConnectedHeroes((prev) => {
-          const idx = prev.findIndex((h) => h.id === hero.id);
-          if (idx >= 0) {
-            const next = [...prev];
-            next[idx] = hero;
-            return next;
-          }
-          return [...prev, hero];
-        });
-        setTableData((prev: any) => {
-          const pjs = [...prev.pjs];
-          const idx = pjs.findIndex(
-            (p: Character) => (p.id && p.id === hero.id) || p.name.toLowerCase() === hero.name.toLowerCase()
-          );
-          if (idx >= 0) pjs[idx] = hero;
-          else pjs.push(hero);
-
-          const combatants = prev.combatants.map((c: Combatant) => {
-            if (c.pjRefId === hero.id || c.n.toLowerCase() === hero.name.toLowerCase()) {
-              return { ...c, hp: hero.hp, hpMax: hero.hpMaxAuto || c.hpMax };
-            }
-            return c;
-          });
-          return { ...prev, pjs, combatants };
-        });
-        showToast(`🟢 ${hero.name} mis à jour en direct (${hero.hp} PV) !`);
-      },
-      onHeroPatchedByDm: (heroId, patch, updatedHero) => {
-        if (currentPj && (currentPj.id === heroId || currentPj.name.toLowerCase() === updatedHero.name.toLowerCase())) {
-          handleUpdateCurrentPj(updatedHero);
+      onHeroPatchedByDm: (heroId, _patch, updatedHero) => {
+        const cur = currentPjRef.current;
+        if (cur && (cur.id === heroId || cur.name.toLowerCase() === updatedHero.name.toLowerCase())) {
+          applyLocalPjUpdate(updatedHero, false);
           showToast(`✨ Fiche mise à jour en direct par le Meneur de Jeu !`);
         }
       },
-      onPeerJoined: (name, role, hero) => {
+      onPeerJoined: (name, _role, hero) => {
         if (hero) {
           setConnectedHeroes((prev) => {
             if (prev.some((h) => h.id === hero.id)) return prev;
@@ -589,91 +599,88 @@ export default function App() {
           (h: any) => h && typeof h === 'object' && h.name
         );
 
-        // 1. Côté Joueur : appliquer en direct les modifications faites par le MJ (PV, PM, états, points de capacité, butin)
-        if (appMode === 'pj' && currentPj) {
+        const mode = appModeRef.current;
+        const curPj = currentPjRef.current;
+
+        // 1. Côté Joueur : appliquer en direct les modifications faites par le MJ (sans réécrire vers Firebase)
+        if (mode === 'pj' && curPj) {
           const remote = incomingHeroes.find(
-            (h) => (h.id && h.id === currentPj.id) || (h.name && h.name.toLowerCase() === currentPj.name.toLowerCase())
+            (h) => (h.id && h.id === curPj.id) || (h.name && h.name.toLowerCase() === curPj.name.toLowerCase())
           );
-          if (remote && (remote.dmPatchAt || 0) > (currentPj.dmPatchAt || 0)) {
-            handleUpdateCurrentPj({
-              ...currentPj,
-              hp: remote.hp,
-              pm: remote.pm ?? currentPj.pm,
-              ptsCap: remote.ptsCap,
-              ptsCapCadeaux: remote.ptsCapCadeaux,
-              bourse: remote.bourse || currentPj.bourse || { po: 0, pa: 0, pc: 0 },
-              etats: remote.etats || [],
-              inventaire: remote.inventaire || [],
-              dmPatchAt: remote.dmPatchAt,
-            });
+          if (remote && (remote.dmPatchAt || 0) > (curPj.dmPatchAt || 0)) {
+            applyLocalPjUpdate(
+              {
+                ...curPj,
+                hp: remote.hp,
+                pm: remote.pm ?? curPj.pm,
+                ptsCap: remote.ptsCap,
+                ptsCapCadeaux: remote.ptsCapCadeaux,
+                bourse: remote.bourse || curPj.bourse || { po: 0, pa: 0, pc: 0 },
+                etats: remote.etats || [],
+                inventaire: remote.inventaire || [],
+                dmPatchAt: remote.dmPatchAt,
+              },
+              false
+            );
             showToast('✨ Le Meneur de Jeu a mis à jour ta fiche en direct !');
           }
         }
 
-        // 2. Côté Meneur de Jeu (MJ) : appliquer en direct les modifications faites par les Joueurs (PV, PM, états, compétences...)
-        if (appMode === 'mj' && incomingHeroes.length > 0) {
+        // 2. Côté Meneur de Jeu (MJ) : appliquer en direct les modifications faites par les Joueurs
+        if (mode === 'mj') {
           setConnectedHeroes(incomingHeroes);
-          setTableData((prev: any) => {
-            const pjs = [...prev.pjs];
-            let changed = false;
+          if (incomingHeroes.length > 0) {
+            let autoAdd = true;
+            try {
+              autoAdd = localStorage.getItem('co_mj_auto_add_players') !== '0';
+            } catch {}
 
-            incomingHeroes.forEach((remoteHero) => {
-              const idx = pjs.findIndex(
-                (p: Character) =>
-                  (remoteHero.id && p.id === remoteHero.id) ||
-                  (p.name || '').toLowerCase() === (remoteHero.name || '').toLowerCase()
-              );
-
-              if (idx >= 0) {
-                const existing = pjs[idx];
-                const merged: Character = {
-                  ...existing,
-                  ...remoteHero,
-                  etats: remoteHero.etats || [],
-                };
-                if (JSON.stringify(existing) !== JSON.stringify(merged)) {
-                  pjs[idx] = merged;
-                  changed = true;
-                }
-              } else {
-                pjs.push(remoteHero);
-                changed = true;
-              }
-            });
-
-            if (!changed) return prev;
-
-            const combatants = prev.combatants.map((c: Combatant) => {
-              const match = incomingHeroes.find(
-                (h) => (h.id && c.pjRefId === h.id) || (h.name && c.n.toLowerCase().startsWith(h.name.toLowerCase()))
-              );
-              if (match) {
-                return {
-                  ...c,
-                  hp: match.hp,
-                  hpMax: match.hpMaxAuto || match.hpMaxManual || c.hpMax,
-                  etats: match.etats || [],
-                };
-              }
-              return c;
-            });
-
-            return { ...prev, pjs, combatants };
-          });
-        }
-      },
-      onRoomState: (state) => {
-        if (state && Array.isArray(state.heroes)) {
-          setConnectedHeroes(state.heroes);
-          if (appMode === 'mj' && state.heroes.length > 0) {
             setTableData((prev: any) => {
               const pjs = [...prev.pjs];
-              state.heroes.forEach((h: Character) => {
-                const idx = pjs.findIndex((p: Character) => p.id === h.id || p.name.toLowerCase() === h.name.toLowerCase());
-                if (idx >= 0) pjs[idx] = h;
-                else pjs.push(h);
+              let changed = false;
+
+              incomingHeroes.forEach((remoteHero) => {
+                const idx = pjs.findIndex(
+                  (p: Character) =>
+                    (remoteHero.id && p.id === remoteHero.id) ||
+                    (p.name || '').toLowerCase() === (remoteHero.name || '').toLowerCase()
+                );
+
+                if (idx >= 0) {
+                  const existing = pjs[idx];
+                  const merged: Character = {
+                    ...existing,
+                    ...remoteHero,
+                    etats: remoteHero.etats || [],
+                  };
+                  if (JSON.stringify(existing) !== JSON.stringify(merged)) {
+                    pjs[idx] = merged;
+                    changed = true;
+                  }
+                } else if (autoAdd) {
+                  pjs.push(remoteHero);
+                  changed = true;
+                }
               });
-              return { ...prev, pjs };
+
+              if (!changed) return prev;
+
+              const combatants = prev.combatants.map((c: Combatant) => {
+                const match = incomingHeroes.find(
+                  (h) => (h.id && c.pjRefId === h.id) || (h.name && c.n.toLowerCase().startsWith(h.name.toLowerCase()))
+                );
+                if (match) {
+                  return {
+                    ...c,
+                    hp: match.hp,
+                    hpMax: match.hpMaxAuto || match.hpMaxManual || c.hpMax,
+                    etats: match.etats || [],
+                  };
+                }
+                return c;
+              });
+
+              return { ...prev, pjs, combatants };
             });
           }
         }
@@ -682,7 +689,7 @@ export default function App() {
     return () => {
       unsub();
     };
-  }, [currentPj, appMode]);
+  }, []);
 
   // Connexion automatique à la table mémorisée ou reçue par lien (?table=CODE) : sans ça, personne n'est connecté
   useEffect(() => {
@@ -878,13 +885,17 @@ export default function App() {
           <MjConsole
             tableData={tableData}
             onUpdateTableData={(updated) => {
+              const prevTable = tableDataRef.current;
               const now = Date.now();
-              const isLive = liveStatus === 'connected' || Boolean(realtimeTable.room);
+              const isLive = liveStatusRef.current === 'connected' || Boolean(realtimeTable.room);
+              const stripPatch = (h: Character) => ({ ...h, dmPatchAt: 0 });
+
               const nextPjs = updated.pjs.map((p: Character) => {
-                const old = tableData.pjs.find(
-                  (o: Character) => (o.id && o.id === p.id) || (o.name || '').toLowerCase() === (p.name || '').toLowerCase()
+                const old = prevTable.pjs.find(
+                  (o: Character) =>
+                    (o.id && o.id === p.id) || (o.name || '').toLowerCase() === (p.name || '').toLowerCase()
                 );
-                if (!old || JSON.stringify(old) !== JSON.stringify(p)) {
+                if (!old || JSON.stringify(stripPatch(old)) !== JSON.stringify(stripPatch(p))) {
                   const patched = { ...p, dmPatchAt: now };
                   if (isLive) {
                     realtimeTable.updateHero(patched);
@@ -894,7 +905,7 @@ export default function App() {
                 return p;
               });
 
-              if (isLive && JSON.stringify(updated.combatants) !== JSON.stringify(tableData.combatants)) {
+              if (isLive && JSON.stringify(updated.combatants) !== JSON.stringify(prevTable.combatants)) {
                 realtimeTable.syncCombat(updated.combatants);
               }
 
@@ -903,7 +914,8 @@ export default function App() {
                 let changed = false;
                 const newRoster = prevRoster.map((p) => {
                   const match = nextPjs.find(
-                    (up: Character) => (up.id && up.id === p.id) || (up.name || '').toLowerCase() === (p.name || '').toLowerCase()
+                    (up: Character) =>
+                      (up.id && up.id === p.id) || (up.name || '').toLowerCase() === (p.name || '').toLowerCase()
                   );
                   if (match && JSON.stringify(match) !== JSON.stringify(p)) {
                     changed = true;
@@ -911,18 +923,12 @@ export default function App() {
                   }
                   return p;
                 });
-                if (changed) {
-                  try {
-                    localStorage.setItem('co_player_roster', JSON.stringify(newRoster));
-                    const active = newRoster.find((p) => p.id === activePjId);
-                    if (active) localStorage.setItem('co_pj_local', JSON.stringify(active));
-                  } catch {}
-                  return newRoster;
-                }
-                return prevRoster;
+                return changed ? newRoster : prevRoster;
               });
 
-              setTableData({ ...updated, pjs: nextPjs });
+              const nextTable = { ...updated, pjs: nextPjs };
+              tableDataRef.current = nextTable;
+              setTableData(nextTable);
             }}
             currentActivePj={currentPj}
             onImportActivePj={handleSendPjToMj}

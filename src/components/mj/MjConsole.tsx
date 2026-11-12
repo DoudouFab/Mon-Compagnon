@@ -212,14 +212,8 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
   const [newCombatantNotes, setNewCombatantNotes] = useState('');
 
   // ==================== SYNCHRO TEMPS RÉEL FIREBASE (PJ) ====================
-  // Références toujours à jour : l'écouteur est monté une seule fois et doit lire l'état courant.
-  const tableDataRef = React.useRef<MjTableData>(tableData);
-  const onUpdateTableDataRef = React.useRef(onUpdateTableData);
-  tableDataRef.current = tableData;
-  onUpdateTableDataRef.current = onUpdateTableData;
-
   // Joueurs actuellement en ligne (dernier instantané reçu) + compteur de diagnostic
-  const [onlineHeroes, setOnlineHeroes] = useState<Character[]>([]);
+  const [onlineHeroes, setOnlineHeroes] = useState<Character[]>(() => realtimeTable.getLastHeroes());
   const [rtStats, setRtStats] = useState<{ events: number; last: string }>({ events: 0, last: '' });
   // Ajout automatique des nouveaux joueurs à la table (activé par défaut, mémorisé)
   const [autoAddPlayers, setAutoAddPlayers] = useState<boolean>(() => {
@@ -229,11 +223,16 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
       return true;
     }
   });
-  const autoAddRef = React.useRef(autoAddPlayers);
-  autoAddRef.current = autoAddPlayers;
+  const lastOnlineJsonRef = React.useRef<string>('');
 
   React.useEffect(() => {
     let disposed = false;
+    const syncInitial = realtimeTable.getLastHeroes();
+    if (syncInitial.length > 0) {
+      lastOnlineJsonRef.current = JSON.stringify(syncInitial);
+      setOnlineHeroes(syncInitial);
+    }
+
     const unsub = realtimeTable.subscribe({
       onHeroesChanged: (heroesMap: any) => {
         if (disposed) return;
@@ -246,39 +245,12 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
           ? hm
           : Object.values(hm);
         const incoming = values.filter((h) => h && typeof h === 'object' && h.name) as Character[];
+        const json = JSON.stringify(incoming);
+        if (json === lastOnlineJsonRef.current) return;
+        lastOnlineJsonRef.current = json;
+
         setRtStats((s) => ({ events: s.events + 1, last: new Date().toLocaleTimeString('fr-FR') }));
         setOnlineHeroes(incoming);
-        if (!incoming.length) return;
-
-        const current = tableDataRef.current;
-        const pjs = [...current.pjs];
-        let changed = false;
-
-        incoming.forEach((hero) => {
-          const idx = pjs.findIndex(
-            (p) =>
-              (!!hero.id && p.id === hero.id) ||
-              (p.name || '').toLowerCase() === hero.name.toLowerCase()
-          );
-          if (idx === -1) {
-            if (autoAddRef.current) {
-              pjs.push(hero);
-              changed = true;
-            }
-            return;
-          }
-          // Fusion : la fiche distante du joueur met à jour les stats locales (y compris la suppression d'états)
-          const merged: Character = { ...pjs[idx], ...hero, etats: hero.etats || [] };
-          if (JSON.stringify(merged) !== JSON.stringify(pjs[idx])) {
-            pjs[idx] = merged;
-            changed = true;
-          }
-        });
-
-        if (!changed) return;
-        const next: MjTableData = { ...current, pjs };
-        tableDataRef.current = next;
-        onUpdateTableDataRef.current(next);
       },
     });
     return () => {

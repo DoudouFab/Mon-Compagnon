@@ -45,10 +45,14 @@ export const PjCreationWizard: React.FC<PjCreationWizardProps> = ({
   const [statMode, setStatMode] = useState<'standard' | 'heroique'>('standard');
   const [selectedCaps, setSelectedCaps] = useState<string[]>([]);
 
-  // Starting money (Bourse de départ)
-  const [bourseMode, setBourseMode] = useState<'standard' | 'dice' | 'custom'>('standard');
+  // Starting money (Bourse de départ) — Par défaut : Tirage 3d6 × 10 PA (saisie dés physiques ou tirage virtuel)
+  const [bourseMode, setBourseMode] = useState<'standard' | 'dice' | 'custom'>('dice');
+  const [physicalDice, setPhysicalDice] = useState<[number, number, number]>([3, 4, 3]);
   const [startingBourse, setStartingBourse] = useState<CurrencyBourse>({ po: 10, pa: 0, pc: 0 });
-  const [diceRollInfo, setDiceRollInfo] = useState<{ rolls: number[]; totalPA: number } | null>(null);
+  const [diceRollInfo, setDiceRollInfo] = useState<{ rolls: number[]; totalPA: number }>({
+    rolls: [3, 4, 3],
+    totalPA: 100,
+  });
 
   // Identity asked at the end
   const [name, setName] = useState<string>('');
@@ -114,7 +118,7 @@ export const PjCreationWizard: React.FC<PjCreationWizardProps> = ({
 
   const maxStatBudget = statMode === 'heroique' ? 6 : 4;
   const maxStatBase = 18;
-  const minStatBase = 8;
+  const minStatBase = 3;
 
   // Règle 1 : Total exact des modificateurs
   const isModSumValid = modSum === maxStatBudget;
@@ -133,21 +137,49 @@ export const PjCreationWizard: React.FC<PjCreationWizardProps> = ({
     { label: '⚖️ Polyvalent', stats: { FOR: 14, DEX: 13, CON: 12, INT: 11, SAG: 11, CHA: 11 } },       // +2 +1 +1 0 0 0 = +4 | Pairs: 14, 12 (2 pairs)
   ];
 
+  const applyDiceRolls = (d1: number, d2: number, d3: number) => {
+    const safe1 = Math.max(1, Math.min(6, d1));
+    const safe2 = Math.max(1, Math.min(6, d2));
+    const safe3 = Math.max(1, Math.min(6, d3));
+    const sum = safe1 + safe2 + safe3;
+    const totalPA = sum * 10;
+    const po = Math.floor(totalPA / 10);
+    const pa = totalPA % 10;
+    setPhysicalDice([safe1, safe2, safe3]);
+    setStartingBourse({ po, pa, pc: 0 });
+    setDiceRollInfo({ rolls: [safe1, safe2, safe3], totalPA });
+    setBourseMode('dice');
+  };
+
   const rollStartingDice = () => {
     const d1 = Math.floor(Math.random() * 6) + 1;
     const d2 = Math.floor(Math.random() * 6) + 1;
     const d3 = Math.floor(Math.random() * 6) + 1;
-    const sum = d1 + d2 + d3;
-    const totalPA = sum * 10;
-    const po = Math.floor(totalPA / 10);
-    const pa = totalPA % 10;
-    setStartingBourse({ po, pa, pc: 0 });
-    setDiceRollInfo({ rolls: [d1, d2, d3], totalPA });
-    setBourseMode('dice');
+    applyDiceRolls(d1, d2, d3);
+  };
+
+  const handlePhysicalDieChange = (dieIndex: 0 | 1 | 2, rawVal: number) => {
+    const next: [number, number, number] = [...physicalDice] as [number, number, number];
+    next[dieIndex] = Number.isNaN(rawVal) ? 1 : Math.max(1, Math.min(6, rawVal));
+    applyDiceRolls(next[0], next[1], next[2]);
+  };
+
+  const handlePhysicalTotalSumChange = (rawSum: number) => {
+    const clampedSum = Number.isNaN(rawSum) ? 3 : Math.max(3, Math.min(18, rawSum));
+    // Répartir proprement sur 3d6 (ex: 12 -> 4, 4, 4)
+    const base = Math.floor(clampedSum / 3);
+    const rem = clampedSum % 3;
+    const d1 = base + (rem >= 1 ? 1 : 0);
+    const d2 = base + (rem >= 2 ? 1 : 0);
+    const d3 = base;
+    applyDiceRolls(d1, d2, d3);
   };
 
   const handleStatChange = (c: CaracName, val: number) => {
-    if (val < minStatBase) return;
+    if (val < minStatBase) {
+      alert(`Plancher officiel COF : Le score de base minimum est de ${minStatBase} (modificateur -4) avant bonus racial.`);
+      return;
+    }
     if (val > maxStatBase) {
       alert(`Plafond officiel niveau 1 : Le score de base maximum est de 18 (modificateur +4) avant bonus racial.`);
       return;
@@ -472,7 +504,7 @@ export const PjCreationWizard: React.FC<PjCreationWizardProps> = ({
                 <div>
                   <b className="text-[#f3d48d] block font-serif-co text-sm">Mode de répartition des Caractéristiques :</b>
                   <p className="text-[#9e907d] text-[11px]">
-                    Mode officiel Standard (+4 max, 2 pairs) ou Héroïque (+6 max).
+                    Mode officiel Standard (+4 max, 2 pairs) ou Héroïque (+6 max) • Échelle complète : <b>3 (-4) à 18 (+4)</b>.
                   </p>
                 </div>
                 <div className="flex items-center gap-1 bg-[#120f0c] p-1 rounded-lg border border-[#3d3023] shrink-0">
@@ -770,9 +802,121 @@ export const PjCreationWizard: React.FC<PjCreationWizardProps> = ({
                   </div>
                 </div>
 
-                {/* Les 2 Possibilités officielles */}
+                {/* Les 2 Possibilités officielles (Dés physiques / virtuels par défaut en premier) */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {/* POSSIBILITÉ 1 : PÉCULE FIXE DE 10 PO */}
+                  {/* POSSIBILITÉ 1 (PAR DÉFAUT) : DÉS PHYSIQUES / TIRAGE 3d6 × 10 PA */}
+                  <div
+                    onClick={() => {
+                      if (bourseMode !== 'dice') {
+                        applyDiceRolls(physicalDice[0], physicalDice[1], physicalDice[2]);
+                      }
+                    }}
+                    className={`p-3.5 rounded-xl border-2 cursor-pointer transition-all flex flex-col justify-between ${
+                      bourseMode === 'dice'
+                        ? 'bg-[#2b1f13] border-[#d4a84a] shadow-lg shadow-[#d4a84a]/10 ring-1 ring-[#d4a84a]/40'
+                        : 'bg-[#18130e] border-[#302318] hover:border-[#634b31] opacity-75 hover:opacity-100'
+                    }`}
+                  >
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${
+                            bourseMode === 'dice' ? 'border-[#d4a84a] bg-[#d4a84a]' : 'border-[#665440]'
+                          }`}>
+                            {bourseMode === 'dice' && <div className="w-1.5 h-1.5 rounded-full bg-black" />}
+                          </div>
+                          <b className="text-xs font-bold text-[#ede3d1] flex items-center gap-1">
+                            <Dice5 className="w-3.5 h-3.5 text-[#d4a84a]" />
+                            Dés Physiques / 3d6 × 10 PA
+                          </b>
+                        </div>
+                        <span className="text-[10px] uppercase font-bold text-[#f3d48d] bg-[#3d2b16] px-2 py-0.5 rounded border border-[#6b4c26]">
+                          Par défaut
+                        </span>
+                      </div>
+
+                      <div className="text-2xl font-serif-co font-bold text-[#f3d48d] mb-1 flex items-center gap-1.5">
+                        <span>{diceRollInfo.rolls.reduce((a, b) => a + b, 0)} PO</span>
+                        <span className="text-xs font-mono text-[#cbd5e1] font-normal">
+                          ({diceRollInfo.totalPA} PA)
+                        </span>
+                      </div>
+
+                      <p className="text-xs text-[#cbb8a7] leading-relaxed">
+                        Lancez <b>3d6 physiques sur la table</b> et saisissez vos résultats ci-dessous (ou lancez les dés virtuels) :
+                      </p>
+
+                      {/* Saisie des 3 dés physiques ou du total */}
+                      <div
+                        onClick={(e) => e.stopPropagation()}
+                        className="mt-2.5 p-2.5 bg-[#140e0a] rounded-lg border border-[#3d2b1c] space-y-2"
+                      >
+                        <div className="flex items-center justify-between gap-2 flex-wrap">
+                          <span className="text-[10px] font-bold uppercase text-[#9e907d]">
+                            Vos 3 dés physiques (1 à 6) :
+                          </span>
+                          <div className="flex items-center gap-1.5">
+                            {([0, 1, 2] as const).map((dieIdx) => (
+                              <div key={dieIdx} className="flex flex-col items-center">
+                                <input
+                                  type="number"
+                                  min={1}
+                                  max={6}
+                                  value={physicalDice[dieIdx]}
+                                  onFocus={(e) => e.target.select()}
+                                  onChange={(e) => handlePhysicalDieChange(dieIdx, parseInt(e.target.value, 10))}
+                                  aria-label={`Dé physique ${dieIdx + 1}`}
+                                  className="w-10 h-9 rounded-lg bg-[#2b1f13] border border-[#d4a84a]/70 focus:border-[#f3d48d] text-[#f3d48d] font-bold text-sm text-center font-mono outline-none shadow-xs"
+                                />
+                                <span className="text-[9px] text-[#7d6c5a] mt-0.5">D{dieIdx + 1}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-between pt-1.5 border-t border-[#291e14] text-xs">
+                          <span className="text-[11px] text-[#9e907d]">Ou total direct (3 à 18) :</span>
+                          <div className="flex items-center gap-1.5">
+                            <input
+                              type="number"
+                              min={3}
+                              max={18}
+                              value={physicalDice[0] + physicalDice[1] + physicalDice[2]}
+                              onFocus={(e) => e.target.select()}
+                              onChange={(e) => handlePhysicalTotalSumChange(parseInt(e.target.value, 10))}
+                              aria-label="Total des 3d6"
+                              className="w-12 h-7 rounded bg-[#231910] border border-[#5c4329] focus:border-[#d4a84a] text-[#ede3d1] font-bold text-xs text-center font-mono outline-none"
+                            />
+                            <span className="text-[11px] text-[#d4a84a] font-mono font-bold">
+                              × 10 = {diceRollInfo.totalPA} PA
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="mt-3 pt-2 border-t border-[#3d2f21] flex items-center justify-between">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          rollStartingDice();
+                        }}
+                        className="px-3 py-1 bg-gradient-to-r from-[#d4a84a] to-[#ab8230] hover:brightness-110 text-black text-xs font-bold rounded-lg flex items-center gap-1 shadow-xs cursor-pointer"
+                      >
+                        <RefreshCw className="w-3 h-3 text-black" />
+                        <span>Tirage virtuel 3d6</span>
+                      </button>
+
+                      {bourseMode === 'dice' && (
+                        <span className="text-[#86efac] text-[11px] font-bold flex items-center gap-1">
+                          <Check className="w-3.5 h-3.5" /> Sélectionné
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* POSSIBILITÉ 2 : PÉCULE FIXE DE 10 PO */}
                   <div
                     onClick={() => {
                       setBourseMode('standard');
@@ -793,11 +937,11 @@ export const PjCreationWizard: React.FC<PjCreationWizardProps> = ({
                             {bourseMode === 'standard' && <div className="w-1.5 h-1.5 rounded-full bg-black" />}
                           </div>
                           <b className="text-xs font-bold text-[#ede3d1]">
-                            Possibilité 1 : Montant Fixe
+                            Option Fixe : 10 PO
                           </b>
                         </div>
-                        <span className="text-[10px] uppercase font-bold text-[#f3d48d] bg-[#3d2b16] px-2 py-0.5 rounded border border-[#6b4c26]">
-                          Recommandé
+                        <span className="text-[10px] uppercase font-bold text-[#7eaadb] bg-[#142338] px-2 py-0.5 rounded border border-[#2b4c7a]">
+                          Équilibré
                         </span>
                       </div>
 
@@ -807,7 +951,7 @@ export const PjCreationWizard: React.FC<PjCreationWizardProps> = ({
                       </div>
 
                       <p className="text-xs text-[#cbb8a7] leading-relaxed">
-                        Chaque héros débute avec exactement <b>10 pièces d&apos;or</b>. C&apos;est la méthode officielle recommandée pour démarrer rapidement sans déséquilibre financier entre les joueurs.
+                        Alternative sans aléa : chaque héros débute avec exactement <b>10 pièces d&apos;or</b> fixes pour garantir une stricte égalité financière au sein du groupe.
                       </p>
                     </div>
 
@@ -815,93 +959,6 @@ export const PjCreationWizard: React.FC<PjCreationWizardProps> = ({
                       <span className="text-[#9e907d]">Sécurité &amp; Équilibre</span>
                       {bourseMode === 'standard' && (
                         <span className="text-[#86efac] font-bold flex items-center gap-1">
-                          <Check className="w-3.5 h-3.5" /> Sélectionné
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* POSSIBILITÉ 2 : TIRAGE AUX DÉS (3d6 × 10 PA) */}
-                  <div
-                    onClick={() => {
-                      if (bourseMode !== 'dice') {
-                        rollStartingDice();
-                      }
-                    }}
-                    className={`p-3.5 rounded-xl border-2 cursor-pointer transition-all flex flex-col justify-between ${
-                      bourseMode === 'dice'
-                        ? 'bg-[#2b1f13] border-[#d4a84a] shadow-lg shadow-[#d4a84a]/10 ring-1 ring-[#d4a84a]/40'
-                        : 'bg-[#18130e] border-[#302318] hover:border-[#634b31] opacity-75 hover:opacity-100'
-                    }`}
-                  >
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-2">
-                          <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${
-                            bourseMode === 'dice' ? 'border-[#d4a84a] bg-[#d4a84a]' : 'border-[#665440]'
-                          }`}>
-                            {bourseMode === 'dice' && <div className="w-1.5 h-1.5 rounded-full bg-black" />}
-                          </div>
-                          <b className="text-xs font-bold text-[#ede3d1] flex items-center gap-1">
-                            <Dice5 className="w-3.5 h-3.5 text-[#d4a84a]" />
-                            Possibilité 2 : Tirage aux Dés
-                          </b>
-                        </div>
-                        <span className="text-[10px] uppercase font-bold text-[#7eaadb] bg-[#142338] px-2 py-0.5 rounded border border-[#2b4c7a]">
-                          3d6 × 10 PA
-                        </span>
-                      </div>
-
-                      <div className="text-2xl font-serif-co font-bold text-[#f3d48d] mb-1 flex items-center gap-1.5">
-                        {diceRollInfo ? (
-                          <>
-                            <span>{startingBourse.po} PO {startingBourse.pa > 0 ? `et ${startingBourse.pa} PA` : ''}</span>
-                            <span className="text-xs font-mono text-[#cbd5e1] font-normal">({diceRollInfo.totalPA} PA)</span>
-                          </>
-                        ) : (
-                          <span className="text-lg text-[#9e907d]">30 à 180 PA (moy. 105)</span>
-                        )}
-                      </div>
-
-                      <p className="text-xs text-[#cbb8a7] leading-relaxed">
-                        Tirage officiel : <b>3d6 × 10 PA</b>. Permet de commencer avec une bourse plus garnie si la chance vous sourit, ou plus modeste !
-                      </p>
-
-                      {/* Visual Dice Display */}
-                      {diceRollInfo && (
-                        <div className="mt-2.5 p-2 bg-[#140e0a] rounded-lg border border-[#3d2b1c] flex items-center justify-between gap-2">
-                          <div className="flex items-center gap-1.5">
-                            {diceRollInfo.rolls.map((r, rIdx) => (
-                              <span
-                                key={rIdx}
-                                className="w-7 h-7 rounded bg-[#2b1f13] border border-[#d4a84a]/60 text-[#f3d48d] font-bold text-xs flex items-center justify-center font-mono shadow-xs"
-                              >
-                                {r}
-                              </span>
-                            ))}
-                            <span className="text-xs text-[#9e907d] font-mono">
-                              = {diceRollInfo.rolls.reduce((a, b) => a + b, 0)} × 10 = {diceRollInfo.totalPA} PA
-                            </span>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="mt-3 pt-2 border-t border-[#3d2f21] flex items-center justify-between">
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          rollStartingDice();
-                        }}
-                        className="px-3 py-1 bg-gradient-to-r from-[#d4a84a] to-[#ab8230] hover:brightness-110 text-black text-xs font-bold rounded-lg flex items-center gap-1 shadow-xs cursor-pointer"
-                      >
-                        <RefreshCw className="w-3 h-3 text-black" />
-                        <span>{diceRollInfo ? 'Relancer les 3d6' : 'Lancer les 3d6'}</span>
-                      </button>
-
-                      {bourseMode === 'dice' && (
-                        <span className="text-[#86efac] text-[11px] font-bold flex items-center gap-1">
                           <Check className="w-3.5 h-3.5" /> Sélectionné
                         </span>
                       )}

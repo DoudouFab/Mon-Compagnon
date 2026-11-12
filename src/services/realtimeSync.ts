@@ -71,6 +71,12 @@ class RealtimeTableManager {
   private dbUnsubscribe: (() => void) | null = null;
   private presenceUnsub: (() => void) | null = null;
   private knownHeroKeys = new Set<string>();
+  private lastStatus: LiveConnectionStatus = 'disconnected';
+  private lastHeroesMap: Record<string, Character> = {};
+  private lastHeroesJson: string = '';
+  private lastCombatJson: string = '';
+  private lastRollTimestamp: number = 0;
+  private lastWrittenHeroByKey: Map<string, string> = new Map();
 
   public get room(): string {
     return this.currentRoom;
@@ -78,6 +84,21 @@ class RealtimeTableManager {
 
   public get role(): 'mj' | 'pj' {
     return this.currentRole;
+  }
+
+  public getLastHeroes(): Character[] {
+    return Object.values(this.lastHeroesMap);
+  }
+
+  public setRole(role: 'mj' | 'pj', hero?: Character | null) {
+    this.currentRole = role;
+    if (hero !== undefined) this.cachedHero = hero;
+    if (!this.currentRoom) return;
+    if (role === 'pj') {
+      if (!this.presenceUnsub && this.cachedHero) this.startPresence();
+    } else {
+      this.stopPresence();
+    }
   }
 
   public subscribe(cbs: TableLiveEventCallbacks): () => void {
@@ -93,6 +114,12 @@ class RealtimeTableManager {
 
   public removeCallbacks(cbs: TableLiveEventCallbacks) {
     this.listeners.delete(cbs);
+  }
+
+  private setStatus(status: LiveConnectionStatus, msg?: string) {
+    if (this.lastStatus === status) return;
+    this.lastStatus = status;
+    this.emit('onStatusChange', status, msg);
   }
 
   private emit<K extends keyof TableLiveEventCallbacks>(
@@ -115,6 +142,12 @@ class RealtimeTableManager {
     const code = roomCode.trim().toUpperCase();
     if (!code) return;
 
+    // Éviter de reconnecter inutilement si déjà connecté à la même salle avec le même rôle
+    if (this.currentRoom === code && this.currentRole === role && this.dbUnsubscribe) {
+      if (hero) this.cachedHero = hero;
+      return;
+    }
+
     this.currentRoom = code;
     this.currentRole = role;
     this.cachedHero = hero || null;
@@ -126,8 +159,13 @@ class RealtimeTableManager {
     }
     this.stopPresence();
     this.knownHeroKeys = new Set<string>();
+    this.lastHeroesMap = {};
+    this.lastHeroesJson = '';
+    this.lastCombatJson = '';
+    this.lastRollTimestamp = 0;
+    this.lastWrittenHeroByKey.clear();
 
-    this.emit('onStatusChange', 'connecting', `Connexion à la table ${code}...`);
+    this.setStatus('connecting', `Connexion à la table ${code}...`);
 
     try {
       const roomRef = ref(db, 'tables/' + this.currentRoom);
@@ -135,7 +173,7 @@ class RealtimeTableManager {
       // S'inscrire aux changements en temps réel sur Firebase
       const unsubscribe = onValue(roomRef, (snapshot) => {
         const roomData = snapshot.val();
-        this.emit('onStatusChange', 'connected', `Connecté en direct à la table ${code}`);
+        this.setStatus('connected', `Connecté en direct à la table ${code}`);
 
         // Normaliser les héros reçus de Firebase (garantit etats: [], inventaire: [], etc.)
         const rawHeroes = (roomData && roomData.heroes) || {};
@@ -146,39 +184,52 @@ class RealtimeTableManager {
           }
         });
 
-        // Toujours prévenir l'interface, même salle vide : le MJ voit ainsi « 0 joueur en ligne ».
-        this.emit('onHeroesChanged', normalizedHeroesMap);
+        const heroesJson = JSON.stringify(normalizedHeroesMap);
+        if (heroesJson !== this.lastHeroesJson) {
+          this.lastHeroesJson = heroesJson;
+          this.lastHeroesMap = normalizedHeroesMap;
+
+          // Toujours prévenir l'interface, même salle vide : le MJ voit ainsi « 0 joueur en ligne ».
+          this.emit('onHeroesChanged', normalizedHeroesMap);
+
+          if (roomData) {
+            const normalizedRoomData = {
+              ...roomData,
+              heroes: Object.values(normalizedHeroesMap),
+            };
+            this.emit('onRoomState', normalizedRoomData);
+
+            // Le MJ est averti une seule fois par nouveau héros (et non à chaque mise à jour de la salle)
+            if (roomData.heroes && this.currentRole === 'mj') {
+              Object.entries(normalizedHeroesMap).forEach(([k, h]) => {
+                if (h && h.name && !this.knownHeroKeys.has(k)) {
+                  this.knownHeroKeys.add(k);
+                  this.emit('onPeerJoined', h.name, 'pj', h);
+                }
+              });
+            }
+          }
+        }
 
         if (roomData) {
-          const normalizedRoomData = {
-            ...roomData,
-            heroes: Object.values(normalizedHeroesMap),
-          };
-          this.emit('onRoomState', normalizedRoomData);
-
-          // Le MJ est averti une seule fois par nouveau héros (et non à chaque mise à jour de la salle)
-          if (roomData.heroes && this.currentRole === 'mj') {
-            Object.entries(normalizedHeroesMap).forEach(([k, h]) => {
-              if (h && h.name && !this.knownHeroKeys.has(k)) {
-                this.knownHeroKeys.add(k);
-                this.emit('onPeerJoined', h.name, 'pj', h);
-              }
-            });
-          }
-
           // Si un nouveau dé a été lancé par quelqu'un d'autre
-          if (roomData.lastRoll) {
+          if (roomData.lastRoll && roomData.lastRoll.timestamp !== this.lastRollTimestamp) {
+            this.lastRollTimestamp = roomData.lastRoll.timestamp || 0;
             this.emit('onDiceRolled', roomData.lastRoll);
           }
 
           // Si le combat a été mis à jour
           if (roomData.combatants) {
-            this.emit('onCombatUpdated', roomData.combatants);
+            const combatJson = JSON.stringify(roomData.combatants);
+            if (combatJson !== this.lastCombatJson) {
+              this.lastCombatJson = combatJson;
+              this.emit('onCombatUpdated', roomData.combatants);
+            }
           }
         }
       }, (error) => {
         console.error('[Firebase Sync Error]', error);
-        this.emit('onStatusChange', 'error', 'Liaison serveur indisponible.');
+        this.setStatus('error', 'Liaison serveur indisponible.');
       });
 
       this.dbUnsubscribe = unsubscribe; // onValue renvoie directement la fonction de désabonnement
@@ -191,7 +242,7 @@ class RealtimeTableManager {
       this.emit('onPeerJoined', clientName, this.currentRole, this.cachedHero || undefined);
 
     } catch (err: any) {
-      this.emit('onStatusChange', 'error', err?.message || 'Erreur de connexion');
+      this.setStatus('error', err?.message || 'Erreur de connexion');
     }
   }
 
@@ -200,12 +251,15 @@ class RealtimeTableManager {
     this.stopPresence();
     const hero = this.cachedHero;
     if (!hero || !this.currentRoom) return;
-    const heroRef = ref(db, `tables/${this.currentRoom}/heroes/${heroKey(hero)}`);
+    const key = heroKey(hero);
+    const heroRef = ref(db, `tables/${this.currentRoom}/heroes/${key}`);
     this.presenceUnsub = onValue(ref(db, '.info/connected'), (snap) => {
       if (snap.val() === true && this.cachedHero) {
+        const cleaned = clean(this.cachedHero);
+        this.lastWrittenHeroByKey.set(key, JSON.stringify(cleaned));
         onDisconnect(heroRef)
           .remove()
-          .then(() => set(heroRef, clean(this.cachedHero)))
+          .then(() => set(heroRef, cleaned))
           .catch((e) => console.error('[Firebase Presence Error]', e));
       }
     });
@@ -231,7 +285,12 @@ class RealtimeTableManager {
     this.emit('onPeerLeft', clientName, this.currentRole);
 
     this.currentRoom = '';
-    this.emit('onStatusChange', 'disconnected', 'Déconnecté');
+    this.lastHeroesMap = {};
+    this.lastHeroesJson = '';
+    this.lastCombatJson = '';
+    this.lastRollTimestamp = 0;
+    this.lastWrittenHeroByKey.clear();
+    this.setStatus('disconnected', 'Déconnecté');
   }
 
   public send(payload: any) {
@@ -252,10 +311,18 @@ class RealtimeTableManager {
     this.cachedHero = hero;
     if (!this.currentRoom) return;
 
-    const heroRef = ref(db, `tables/${this.currentRoom}/heroes/${heroKey(hero)}`);
-    set(heroRef, clean(hero)).then(() => {
-      this.emit('onHeroUpdated', hero);
-    }).catch(err => console.error(err));
+    const key = heroKey(hero);
+    const cleaned = clean(hero);
+    const serialized = JSON.stringify(cleaned);
+
+    // Ignorer si les données exactes viennent déjà d'être écrites ou reçues
+    if (this.lastWrittenHeroByKey.get(key) === serialized) return;
+    const existingRemote = this.lastHeroesMap[key];
+    if (existingRemote && JSON.stringify(clean(existingRemote)) === serialized) return;
+
+    this.lastWrittenHeroByKey.set(key, serialized);
+    const heroRef = ref(db, `tables/${this.currentRoom}/heroes/${key}`);
+    set(heroRef, cleaned).catch(err => console.error(err));
     if (this.currentRole === 'pj' && !this.presenceUnsub) this.startPresence();
   }
 
@@ -263,7 +330,7 @@ class RealtimeTableManager {
     if (!this.currentRoom) return;
 
     const heroRef = ref(db, `tables/${this.currentRoom}/heroes/${heroId}`);
-    update(heroRef, patch).then(async () => {
+    update(heroRef, clean(patch)).then(async () => {
       // Récupérer le héro mis à jour pour déclencher le callback
       const snapshot = await get(heroRef);
       if (snapshot.exists()) {
@@ -276,20 +343,23 @@ class RealtimeTableManager {
   public syncCombat(combatants: Combatant[]) {
     if (!this.currentRoom) return;
 
+    const cleaned = clean(combatants);
+    const combatJson = JSON.stringify(cleaned);
+    if (combatJson === this.lastCombatJson) return;
+    this.lastCombatJson = combatJson;
+
     const combatRef = ref(db, `tables/${this.currentRoom}/combatants`);
-    set(combatRef, combatants).then(() => {
-      this.emit('onCombatUpdated', combatants);
-    }).catch(err => console.error(err));
+    set(combatRef, cleaned).catch(err => console.error(err));
   }
 
   public rollDice(roll: any) {
     if (!this.currentRoom) return;
 
+    const ts = Date.now();
+    this.lastRollTimestamp = ts;
     const roomRef = ref(db, 'tables/' + this.currentRoom);
     update(roomRef, {
-      lastRoll: { ...roll, timestamp: Date.now() }
-    }).then(() => {
-      this.emit('onDiceRolled', roll);
+      lastRoll: clean({ ...roll, timestamp: ts })
     }).catch(err => console.error(err));
   }
 }
