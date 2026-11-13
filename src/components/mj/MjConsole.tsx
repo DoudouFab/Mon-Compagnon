@@ -967,6 +967,8 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
     const nextPjs = pnjChar ? [...tableData.pjs, pnjChar] : tableData.pjs;
     const nextCombatants = combatant ? [...tableData.combatants, combatant] : tableData.combatants;
     onUpdateTableData({ ...tableData, pjs: nextPjs, combatants: nextCombatants });
+    const createdName = pnjChar?.name || combatant?.n || 'PNJ';
+    success(`🤝 PNJ « ${createdName} » créé et intégré !`);
   };
 
   const handleAddCustomCombatant = () => {
@@ -1197,9 +1199,9 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
   };
 
   return (
-    <div className="max-w-6xl mx-auto space-y-4">
+    <div className="max-w-7xl mx-auto space-y-3">
       {/* MJ Console Sub-Header & Controls */}
-      <div className="bg-gradient-to-r from-[#2e1313] via-[#1c1410] to-[#120f0d] border border-[#9c2a2b]/70 rounded-xl p-4 shadow-xl">
+      <div className="bg-gradient-to-r from-[#2e1313] via-[#1c1410] to-[#120f0d] border border-[#9c2a2b]/70 rounded-xl p-3 sm:p-3.5 shadow-xl">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <div className="flex items-center gap-2">

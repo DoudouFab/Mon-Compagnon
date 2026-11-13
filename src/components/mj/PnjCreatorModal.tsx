@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
-import { X, UserPlus, Shield, Swords, Heart, Sparkles, Dices } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { X, UserPlus, Sparkles } from 'lucide-react';
 import { CaracName, Character, Combatant } from '../../types/chroniques';
 import { CARAC_LIST, PROFILS, RACES, getMod } from '../../data/coDatabase';
 import { useToast } from '../common/ToastContext';
@@ -16,6 +16,15 @@ interface PnjCreatorModalProps {
   onSave: (pnjChar: Character | null, combatant: Combatant | null) => void;
 }
 
+const DEFAULT_CARACS: Record<CaracName, number> = {
+  FOR: 14,
+  DEX: 12,
+  CON: 14,
+  INT: 10,
+  SAG: 10,
+  CHA: 10,
+};
+
 export const PnjCreatorModal: React.FC<PnjCreatorModalProps> = ({
   isOpen,
   onClose,
@@ -23,8 +32,6 @@ export const PnjCreatorModal: React.FC<PnjCreatorModalProps> = ({
 }) => {
   const { warning } = useToast();
   const [portrait, setPortrait] = useState<string | undefined>(undefined);
-  if (!isOpen) return null;
-
   const [name, setName] = useState('');
   const [role, setRole] = useState<'Allié du groupe' | 'Mercenaire' | 'Guide' | 'Garde d\'Élite' | 'PNJ Notif' | 'Ennemi'>('Allié du groupe');
   const [race, setRace] = useState('humain');
@@ -38,16 +45,28 @@ export const PnjCreatorModal: React.FC<PnjCreatorModalProps> = ({
   const [notes, setNotes] = useState('Allié fidèle recruté à l\'auberge. Obéit aux ordres du groupe.');
   const [addToGroup, setAddToGroup] = useState(true);
   const [addToCombat, setAddToCombat] = useState(true);
+  const [caracs, setCaracs] = useState<Record<CaracName, number>>(DEFAULT_CARACS);
 
-  // 6 Caractéristiques
-  const [caracs, setCaracs] = useState<Record<CaracName, number>>({
-    FOR: 14,
-    DEX: 12,
-    CON: 14,
-    INT: 10,
-    SAG: 10,
-    CHA: 10,
-  });
+  useEffect(() => {
+    if (!isOpen) return;
+    setPortrait(undefined);
+    setName('');
+    setRole('Allié du groupe');
+    setRace('humain');
+    setProfil('guerrier');
+    setLevel(2);
+    setHp(18);
+    setDef(14);
+    setWeaponName('Épée longue');
+    setWeaponDm('1d8+2');
+    setArmorName('Cotte de mailles');
+    setNotes('Allié fidèle recruté à l\'auberge. Obéit aux ordres du groupe.');
+    setAddToGroup(true);
+    setAddToCombat(true);
+    setCaracs({ ...DEFAULT_CARACS });
+  }, [isOpen]);
+
+  if (!isOpen) return null;
 
   const handleCaracChange = (c: CaracName, val: number) => {
     const updated = { ...caracs, [c]: val };
@@ -78,8 +97,11 @@ export const PnjCreatorModal: React.FC<PnjCreatorModalProps> = ({
       return;
     }
 
-    const modDex = getMod(caracs.DEX);
     const id = `pnj_${Date.now()}`;
+    const trimmedName = name.trim();
+    const trimmedWeapon = weaponName.trim() || 'Arme de poing';
+    const trimmedDm = weaponDm.trim() || '1d6';
+    const trimmedArmor = armorName.trim() || 'Aucune armure';
 
     let pnjCharacter: Character | null = null;
     let pnjCombatant: Combatant | null = null;
@@ -87,12 +109,12 @@ export const PnjCreatorModal: React.FC<PnjCreatorModalProps> = ({
     if (addToGroup) {
       pnjCharacter = {
         id,
-        name: name.trim(),
+        name: trimmedName,
         player: `PNJ · ${role}`,
         race,
         profil,
         level,
-        base: caracs,
+        base: { ...caracs },
         rb: {},
         hpBase: hp,
         hpMaxAuto: hp,
@@ -101,12 +123,14 @@ export const PnjCreatorModal: React.FC<PnjCreatorModalProps> = ({
         pmMaxManual: 0,
         pm: 0,
         ptsCap: 0,
+        ptsCapCadeaux: 0,
+        bourse: { po: 0, pa: 0, pc: 0 },
         caps: [],
         armes: [
           {
-            n: weaponName,
+            n: trimmedWeapon,
             t: 'Contact',
-            dm: weaponDm,
+            dm: trimmedDm,
             crit: '20',
             por: 'Contact',
             note: 'Arme PNJ',
@@ -116,21 +140,21 @@ export const PnjCreatorModal: React.FC<PnjCreatorModalProps> = ({
           { n: 'Sacoche de voyage', q: 1, desc: 'Vivres & bourse' },
         ],
         customSorts: [],
-        arm: armorName,
+        arm: trimmedArmor,
         bou: '',
         bonus: { pv: 0, def: 0, init: 0 },
         persoTraits: `${role} — ${notes}`,
         etats: [],
         isPnj: true,
         rolePnj: role,
-        portrait: portrait || undefined,
+        ...(portrait ? { portrait } : {}),
       };
     }
 
     if (addToCombat) {
       pnjCombatant = {
         id: `c_${id}`,
-        n: `${name.trim()} (${role})`,
+        n: `${trimmedName} (${role})`,
         isPj: addToGroup,
         isPnj: true,
         hp,
@@ -138,8 +162,8 @@ export const PnjCreatorModal: React.FC<PnjCreatorModalProps> = ({
         def,
         baseInit: caracs.DEX,
         init: caracs.DEX,
-        notes: `${weaponName} (${weaponDm}) • ${armorName} (DEF ${def}) • ${notes}`,
-        pjRefId: addToGroup ? id : undefined,
+        notes: `${trimmedWeapon} (${trimmedDm}) • ${trimmedArmor} (DEF ${def}) • ${notes}`,
+        ...(addToGroup ? { pjRefId: id } : {}),
         etats: [],
       };
     }

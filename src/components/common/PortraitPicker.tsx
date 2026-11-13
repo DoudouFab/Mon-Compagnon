@@ -163,6 +163,12 @@ export const PortraitPicker: React.FC<PortraitPickerProps> = ({
                 type="url"
                 value={urlDraft}
                 onChange={(e) => setUrlDraft(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleApplyUrl();
+                  }
+                }}
                 placeholder="https://exemple.com/mon-portrait.jpg"
                 className="flex-1 bg-[#1e1711] border border-[#3d3023] focus:border-[#d4a84a] rounded-lg px-2.5 py-1 text-xs text-[#ede3d1] outline-none"
               />

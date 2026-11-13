@@ -1084,7 +1084,7 @@ export default function App() {
       )}
 
       {/* Main View Area */}
-      <main className="flex-1 p-3 sm:p-5 max-w-7xl w-full mx-auto pb-16">
+      <main className="flex-1 p-2 sm:p-3.5 max-w-7xl w-full mx-auto pb-8">
         {appMode === 'pj' ? (
           !currentPj || showRosterHub ? (
             <CharacterRosterHub

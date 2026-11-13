@@ -562,10 +562,10 @@ export const PjSheet: React.FC<PjSheetProps> = ({
   };
 
   return (
-    <div className="max-w-5xl mx-auto space-y-4">
+    <div className="max-w-7xl mx-auto space-y-3">
       {/* Hero Banner (Always on top) */}
-      <div className="print-card bg-gradient-to-r from-[#361917] via-[#241712] to-[#181410] border border-[#d4a84a]/60 rounded-xl p-4 sm:p-5 shadow-xl">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div className="print-card bg-gradient-to-r from-[#361917] via-[#241712] to-[#181410] border border-[#d4a84a]/60 rounded-xl p-3 sm:p-4 shadow-xl">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-2.5">
           <div className="flex items-start gap-3.5">
             <button
               type="button"
@@ -679,7 +679,7 @@ export const PjSheet: React.FC<PjSheetProps> = ({
           </div>
 
           {/* Quick Header Actions */}
-          <div className="no-print flex flex-wrap items-center gap-2">
+          <div className="no-print flex flex-wrap lg:justify-end items-center gap-1.5 lg:max-w-[440px]">
             {onSwitchHero && (
               <button
                 onClick={onSwitchHero}
@@ -832,11 +832,11 @@ export const PjSheet: React.FC<PjSheetProps> = ({
 
       {/* ==================== TAB 1 : FICHE & COMBAT ==================== */}
       {activeTab === 'fiche' && (
-        <div className="space-y-4">
+        <div className="space-y-3">
           {/* JAUGES PV & PM */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {/* JAUGE DE VIE (PV) */}
-            <div className="print-card bg-[#181410] border border-[#3d3023] rounded-xl p-4 shadow-sm">
+            <div className="print-card bg-[#181410] border border-[#3d3023] rounded-xl p-3 sm:p-3.5 shadow-sm">
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
                   <span className="w-2.5 h-2.5 rounded-full bg-[#9c2a2b]" />
