@@ -5,6 +5,8 @@ import { CARAC_LIST, PROFILS, RACES, VOIES_CATALOG, getMod } from '../../data/co
 import { CaracName, Character, CurrencyBourse } from '../../types/chroniques';
 import { STARTING_PACKAGES_BY_PROFIL, ARMOR_RESTRICTIONS_BY_PROFIL, RACIAL_ARMOR_NOTES } from '../../data/startingGearData';
 import { generateRandomPhysicalStats, getRaceLimitsDescription } from '../../data/racePhysicalStats';
+import { useToast } from '../common/ToastContext';
+import { PortraitPicker } from '../common/PortraitPicker';
 
 interface PjCreationWizardProps {
   isOpen: boolean;
@@ -27,8 +29,10 @@ export const PjCreationWizard: React.FC<PjCreationWizardProps> = ({
   onClose,
   onCharacterCreated,
 }) => {
+  const { warning } = useToast();
   const [step, setStep] = useState<number>(0);
   const [detailItem, setDetailItem] = useState<DetailItem | null>(null);
+  const [confirmFewCapsOpen, setConfirmFewCapsOpen] = useState<boolean>(false);
 
   // Form State
   const [raceId, setRaceId] = useState<string>('humain');
@@ -60,6 +64,7 @@ export const PjCreationWizard: React.FC<PjCreationWizardProps> = ({
   const [age, setAge] = useState<string>('');
   const [taille, setTaille] = useState<string>('');
   const [poids, setPoids] = useState<string>('');
+  const [portrait, setPortrait] = useState<string | undefined>(undefined);
 
   // Initial populate of random physical stats based on chosen race
   useEffect(() => {
@@ -177,11 +182,11 @@ export const PjCreationWizard: React.FC<PjCreationWizardProps> = ({
 
   const handleStatChange = (c: CaracName, val: number) => {
     if (val < minStatBase) {
-      alert(`Plancher officiel COF : Le score de base minimum est de ${minStatBase} (modificateur -4) avant bonus racial.`);
+      warning(`Plancher officiel COF : Le score de base minimum est de ${minStatBase} (modificateur -4) avant bonus racial.`);
       return;
     }
     if (val > maxStatBase) {
-      alert(`Plafond officiel niveau 1 : Le score de base maximum est de 18 (modificateur +4) avant bonus racial.`);
+      warning(`Plafond officiel niveau 1 : Le score de base maximum est de 18 (modificateur +4) avant bonus racial.`);
       return;
     }
     const currentVal = baseStats[c] || 10;
@@ -190,7 +195,7 @@ export const PjCreationWizard: React.FC<PjCreationWizardProps> = ({
       const newMod = getMod(val);
       const modDiff = newMod - currentMod;
       if (modDiff > 0 && modSum + modDiff > maxStatBudget) {
-        alert(
+        warning(
           `Barrière de création : Le budget total des modificateurs (+${maxStatBudget} en mode ${
             statMode === 'heroique' ? 'Héroïque' : 'Standard'
           }) est déjà atteint ! Baissez une autre caractéristique pour augmenter celle-ci.`
@@ -216,39 +221,34 @@ export const PjCreationWizard: React.FC<PjCreationWizardProps> = ({
     // Step 2: Caractéristiques (Barrières strictes)
     if (step === 2) {
       if (!isModSumValid) {
-        alert(
-          `Barrière de création active :\nLa somme de vos modificateurs doit être exactement de +${maxStatBudget} (actuellement ${
+        warning(
+          `Barrière de création : la somme des modificateurs doit être exactement +${maxStatBudget} (actuellement ${
             modSum >= 0 ? '+' + modSum : modSum
-          } en mode ${statMode === 'heroique' ? 'Héroïque' : 'Standard'}).\n\nVeuillez ajuster vos valeurs pour respecter ce total.`
+          } en mode ${statMode === 'heroique' ? 'Héroïque' : 'Standard'}).`
         );
         return;
       }
       if (!isPairsCountValid) {
-        alert(
-          `Barrière de création active :\nRègle officielle des scores pairs/impairs non respectée !\nVous avez actuellement ${pairsCount} caractéristiques paires.\nLa règle officielle de Chroniques Oubliées exige un maximum de 2 scores pairs (et au moins 4 scores impairs) pour éviter toute optimisation artificielle.\n\nVeuillez ajuster vos scores pour avoir au maximum 2 valeurs paires.`
+        warning(
+          `Règle des scores pairs/impairs non respectée : ${pairsCount} caractéristiques paires (maximum 2 scores pairs et au moins 4 impairs).`
         );
         return;
       }
       for (const c of CARAC_LIST) {
         if ((baseStats[c] || 10) > maxStatBase) {
-          alert(`Barrière de création : Au niveau 1, aucune caractéristique de base ne peut dépasser ${maxStatBase} avant bonus racial.`);
+          warning(`Barrière de création : Au niveau 1, aucune caractéristique de base ne peut dépasser ${maxStatBase} avant bonus racial.`);
           return;
         }
       }
     }
     // Step 3: Capacités de départ
     if (step === 3 && selectedCaps.length < 2) {
-      if (
-        !confirm(
-          "Vous n'avez pas sélectionné vos 2 capacités de rang 1 recommandées. Continuer quand même ?"
-        )
-      ) {
-        return;
-      }
+      setConfirmFewCapsOpen(true);
+      return;
     }
     // Step 5: Identité & Mensurations
     if (step === 5 && !name.trim()) {
-      alert('Veuillez donner un nom à votre héros.');
+      warning('Veuillez donner un nom à votre héros.');
       return;
     }
     // Step 6: Finalize
@@ -305,6 +305,7 @@ export const PjCreationWizard: React.FC<PjCreationWizardProps> = ({
         pc: startingBourse.pc || 0,
       },
       persoTraits: `${currentRace.traits} Vocation : ${currentProfil.traits}`,
+      portrait: portrait || undefined,
     };
 
     onCharacterCreated(newChar);
@@ -1117,6 +1118,20 @@ export const PjCreationWizard: React.FC<PjCreationWizardProps> = ({
                   💡 Ces valeurs restent modifiables à tout moment directement dans l&apos;en-tête de votre fiche de personnage en cours de campagne.
                 </p>
               </div>
+
+              <PortraitPicker
+                value={portrait}
+                onChange={setPortrait}
+                characterDraft={{
+                  name: name || 'Nouveau Héros',
+                  race: raceId,
+                  profil: profilId,
+                  age,
+                  taille,
+                  poids,
+                }}
+                label="Visuel / Portrait du Héros (Optionnel)"
+              />
             </div>
           )}
 
@@ -1124,7 +1139,16 @@ export const PjCreationWizard: React.FC<PjCreationWizardProps> = ({
           {step === 6 && (
             <div className="space-y-4">
               <div className="p-4 bg-gradient-to-r from-[#291712] to-[#181410] border border-[#d4a84a] rounded-xl text-center">
-                <Sparkles className="w-6 h-6 text-[#d4a84a] mx-auto mb-1" />
+                {portrait ? (
+                  <img
+                    src={portrait}
+                    alt={name || 'Héros'}
+                    referrerPolicy="no-referrer"
+                    className="w-20 h-20 rounded-xl object-cover border-2 border-[#d4a84a] mx-auto mb-2 shadow-lg"
+                  />
+                ) : (
+                  <Sparkles className="w-6 h-6 text-[#d4a84a] mx-auto mb-1" />
+                )}
                 <h3 className="font-serif-co text-2xl font-bold text-[#f3d48d]">
                   {name || 'Héros sans nom'}
                 </h3>
@@ -1268,6 +1292,39 @@ export const PjCreationWizard: React.FC<PjCreationWizardProps> = ({
           </button>
         </div>
       </div>
+
+      {/* Pop-up confirmation si moins de 2 capacités choisies */}
+      {confirmFewCapsOpen && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/80 backdrop-blur-xs p-4">
+          <div className="bg-[#181410] border border-[#d4a84a] rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-4">
+            <h4 className="font-serif-co text-lg font-bold text-[#f3d48d]">
+              Capacités de départ incomplètes
+            </h4>
+            <p className="text-xs text-[#cbb8a7] leading-relaxed">
+              Vous n&apos;avez sélectionné que <b>{selectedCaps.length}</b> capacité(s) de rang 1 sur les <b>2 recommandées</b>. Continuer quand même ?
+            </p>
+            <div className="flex justify-end gap-2 pt-2 border-t border-[#30251a]">
+              <button
+                type="button"
+                onClick={() => setConfirmFewCapsOpen(false)}
+                className="px-4 py-2 bg-[#231c15] hover:bg-[#32271d] border border-[#3d3023] text-xs font-semibold text-[#ede3d1] rounded-lg cursor-pointer"
+              >
+                Rester choisir
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setConfirmFewCapsOpen(false);
+                  setStep((s) => s + 1);
+                }}
+                className="px-4 py-2 bg-gradient-to-r from-[#d4a84a] to-[#b38833] text-black font-bold text-xs rounded-lg cursor-pointer"
+              >
+                Continuer quand même
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Pop-up modal pour afficher les infos complètes de la race ou du profil */}
       <DetailModal

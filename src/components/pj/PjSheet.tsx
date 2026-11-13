@@ -31,6 +31,7 @@ import {
   Coins,
   Calculator,
   RefreshCw,
+  Camera,
 } from 'lucide-react';
 import { OSGILD_REGIONS, OSGILD_DEITIES, OSGILD_ACADEMIES } from '../../data/osgildLore';
 import { DetailModal, DetailItem } from '../DetailModal';
@@ -41,6 +42,8 @@ import { TableTransferModal } from './TableTransferModal';
 import { OsgildLorePj } from './OsgildLorePj';
 import { THARNEA_ARTIFACTS } from '../../data/tharneaSupplement';
 import { MoneyCalculatorModal } from '../common/MoneyCalculatorModal';
+import { useToast } from '../common/ToastContext';
+import { PortraitPicker } from '../common/PortraitPicker';
 import {
   ARMES_CATALOG,
   ARMURES_CATALOG,
@@ -88,10 +91,13 @@ export const PjSheet: React.FC<PjSheetProps> = ({
   rosterCount,
   onDeletePj,
 }) => {
+  const { success, error, warning, info } = useToast();
   const [activeTab, setActiveTab] = useState<'fiche' | 'voies' | 'sorts' | 'sac' | 'lore'>('fiche');
   const [isPtsCapInfoOpen, setIsPtsCapInfoOpen] = useState<boolean>(false);
   const [isTransferModalOpen, setIsTransferModalOpen] = useState<boolean>(false);
   const [isMoneyCalcOpen, setIsMoneyCalcOpen] = useState<boolean>(false);
+  const [isPortraitModalOpen, setIsPortraitModalOpen] = useState<boolean>(false);
+  const [confirmDeleteItemIdx, setConfirmDeleteItemIdx] = useState<number | null>(null);
 
   // Drawer & Modals state
   const [catalogDrawer, setCatalogDrawer] = useState<'armes' | 'armures' | 'biens' | 'sorts' | 'tharnea' | null>(null);
@@ -105,19 +111,11 @@ export const PjSheet: React.FC<PjSheetProps> = ({
   const [selectedWayProfil, setSelectedWayProfil] = useState<string>('mine');
   const [waySearchQuery, setWaySearchQuery] = useState<string>('');
   const [isCustomSpellOpen, setIsCustomSpellOpen] = useState<boolean>(false);
-  const [isCustomItemOpen, setIsCustomItemOpen] = useState<boolean>(false);
 
   // Recovery & Carac Info modals state
   const [activeCaracInfo, setActiveCaracInfo] = useState<CaracName | 'ALL' | null>(null);
   const [isHpRecoveryInfoOpen, setIsHpRecoveryInfoOpen] = useState<boolean>(false);
   const [isPmRecoveryInfoOpen, setIsPmRecoveryInfoOpen] = useState<boolean>(false);
-
-  // Custom Item Form state
-  const [customItemName, setCustomItemName] = useState('');
-  const [customItemQty, setCustomItemQty] = useState(1);
-  const [customItemDesc, setCustomItemDesc] = useState('');
-  const [customItemIsConsumable, setCustomItemIsConsumable] = useState(false);
-  const [customItemNote, setCustomItemNote] = useState('');
 
   // Custom Spell Form state
   const [customSpellName, setCustomSpellName] = useState('');
@@ -295,12 +293,12 @@ export const PjSheet: React.FC<PjSheetProps> = ({
     const cost = spell.rang || 1;
     const current = pj.pm ?? pmMax;
     if (current < cost) {
-      alert(`Pas assez de Points de Mana pour lancer ${spell.n} ! (Requis: ${cost} PM, Actuel: ${current} PM)`);
+      error(`Pas assez de Points de Mana pour lancer ${spell.n} ! (Requis: ${cost} PM, Actuel: ${current} PM)`);
       return;
     }
     const remaining = current - cost;
     onUpdatePj({ ...pj, pm: remaining });
-    alert(`✨ ${spell.n} lancé avec succès ! (-${cost} PM, restant : ${remaining} PM)`);
+    success(`✨ ${spell.n} lancé avec succès ! (-${cost} PM, restant : ${remaining} PM)`);
   };
 
   // Level Up
@@ -334,10 +332,10 @@ export const PjSheet: React.FC<PjSheetProps> = ({
     setIsLevelUpOpen(false);
     const pmText =
       gainedPm > 0
-        ? `\n+${gainedPm} PM (${isProfaneMajor ? 'Magie profane majeure : +2' : 'Magie divine/hybride : +1'})`
+        ? ` | +${gainedPm} PM (${isProfaneMajor ? 'Magie profane' : 'Magie divine/hybride'})`
         : '';
-    alert(
-      `Félicitations ! Vous passez niveau ${newLevel} !\n+${gainedHp} PV (${levelUpMethod === 'average' ? `Moyenne d${pr.dv}=${avgRoll}` : `Dé d${pr.dv}=${levelUpDiceResult}`} & Mod CON=${modCon >= 0 ? '+' + modCon : modCon}).${pmText}\n+2 points de capacités accordés.`
+    success(
+      `Niveau ${newLevel} atteint ! +${gainedHp} PV (${levelUpMethod === 'average' ? `Moyenne d${pr.dv}=${avgRoll}` : `Dé d${pr.dv}=${levelUpDiceResult}`}, CON ${modCon >= 0 ? '+' + modCon : modCon})${pmText} | +2 pts de capacités.`
     );
   };
 
@@ -355,11 +353,11 @@ export const PjSheet: React.FC<PjSheetProps> = ({
       a.href = URL.createObjectURL(blob);
       a.download = `${(pj.name || 'Compagnon_PJ').replace(/\s+/g, '_')}_Offline.html`;
       a.click();
-      alert(
-        'Application HTML autonome téléchargée ! Vous pouvez double-cliquer dessus pour l ouvrir directement dans n importe quel navigateur, même hors-ligne.'
+      success(
+        "Application HTML autonome téléchargée ! Double-cliquez dessus pour l'ouvrir même hors-ligne."
       );
     } catch (err: any) {
-      alert("Erreur lors du téléchargement : " + err.message);
+      error('Erreur lors du téléchargement : ' + err.message);
     }
   };
 
@@ -382,9 +380,9 @@ export const PjSheet: React.FC<PjSheetProps> = ({
         const data = JSON.parse(ev.target?.result as string);
         if (!data.name || !data.base) throw new Error('Format de fichier JSON non reconnu.');
         onUpdatePj(data);
-        alert(`Héros "${data.name}" importé avec succès !`);
+        success(`Héros "${data.name}" importé avec succès !`);
       } catch (err: any) {
-        alert("Erreur lors de l'import : " + err.message);
+        error("Erreur lors de l'import : " + err.message);
       }
     };
     reader.readAsText(file);
@@ -404,7 +402,7 @@ export const PjSheet: React.FC<PjSheetProps> = ({
   const handleLearnRank = (wKey: string, rankNum: number, cost: number) => {
     const way = VOIES_CATALOG[wKey];
     if (way && !isWayAccessible(way.profil)) {
-      alert(`Action interdite : Votre héros (${pr.n}) ne peut pas accéder aux voies d'un autre profil (${way.profil}). Seules les voies de votre profil vous sont accessibles.`);
+      error(`Action interdite : Votre héros (${pr.n}) ne peut pas accéder aux voies d'un autre profil (${way.profil}). Seules les voies de votre profil vous sont accessibles.`);
       return;
     }
     if ((pj.ptsCap || 0) < cost) return;
@@ -416,13 +414,68 @@ export const PjSheet: React.FC<PjSheetProps> = ({
     });
   };
 
-  // Add Item to inventory from catalog
+  // Lookup catalog entry ONLY for items the PJ already owns (or for name-matching ownership)
+  const findCatalogEquipmentByName = (name: string): Equipment | undefined => {
+    const key = name.trim().toLowerCase();
+    if (!key) return undefined;
+    return (
+      THARNEA_ARTIFACTS.find((x) => x.n.trim().toLowerCase() === key) ||
+      EQUIPEMENTS.find((x) => x.n.trim().toLowerCase() === key)
+    );
+  };
+
+  const isItemOwnedByPj = (itemName: string): boolean => {
+    const key = itemName.trim().toLowerCase();
+    if (!key) return false;
+    if ((pj.armes || []).some((w) => w.n.trim().toLowerCase() === key)) return true;
+    if (pj.arm && pj.arm.trim().toLowerCase() === key) return true;
+    if (pj.bou && pj.bou.trim().toLowerCase() === key) return true;
+    if ((pj.inventaire || []).some((it) => it.n.trim().toLowerCase() === key && (it.q ?? 1) > 0)) {
+      return true;
+    }
+    return false;
+  };
+
+  const equipOwnedInventoryItem = (invItem: InventoryItem) => {
+    const cat = findCatalogEquipmentByName(invItem.n);
+    if (!cat) return;
+    if (cat.cat?.includes('Bouclier') || cat.n.toLowerCase().includes('bouclier')) {
+      onUpdatePj({ ...pj, bou: cat.n });
+      success(`🛡️ "${cat.n}" équipé en main secondaire !`);
+      return;
+    }
+    if (cat.cat?.includes('Armure') || cat.def !== undefined) {
+      onUpdatePj({ ...pj, arm: cat.n });
+      success(`🛡️ "${cat.n}" équipé comme armure !`);
+      return;
+    }
+    if (cat.dm) {
+      const armes = [...(pj.armes || [])];
+      if (!armes.some((w) => w.n.trim().toLowerCase() === cat.n.trim().toLowerCase())) {
+        armes.push({
+          n: cat.n,
+          t: cat.cat?.includes('Distance') ? 'Distance' : cat.cat?.includes('Poudre') ? 'Poudre' : 'Contact',
+          dm: cat.dm,
+          crit: cat.crit || '20',
+          por: cat.por || (cat.cat?.includes('Distance') ? '30 m' : 'Contact'),
+          props: cat.props || cat.desc || '',
+          note: cat.source === 'tharnea' ? 'Codex Tharnéa' : '',
+        });
+        onUpdatePj({ ...pj, armes });
+        success(`⚔️ "${cat.n}" préparé dans votre Arsenal !`);
+      } else {
+        info(`"${cat.n}" est déjà dans votre Arsenal.`);
+      }
+    }
+  };
+
+  // Only spells can be learned by the PJ from the Grimoire drawer; all equipment/loot is MJ-granted only.
   const handleSelectFromDrawer = (item: Equipment | SpellItem) => {
     if (catalogDrawer === 'sorts') {
       const spell = item as SpellItem;
       const customSorts = pj.customSorts || [];
       if (customSorts.some((s) => s.n.toLowerCase() === spell.n.toLowerCase())) {
-        alert('Vous connaissez déjà ce sortilège !');
+        info('Vous connaissez déjà ce sortilège !');
         return;
       }
       onUpdatePj({
@@ -430,122 +483,21 @@ export const PjSheet: React.FC<PjSheetProps> = ({
         customSorts: [...customSorts, spell],
       });
       setCatalogDrawer(null);
-      alert(`✨ ${spell.n} ajouté à votre Grimoire !`);
+      success(`✨ ${spell.n} ajouté à votre Grimoire !`);
       return;
     }
-
-    const eq = item as Equipment;
-    if (catalogDrawer === 'armes') {
-      const armes = pj.armes || [];
-      const newWeapon: WeaponItem = {
-        n: eq.n,
-        t: eq.cat?.includes('Distance') ? 'Distance' : eq.cat?.includes('Poudre') ? 'Poudre' : 'Contact',
-        dm: eq.dm || '1d6',
-        crit: eq.crit || '20',
-        por: eq.por || (eq.cat?.includes('Distance') ? '30 m' : '-'),
-        props: eq.props || eq.desc || '',
-        note: '',
-      };
-      onUpdatePj({ ...pj, armes: [...armes, newWeapon] });
-      setCatalogDrawer(null);
-      alert(`Arme "${eq.n}" ajoutée à votre équipement !`);
-    } else if (catalogDrawer === 'armures') {
-      if (eq.cat?.includes('Bouclier') || eq.n.toLowerCase().includes('bouclier')) {
-        onUpdatePj({ ...pj, bou: eq.n });
-      } else {
-        onUpdatePj({ ...pj, arm: eq.n });
-      }
-      setCatalogDrawer(null);
-      alert(`Protection "${eq.n}" équipée !`);
-    } else if (catalogDrawer === 'tharnea') {
-      const inv = [...(pj.inventaire || [])];
-      const exist = inv.find((x) => x.n === eq.n);
-      if (exist) {
-        exist.q = (exist.q || 1) + (eq.q || 1);
-      } else {
-        inv.push({
-          n: eq.n,
-          desc: eq.desc || eq.props || '',
-          q: eq.q || 1,
-          isConsumable: !!eq.isConsumable || !!eq.effetSecondaire,
-          note: eq.effetSecondaire ? `Effet bizarre : ${eq.effetSecondaire}` : eq.cat || '',
-        });
-      }
-      if (eq.dm) {
-        const armes = pj.armes || [];
-        if (!armes.some((w) => w.n === eq.n)) {
-          armes.push({
-            n: eq.n,
-            t: eq.cat?.includes('Distance') ? 'Distance' : 'Contact',
-            dm: eq.dm,
-            crit: eq.crit || '20',
-            por: eq.por || 'Contact',
-            props: eq.props || eq.desc || '',
-            note: 'Artéfact Tharnéa',
-          });
-          onUpdatePj({ ...pj, inventaire: inv, armes });
-          setCatalogDrawer(null);
-          alert(`Artéfact "${eq.n}" ajouté à votre sacoche et préparé dans vos armes !`);
-          return;
-        }
-      }
-      onUpdatePj({ ...pj, inventaire: inv });
-      setCatalogDrawer(null);
-      alert(`"${eq.n}" ajouté à votre sacoche !`);
-    } else {
-      // Biens / Pack
-      const inv = [...(pj.inventaire || [])];
-      if (eq.isPack || eq.n.includes('Pack')) {
-        // Auto-déballage du pack d'aventurier complet
-        const packElements: InventoryItem[] = [
-          { n: 'Sac à dos renforcé', q: 1, desc: 'Toile imperméabilisée', note: 'Rangement principal' },
-          { n: 'Corde (15 m) & grappin', q: 1, desc: "Chanvre solide avec crochet d'acier", note: 'Attachée sous le sac' },
-          { n: 'Paillasse portable & couverture', q: 1, desc: 'Couchage rembourré et couverture chaude', note: 'Roulée' },
-          { n: 'Torches de résine', q: 5, desc: "1h d'éclairage à 10 m", isConsumable: true, note: 'Plein d amadou' },
-          { n: 'Briquet à silex et amadou', q: 1, desc: 'Allume un feu rapidement', note: 'Poche étanche' },
-          { n: 'Rations de voyage (1 sem.)', q: 7, desc: 'Vivres de longue conservation', isConsumable: true, note: '1 portion/jour' },
-          { n: "Gourde d'eau en cuir (1L)", q: 1, desc: "Pleine d'eau fraîche", isConsumable: true, note: 'Ceinture' },
-          { n: 'Potion de soins légers', q: 1, desc: 'Rend immédiatement 1d8 PV', isConsumable: true, note: 'Urgence' },
-        ];
-        packElements.forEach((pItem) => {
-          const exist = inv.find((x) => x.n === pItem.n);
-          if (exist) exist.q = (exist.q || 1) + pItem.q;
-          else inv.push(pItem);
-        });
-        onUpdatePj({ ...pj, inventaire: inv });
-        setCatalogDrawer(null);
-        alert("Le Pack d'Aventurier complet a été déballé et rangé dans votre sac !");
-      } else {
-        const exist = inv.find((x) => x.n === eq.n);
-        if (exist) {
-          exist.q = (exist.q || 1) + (eq.q || 1);
-        } else {
-          inv.push({
-            n: eq.n,
-            desc: eq.desc || eq.props || '',
-            q: eq.q || 1,
-            isConsumable: !!eq.isConsumable,
-            note: '',
-          });
-        }
-        onUpdatePj({ ...pj, inventaire: inv });
-        setCatalogDrawer(null);
-        alert(`"${eq.n}" ajouté à l'inventaire !`);
-      }
-    }
+    warning('Seul le MJ peut vous octroyer cet objet.');
   };
 
   const setItemQty = (idx: number, qty: number) => {
     const inv = [...pj.inventaire];
     if (qty <= 0) {
-      if (confirm(`La quantité est à 0. Supprimer définitivement "${inv[idx].n}" ?`)) {
-        inv.splice(idx, 1);
-      } else {
-        inv[idx].q = 0;
-      }
-    } else {
-      inv[idx].q = qty;
+      inv[idx].q = 0;
+      onUpdatePj({ ...pj, inventaire: inv });
+      setConfirmDeleteItemIdx(idx);
+      return;
     }
+    inv[idx].q = qty;
     onUpdatePj({ ...pj, inventaire: inv });
   };
 
@@ -567,29 +519,9 @@ export const PjSheet: React.FC<PjSheetProps> = ({
     onUpdatePj({ ...pj, armes });
   };
 
-  const handleSaveCustomItem = () => {
-    if (!customItemName.trim()) {
-      alert('Veuillez renseigner un nom.');
-      return;
-    }
-    const inv = [...(pj.inventaire || [])];
-    inv.push({
-      n: customItemName.trim(),
-      q: customItemQty,
-      isConsumable: customItemIsConsumable,
-      desc: customItemDesc.trim(),
-      note: customItemNote.trim(),
-    });
-    onUpdatePj({ ...pj, inventaire: inv });
-    setIsCustomItemOpen(false);
-    setCustomItemName('');
-    setCustomItemDesc('');
-    setCustomItemNote('');
-  };
-
   const handleSaveCustomSpell = () => {
     if (!customSpellName.trim()) {
-      alert('Veuillez renseigner un nom de sort.');
+      warning('Veuillez renseigner un nom de sort.');
       return;
     }
     const customSorts = pj.customSorts || [];
@@ -611,15 +543,39 @@ export const PjSheet: React.FC<PjSheetProps> = ({
       {/* Hero Banner (Always on top) */}
       <div className="print-card bg-gradient-to-r from-[#361917] via-[#241712] to-[#181410] border border-[#d4a84a]/60 rounded-xl p-4 sm:p-5 shadow-xl">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div>
-            <div className="flex items-center gap-2">
-              <h2 className="font-serif-co text-2xl sm:text-3xl font-bold text-[#f3d48d]">
-                {pj.name}
-              </h2>
-              <span className="text-xs px-2 py-0.5 rounded-full bg-[#120f0c] text-[#d4a84a] border border-[#d4a84a]/40 font-mono font-bold">
-                Niv. {pj.level}
+          <div className="flex items-start gap-3.5">
+            <button
+              type="button"
+              onClick={() => setIsPortraitModalOpen(true)}
+              className="no-print group relative w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden border-2 border-[#d4a84a]/60 hover:border-[#f3d48d] bg-[#120e0a] shrink-0 flex items-center justify-center shadow-lg cursor-pointer transition-all"
+              title="Cliquer pour ajouter, importer ou générer un portrait"
+            >
+              {pj.portrait ? (
+                <img
+                  src={pj.portrait}
+                  alt={pj.name}
+                  referrerPolicy="no-referrer"
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="text-center text-[#9e907d] group-hover:text-[#f3d48d]">
+                  <Camera className="w-5 h-5 mx-auto mb-0.5" />
+                  <span className="text-[9px] font-bold uppercase block">Portrait</span>
+                </div>
+              )}
+              <span className="absolute inset-x-0 bottom-0 bg-black/70 text-[9px] font-bold text-[#f3d48d] py-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                Modifier
               </span>
-            </div>
+            </button>
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="font-serif-co text-2xl sm:text-3xl font-bold text-[#f3d48d]">
+                  {pj.name}
+                </h2>
+                <span className="text-xs px-2 py-0.5 rounded-full bg-[#120f0c] text-[#d4a84a] border border-[#d4a84a]/40 font-mono font-bold">
+                  Niv. {pj.level}
+                </span>
+              </div>
             <p className="text-xs sm:text-sm text-[#9e907d] mt-1 flex flex-wrap items-center gap-2">
               <button
                 type="button"
@@ -696,6 +652,7 @@ export const PjSheet: React.FC<PjSheetProps> = ({
                 compact={false}
               />
             </div>
+          </div>
           </div>
 
           {/* Quick Header Actions */}
@@ -1308,10 +1265,14 @@ export const PjSheet: React.FC<PjSheetProps> = ({
                 </h3>
               </div>
               <button
-                onClick={() => setCatalogDrawer('armes')}
-                className="no-print px-3 py-1 rounded-lg bg-[#231c15] hover:bg-[#32271d] border border-[#3d3023] hover:border-[#d4a84a] text-xs font-semibold text-[#f3d48d] flex items-center gap-1"
+                onClick={() => {
+                  setCatalogDrawer('armes');
+                  setCatalogQuery('');
+                }}
+                className="no-print px-3 py-1 rounded-lg bg-[#231c15] hover:bg-[#32271d] border border-[#3d3023] hover:border-[#d4a84a] text-xs font-semibold text-[#f3d48d] flex items-center gap-1 cursor-pointer"
+                title="Consulter les noms des armes (détails et octroi réservés au MJ)"
               >
-                <Plus className="w-3.5 h-3.5" /> Ajouter Arme
+                <BookOpen className="w-3.5 h-3.5" /> Armurerie (Noms seuls)
               </button>
             </div>
 
@@ -1369,7 +1330,7 @@ export const PjSheet: React.FC<PjSheetProps> = ({
                 ))
               ) : (
                 <p className="text-xs text-[#9e907d] italic py-2">
-                  Aucune arme équipée pour le moment. Cliquez sur « Ajouter Arme » pour en équiper une.
+                  Aucune arme équipée pour le moment. Votre MJ vous octroiera vos nouvelles armes en partie.
                 </p>
               )}
             </div>
@@ -1568,7 +1529,7 @@ export const PjSheet: React.FC<PjSheetProps> = ({
                   type="button"
                   onClick={() => {
                     if ((currentBourse.po || 0) < 1) {
-                      alert("Pas assez de Pièces d'Or pour faire la monnaie.");
+                      warning("Pas assez de Pièces d'Or pour faire la monnaie.");
                       return;
                     }
                     handleUpdateBourse({
@@ -1586,7 +1547,7 @@ export const PjSheet: React.FC<PjSheetProps> = ({
                   type="button"
                   onClick={() => {
                     if ((currentBourse.pa || 0) < 1) {
-                      alert("Pas assez de Pièces d'Argent pour faire la monnaie.");
+                      warning("Pas assez de Pièces d'Argent pour faire la monnaie.");
                       return;
                     }
                     handleUpdateBourse({
@@ -2069,7 +2030,7 @@ export const PjSheet: React.FC<PjSheetProps> = ({
                 Sacoche, Équipement &amp; Tentes
               </h3>
               <p className="text-xs text-[#9e907d]">
-                Modifiez les quantités directement au clavier. Le catalogue vous propose tentes (1, 2, 4, 6 places), barda et consommables.
+                Consultez les objets octroyés par votre MJ et gérez vos consommables. Tant qu&apos;un objet n&apos;est pas acquis, les catalogues ne révèlent que son nom.
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
@@ -2079,23 +2040,21 @@ export const PjSheet: React.FC<PjSheetProps> = ({
                     setCatalogDrawer('tharnea');
                     setCatalogQuery('');
                   }}
-                  className="px-3 py-1.5 bg-gradient-to-r from-[#4d1945] to-[#2b0c27] hover:brightness-110 border border-[#b8389e] text-[#f7cbf2] text-xs font-bold rounded-lg flex items-center gap-1.5 shadow-sm"
-                  title="Consulter et ajouter les 30+ artéfacts et 12 bonbons de Tharnéa"
+                  className="px-3 py-1.5 bg-gradient-to-r from-[#4d1945] to-[#2b0c27] hover:brightness-110 border border-[#b8389e] text-[#f7cbf2] text-xs font-bold rounded-lg flex items-center gap-1.5 shadow-sm cursor-pointer"
+                  title="Liste des noms d'objets Tharnéa (détails masqués tant que le MJ ne vous les octroie pas)"
                 >
-                  <Sparkles className="w-3.5 h-3.5 text-[#ff8fed]" /> Artéfacts Tharnéa
+                  <Sparkles className="w-3.5 h-3.5 text-[#ff8fed]" /> Codex Tharnéa (Noms seuls)
                 </button>
               )}
               <button
-                onClick={() => setCatalogDrawer('biens')}
-                className="px-3 py-1.5 bg-[#d4a84a] hover:bg-[#e0b555] text-black text-xs font-bold rounded-lg flex items-center gap-1.5 shadow-xs"
+                onClick={() => {
+                  setCatalogDrawer('biens');
+                  setCatalogQuery('');
+                }}
+                className="px-3 py-1.5 bg-[#231c15] hover:bg-[#32271d] border border-[#d4a84a]/60 text-[#f3d48d] text-xs font-bold rounded-lg flex items-center gap-1.5 shadow-xs cursor-pointer"
+                title="Liste des noms d'équipements (détails masqués tant que non acquis)"
               >
-                <BookOpen className="w-3.5 h-3.5" /> Ouvrir Catalogue
-              </button>
-              <button
-                onClick={() => setIsCustomItemOpen(true)}
-                className="px-3 py-1.5 bg-[#231c15] hover:bg-[#32271d] border border-[#3d3023] text-[#ede3d1] text-xs font-semibold rounded-lg flex items-center gap-1.5"
-              >
-                <Plus className="w-3.5 h-3.5" /> Objet sur Mesure
+                <BookOpen className="w-3.5 h-3.5" /> Catalogue (Noms seuls)
               </button>
             </div>
           </div>
@@ -2107,25 +2066,56 @@ export const PjSheet: React.FC<PjSheetProps> = ({
                 Armures &amp; Protections Équipées
               </h4>
               <button
-                onClick={() => setCatalogDrawer('armures')}
-                className="text-xs text-[#d4a84a] hover:underline"
+                onClick={() => {
+                  setCatalogDrawer('armures');
+                  setCatalogQuery('');
+                }}
+                className="text-xs text-[#d4a84a] hover:underline flex items-center gap-1 cursor-pointer"
               >
-                + Changer Protection
+                <BookOpen className="w-3 h-3" /> Protections (Noms seuls)
               </button>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div className="bg-[#231c15] p-3 rounded-lg border border-[#3d3023]">
+              <button
+                type="button"
+                disabled={!pj.arm || pj.arm === 'Aucune armure'}
+                onClick={() => {
+                  if (!pj.arm || pj.arm === 'Aucune armure') return;
+                  const cat = findCatalogEquipmentByName(pj.arm);
+                  setDetailItem({
+                    type: 'equipment',
+                    data: cat || { n: pj.arm, cat: 'Armure', desc: 'Armure actuellement équipée.' },
+                  });
+                }}
+                className={`bg-[#231c15] p-3 rounded-lg border border-[#3d3023] text-left transition-colors ${
+                  pj.arm && pj.arm !== 'Aucune armure' ? 'hover:border-[#d4a84a] cursor-pointer' : 'cursor-default'
+                }`}
+              >
                 <span className="text-[10px] uppercase font-bold text-[#9e907d] block">
                   Armure de Corps
                 </span>
                 <b className="text-[#ede3d1] text-sm">{pj.arm || 'Aucune armure'}</b>
-              </div>
-              <div className="bg-[#231c15] p-3 rounded-lg border border-[#3d3023]">
+              </button>
+              <button
+                type="button"
+                disabled={!pj.bou || pj.bou === 'Aucun bouclier'}
+                onClick={() => {
+                  if (!pj.bou || pj.bou === 'Aucun bouclier') return;
+                  const cat = findCatalogEquipmentByName(pj.bou);
+                  setDetailItem({
+                    type: 'equipment',
+                    data: cat || { n: pj.bou, cat: 'Bouclier', desc: 'Bouclier actuellement équipé.' },
+                  });
+                }}
+                className={`bg-[#231c15] p-3 rounded-lg border border-[#3d3023] text-left transition-colors ${
+                  pj.bou && pj.bou !== 'Aucun bouclier' ? 'hover:border-[#d4a84a] cursor-pointer' : 'cursor-default'
+                }`}
+              >
                 <span className="text-[10px] uppercase font-bold text-[#9e907d] block">
                   Bouclier
                 </span>
                 <b className="text-[#ede3d1] text-sm">{pj.bou || 'Aucun bouclier'}</b>
-              </div>
+              </button>
             </div>
           </div>
 
@@ -2141,6 +2131,7 @@ export const PjSheet: React.FC<PjSheetProps> = ({
                   .filter((it) => it.isConsumable)
                   .map((it) => {
                     const globalIdx = pj.inventaire.indexOf(it);
+                    const cat = findCatalogEquipmentByName(it.n);
                     return (
                       <div
                         key={globalIdx}
@@ -2152,13 +2143,15 @@ export const PjSheet: React.FC<PjSheetProps> = ({
                             onClick={() =>
                               setDetailItem({
                                 type: 'equipment',
-                                data: {
-                                  n: it.n,
-                                  nom: it.n,
-                                  type: 'Consommable',
-                                  description: it.desc || 'Consommable ou munition d\'aventure.',
-                                  proprietes: it.note ? `Notes : ${it.note}` : undefined,
-                                },
+                                data: cat
+                                  ? { ...cat, desc: cat.desc || it.desc, props: cat.props || (it.note ? `Notes : ${it.note}` : undefined) }
+                                  : {
+                                      n: it.n,
+                                      nom: it.n,
+                                      cat: 'Consommable',
+                                      desc: it.desc || "Consommable ou munition d'aventure.",
+                                      props: it.note ? `Notes : ${it.note}` : undefined,
+                                    },
                               })
                             }
                             className="text-left group cursor-pointer"
@@ -2218,7 +2211,7 @@ export const PjSheet: React.FC<PjSheetProps> = ({
           {/* INVENTAIRE GÉNÉRAL (AVEC TENTES, ETC.) */}
           <div className="bg-[#181410] border border-[#3d3023] rounded-xl p-4 space-y-3">
             <h4 className="font-serif-co text-sm font-bold text-[#f3d48d]">
-              Inventaire Général (Tentes, Matériel d'Aventure)
+              Inventaire Général (Tentes, Matériel &amp; Équipements Reçus)
             </h4>
 
             {pj.inventaire && pj.inventaire.filter((it) => !it.isConsumable).length > 0 ? (
@@ -2227,6 +2220,8 @@ export const PjSheet: React.FC<PjSheetProps> = ({
                   .filter((it) => !it.isConsumable)
                   .map((it) => {
                     const globalIdx = pj.inventaire.indexOf(it);
+                    const cat = findCatalogEquipmentByName(it.n);
+                    const isEquippable = !!(cat && (cat.dm || cat.def !== undefined || cat.cat?.includes('Armure') || cat.cat?.includes('Bouclier')));
                     return (
                       <div
                         key={globalIdx}
@@ -2238,13 +2233,15 @@ export const PjSheet: React.FC<PjSheetProps> = ({
                             onClick={() =>
                               setDetailItem({
                                 type: 'equipment',
-                                data: {
-                                  n: it.n,
-                                  nom: it.n,
-                                  type: 'Matériel d\'aventure',
-                                  description: it.desc || 'Matériel d\'exploration et de voyage.',
-                                  proprietes: it.note ? `Notes : ${it.note}` : undefined,
-                                },
+                                data: cat
+                                  ? { ...cat, desc: cat.desc || it.desc, props: cat.props || (it.note ? `Notes : ${it.note}` : undefined) }
+                                  : {
+                                      n: it.n,
+                                      nom: it.n,
+                                      cat: "Matériel d'aventure",
+                                      desc: it.desc || "Matériel d'exploration et de voyage.",
+                                      props: it.note ? `Notes : ${it.note}` : undefined,
+                                    },
                               })
                             }
                             className="text-left group cursor-pointer"
@@ -2255,7 +2252,17 @@ export const PjSheet: React.FC<PjSheetProps> = ({
                             {it.desc && <p className="text-xs text-[#9e907d]">{it.desc}</p>}
                           </button>
 
-                          <div className="flex items-center gap-1.5">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            {isEquippable && (
+                              <button
+                                type="button"
+                                onClick={() => equipOwnedInventoryItem(it)}
+                                className="px-2 py-1 bg-[#2b3f24] hover:bg-[#38542e] border border-[#4e7a3f] text-[#c7f5b8] text-[11px] font-bold rounded cursor-pointer"
+                                title="Équiper cet objet que vous possédez"
+                              >
+                                Équiper
+                              </button>
+                            )}
                             <span className="text-xs text-[#9e907d]">Qté :</span>
                             <input
                               type="number"
@@ -2313,27 +2320,42 @@ export const PjSheet: React.FC<PjSheetProps> = ({
             <div className="px-5 py-4 border-b border-[#3d3023] flex items-center justify-between bg-gradient-to-r from-[#291712] to-[#181410]">
               <h3 className="font-serif-co text-lg font-bold text-[#f3d48d]">
                 {catalogDrawer === 'armes'
-                  ? 'Armurerie Officielle'
+                  ? 'Armurerie (Noms seuls)'
                   : catalogDrawer === 'armures'
-                  ? 'Protections & Boucliers'
+                  ? 'Protections (Noms seuls)'
                   : catalogDrawer === 'sorts'
                   ? 'Catalogue des Sorts'
-                  : 'Catalogue de Matériel & Tentes'}
+                  : catalogDrawer === 'tharnea'
+                  ? 'Codex Tharnéa (Noms seuls)'
+                  : 'Catalogue Équipement (Noms seuls)'}
               </h3>
               <button
                 onClick={() => setCatalogDrawer(null)}
-                className="p-1 rounded text-[#9e907d] hover:text-[#ede3d1]"
+                className="p-1 rounded text-[#9e907d] hover:text-[#ede3d1] cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
+
+            {catalogDrawer !== 'sorts' && (
+              <div className="px-4 py-2.5 bg-[#1b140d] border-b border-[#3d3023] flex items-start gap-2 text-[11px] text-[#cbb8a7]">
+                <Lock className="w-3.5 h-3.5 text-[#d4a84a] shrink-0 mt-0.5" />
+                <span>
+                  Tant qu&apos;un objet n&apos;a pas été octroyé par le <b className="text-[#f3d48d]">MJ</b>, seul son nom est visible et aucun ajout autonome n&apos;est permis. Les détails se débloquent dès acquisition.
+                </span>
+              </div>
+            )}
 
             <div className="p-4 border-b border-[#30251a]">
               <div className="relative">
                 <Search className="w-4 h-4 text-[#9e907d] absolute left-3 top-2.5" />
                 <input
                   type="text"
-                  placeholder="Rechercher par nom, dégâts, propriétés..."
+                  placeholder={
+                    catalogDrawer === 'sorts'
+                      ? 'Rechercher par nom, voie, effet...'
+                      : "Rechercher par nom d'objet..."
+                  }
                   value={catalogQuery}
                   onChange={(e) => setCatalogQuery(e.target.value)}
                   className="w-full pl-9 pr-3 py-2 bg-[#231c15] border border-[#3d3023] rounded-lg text-xs text-[#ede3d1] focus:border-[#d4a84a] outline-none"
@@ -2375,56 +2397,57 @@ export const PjSheet: React.FC<PjSheetProps> = ({
                 ))}
 
               {catalogDrawer === 'tharnea' &&
-                THARNEA_ARTIFACTS.filter((it) =>
-                  (it.n + (it.desc || '') + (it.cat || '') + (it.effetSecondaire || '')).toLowerCase().includes(catalogQuery.toLowerCase())
-                ).map((it, idx) => (
-                  <div
-                    key={idx}
-                    className="p-3 bg-[#241320] border border-[#5e194f] rounded-lg flex flex-col gap-1.5"
-                  >
-                    <div className="flex items-center justify-between">
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setDetailItem({
-                            type: 'equipment',
-                            data: it,
-                          })
-                        }
-                        className="flex items-center gap-1.5 text-left group cursor-pointer"
-                      >
-                        <b className="text-[#f7cbf2] text-sm group-hover:text-[#ffffff] flex items-center gap-1.5 underline-offset-2 hover:underline">
-                          {it.n} <Info className="w-3.5 h-3.5 opacity-60 group-hover:opacity-100 text-[#ff8fed]" />
-                        </b>
-                      </button>
-                      <button
-                        onClick={() => handleSelectFromDrawer(it)}
-                        className="px-2.5 py-1 bg-[#8a2d75] hover:bg-[#a6368d] text-white text-xs font-bold rounded shadow-xs"
-                      >
-                        + Choisir
-                      </button>
-                    </div>
-                    <div className="text-[11px] text-[#cca3c7] flex flex-wrap items-center gap-2">
-                      <span className="font-bold text-[#f7cbf2]">{it.cat}</span>
-                      {it.couleur && (
-                        <span className="flex items-center gap-1">
-                          • <span className="w-2.5 h-2.5 rounded-full inline-block border border-white/40" style={{ backgroundColor: it.couleur }} />
+                THARNEA_ARTIFACTS.filter((it) => {
+                  const q = catalogQuery.trim().toLowerCase();
+                  if (!q) return true;
+                  const owned = isItemOwnedByPj(it.n);
+                  if (owned) {
+                    return (it.n + (it.desc || '') + (it.cat || '')).toLowerCase().includes(q);
+                  }
+                  return it.n.toLowerCase().includes(q);
+                }).map((it, idx) => {
+                  const owned = isItemOwnedByPj(it.n);
+                  return (
+                    <div
+                      key={idx}
+                      className={`p-3 rounded-lg border flex items-center justify-between gap-2 ${
+                        owned
+                          ? 'bg-[#241320] border-[#a855f7]/60'
+                          : 'bg-[#171217] border-[#302330]'
+                      }`}
+                    >
+                      {owned ? (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setDetailItem({
+                              type: 'equipment',
+                              data: it,
+                            })
+                          }
+                          className="flex-1 text-left group cursor-pointer flex items-center gap-2"
+                        >
+                          <b className="text-[#f7cbf2] text-sm group-hover:text-white group-hover:underline">
+                            {it.n}
+                          </b>
+                          <Info className="w-3.5 h-3.5 text-[#ff8fed] shrink-0" />
+                        </button>
+                      ) : (
+                        <span className="text-sm font-medium text-[#cbb8cb]">{it.n}</span>
+                      )}
+
+                      {owned ? (
+                        <span className="text-[10px] px-2 py-0.5 rounded bg-[#18301c] text-[#86efac] border border-[#2d5e37] font-bold shrink-0">
+                          ✓ Acquis
+                        </span>
+                      ) : (
+                        <span className="text-[10px] px-2 py-0.5 rounded bg-[#1f1821] text-[#9a869c] border border-[#3a2a3d] font-semibold flex items-center gap-1 shrink-0">
+                          <Lock className="w-3 h-3" /> MJ seul
                         </span>
                       )}
                     </div>
-                    {it.dm && (
-                      <div className="text-xs font-mono font-bold text-[#f3d48d]">
-                        Dégâts : {it.dm} {it.crit && `(Crit ${it.crit})`} {it.por && `• Portée ${it.por}`}
-                      </div>
-                    )}
-                    <p className="text-xs text-[#ede3d1] line-clamp-2">{it.desc}</p>
-                    {it.effetSecondaire && (
-                      <p className="text-[11px] text-[#ffb0d9] italic">
-                        ⚠️ Effet secondaire : {it.effetSecondaire}
-                      </p>
-                    )}
-                  </div>
-                ))}
+                  );
+                })}
 
               {catalogDrawer !== 'sorts' &&
                 catalogDrawer !== 'tharnea' &&
@@ -2434,65 +2457,69 @@ export const PjSheet: React.FC<PjSheetProps> = ({
                   ? ARMURES_CATALOG
                   : BIENS_CATALOG
                 )
-                  .filter((it) =>
-                    (it.n + (it.desc || '') + (it.props || '')).toLowerCase().includes(catalogQuery.toLowerCase())
-                  )
-                  .map((it, idx) => (
-                    <div
-                      key={idx}
-                      className="p-3 bg-[#231c15] border border-[#3d3023] rounded-lg flex flex-col gap-1.5"
-                    >
-                      <div className="flex items-center justify-between">
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setDetailItem({
-                              type: 'equipment',
-                              data: {
-                                n: it.n,
-                                nom: it.n,
-                                type:
-                                  catalogDrawer === 'armes'
-                                    ? 'Arme'
-                                    : catalogDrawer === 'armures'
-                                    ? 'Armure / Protection'
-                                    : 'Bien & Équipement',
-                                degats: it.dm,
-                                defense: it.def,
-                                portee: it.por,
-                                critique: it.crit,
-                                proprietes: it.props,
-                                description: it.desc,
-                              },
-                            })
-                          }
-                          className="flex items-center gap-1.5 text-left group cursor-pointer"
-                        >
-                          <b className="text-[#f3d48d] text-sm group-hover:text-[#ffe099] flex items-center gap-1.5 underline-offset-2 hover:underline">
-                            {it.n} <Info className="w-3.5 h-3.5 opacity-60 group-hover:opacity-100 text-[#d4a84a]" />
-                          </b>
-                          {it.isPack && (
-                            <span className="text-[9px] bg-[#543818] text-[#f3d48d] px-1.5 py-0.5 rounded font-bold">
-                              Pack Complet
-                            </span>
-                          )}
-                        </button>
-                        <button
-                          onClick={() => handleSelectFromDrawer(it)}
-                          className="px-2.5 py-1 bg-[#d4a84a] hover:bg-[#e0b555] text-black text-xs font-bold rounded"
-                        >
-                          + Choisir
-                        </button>
-                      </div>
+                  .filter((it) => {
+                    const q = catalogQuery.trim().toLowerCase();
+                    if (!q) return true;
+                    const owned = isItemOwnedByPj(it.n);
+                    if (owned) {
+                      return (it.n + (it.desc || '') + (it.props || '')).toLowerCase().includes(q);
+                    }
+                    return it.n.toLowerCase().includes(q);
+                  })
+                  .map((it, idx) => {
+                    const owned = isItemOwnedByPj(it.n);
+                    return (
+                      <div
+                        key={idx}
+                        className={`p-3 rounded-lg border flex items-center justify-between gap-2 ${
+                          owned
+                            ? 'bg-[#231c15] border-[#d4a84a]/60'
+                            : 'bg-[#15120e] border-[#2d241b]'
+                        }`}
+                      >
+                        {owned ? (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setDetailItem({
+                                type: 'equipment',
+                                data: {
+                                  ...it,
+                                  n: it.n,
+                                  nom: it.n,
+                                  cat:
+                                    it.cat ||
+                                    (catalogDrawer === 'armes'
+                                      ? 'Arme'
+                                      : catalogDrawer === 'armures'
+                                      ? 'Armure / Protection'
+                                      : 'Bien & Équipement'),
+                                },
+                              })
+                            }
+                            className="flex-1 text-left group cursor-pointer flex items-center gap-2"
+                          >
+                            <b className="text-[#f3d48d] text-sm group-hover:text-[#ffe099] group-hover:underline">
+                              {it.n}
+                            </b>
+                            <Info className="w-3.5 h-3.5 text-[#d4a84a] shrink-0" />
+                          </button>
+                        ) : (
+                          <span className="text-sm font-medium text-[#bba992]">{it.n}</span>
+                        )}
 
-                      <div className="text-xs text-[#9e907d]">
-                        {it.dm && <span>DM : <b>{it.dm}</b> • Portée : {it.por} • Crit : {it.crit}<br /></span>}
-                        {it.def && <span>Protection : <b>+{it.def} DEF</b><br /></span>}
-                        {it.props && <span>Propriétés : {it.props}<br /></span>}
-                        {it.desc && <span>{it.desc}</span>}
+                        {owned ? (
+                          <span className="text-[10px] px-2 py-0.5 rounded bg-[#18301c] text-[#86efac] border border-[#2d5e37] font-bold shrink-0">
+                            ✓ Acquis
+                          </span>
+                        ) : (
+                          <span className="text-[10px] px-2 py-0.5 rounded bg-[#1d1711] text-[#8e7e6b] border border-[#33281d] font-semibold flex items-center gap-1 shrink-0">
+                            <Lock className="w-3 h-3" /> MJ seul
+                          </span>
+                        )}
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
             </div>
           </div>
         </div>
@@ -2665,100 +2692,6 @@ export const PjSheet: React.FC<PjSheetProps> = ({
                 className="px-5 py-2 bg-gradient-to-r from-[#d4a84a] to-[#ab8230] hover:brightness-110 text-black font-bold text-xs rounded-lg shadow-md"
               >
                 Valider Niveau {pj.level + 1}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ==================== MODAL CRÉER OBJET SUR MESURE ==================== */}
-      {isCustomItemOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-xs p-4 animate-fadeIn">
-          <div className="bg-[#181410] border border-[#d4a84a] rounded-xl w-full max-w-md shadow-2xl p-5 space-y-3">
-            <h3 className="font-serif-co text-lg font-bold text-[#f3d48d]">
-              Ajouter un Matériel sur Mesure
-            </h3>
-
-            <div>
-              <label className="text-xs font-bold uppercase text-[#9e907d] block mb-1">
-                Nom de l'objet *
-              </label>
-              <input
-                type="text"
-                placeholder="Ex: Tente 3 places, Dague d'argent, Potion de force..."
-                value={customItemName}
-                onChange={(e) => setCustomItemName(e.target.value)}
-                className="w-full px-3 py-2 bg-[#231c15] border border-[#3d3023] rounded-lg text-xs text-[#ede3d1] outline-none focus:border-[#d4a84a]"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-xs font-bold uppercase text-[#9e907d] block mb-1">
-                  Quantité
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  value={customItemQty}
-                  onChange={(e) => setCustomItemQty(Math.max(1, parseInt(e.target.value) || 1))}
-                  className="w-full px-3 py-2 bg-[#231c15] border border-[#3d3023] rounded-lg text-xs text-[#ede3d1] outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-bold uppercase text-[#9e907d] block mb-1">
-                  Type d'objet
-                </label>
-                <select
-                  value={customItemIsConsumable ? '1' : '0'}
-                  onChange={(e) => setCustomItemIsConsumable(e.target.value === '1')}
-                  className="w-full px-3 py-2 bg-[#231c15] border border-[#3d3023] rounded-lg text-xs text-[#ede3d1] outline-none"
-                >
-                  <option value="0">Équipement général</option>
-                  <option value="1">Consommable / Munition</option>
-                </select>
-              </div>
-            </div>
-
-            <div>
-              <label className="text-xs font-bold uppercase text-[#9e907d] block mb-1">
-                Description &amp; Propriétés
-              </label>
-              <textarea
-                rows={2}
-                placeholder="Description sommaire..."
-                value={customItemDesc}
-                onChange={(e) => setCustomItemDesc(e.target.value)}
-                className="w-full px-3 py-2 bg-[#231c15] border border-[#3d3023] rounded-lg text-xs text-[#ede3d1] outline-none"
-              />
-            </div>
-
-            <div>
-              <label className="text-xs font-bold uppercase text-[#9e907d] block mb-1">
-                Annotations
-              </label>
-              <input
-                type="text"
-                placeholder="Ex: Roulée sur le sac, étanche..."
-                value={customItemNote}
-                onChange={(e) => setCustomItemNote(e.target.value)}
-                className="w-full px-3 py-2 bg-[#231c15] border border-[#3d3023] rounded-lg text-xs text-[#ede3d1] outline-none"
-              />
-            </div>
-
-            <div className="flex items-center justify-end gap-2 pt-2">
-              <button
-                onClick={() => setIsCustomItemOpen(false)}
-                className="px-4 py-2 bg-[#231c15] hover:bg-[#32271d] border border-[#3d3023] text-xs font-semibold text-[#ede3d1] rounded-lg"
-              >
-                Annuler
-              </button>
-              <button
-                onClick={handleSaveCustomItem}
-                className="px-5 py-2 bg-[#d4a84a] hover:bg-[#e0b555] text-black font-bold text-xs rounded-lg shadow-md"
-              >
-                Ajouter au Sac
               </button>
             </div>
           </div>
@@ -3257,7 +3190,7 @@ export const PjSheet: React.FC<PjSheetProps> = ({
                 <ul className="list-disc pl-4 space-y-0.5 text-[11px]">
                   <li><b>Potion de Mana mineure :</b> Rend immédiatement <b>1d6 PM</b>.</li>
                   <li><b>Potion de Mana majeure :</b> Rend immédiatement <b>2d6 PM</b>.</li>
-                  <li><b>Bonbon Prisme d'Azur (Codex Tharnéa) :</b> Restaure instantanément de l'essence magique pure.</li>
+                  <li><b>Élixirs &amp; confiseries spéciales :</b> Raretés accordées uniquement par votre MJ.</li>
                 </ul>
               </div>
 
@@ -3412,6 +3345,91 @@ export const PjSheet: React.FC<PjSheetProps> = ({
         partyCount={rosterCount || 4}
         isMj={false}
       />
+
+      {/* ==================== MODAL CONFIRMATION SUPPRESSION OBJET (QTE 0) ==================== */}
+      {confirmDeleteItemIdx !== null && pj.inventaire[confirmDeleteItemIdx] && (
+        <div className="no-print fixed inset-0 z-[70] flex items-center justify-center bg-black/80 backdrop-blur-xs p-4">
+          <div className="bg-[#181410] border border-[#d4a84a] rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-4">
+            <h4 className="font-serif-co text-lg font-bold text-[#f3d48d]">
+              Supprimer cet objet du sac ?
+            </h4>
+            <p className="text-xs text-[#cbb8a7] leading-relaxed">
+              La quantité de <b className="text-[#ede3d1]">« {pj.inventaire[confirmDeleteItemIdx].n} »</b> est tombée à <b>0</b>. Voulez-vous le supprimer définitivement de votre sacoche ou le conserver à 0 ?
+            </p>
+            <div className="flex justify-end gap-2 pt-2 border-t border-[#30251a]">
+              <button
+                type="button"
+                onClick={() => setConfirmDeleteItemIdx(null)}
+                className="px-4 py-2 bg-[#231c15] hover:bg-[#32271d] border border-[#3d3023] text-xs font-semibold text-[#ede3d1] rounded-lg cursor-pointer"
+              >
+                Garder à 0
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const inv = [...pj.inventaire];
+                  inv.splice(confirmDeleteItemIdx, 1);
+                  onUpdatePj({ ...pj, inventaire: inv });
+                  setConfirmDeleteItemIdx(null);
+                }}
+                className="px-4 py-2 bg-[#7a2020] hover:bg-[#992b2b] text-white font-bold text-xs rounded-lg cursor-pointer"
+              >
+                Supprimer définitivement
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ==================== MODAL PORTRAIT PERSONNAGE ==================== */}
+      {isPortraitModalOpen && (
+        <div className="no-print fixed inset-0 z-[70] flex items-center justify-center bg-black/80 backdrop-blur-xs p-4">
+          <div className="bg-[#181410] border-2 border-[#d4a84a] rounded-2xl max-w-lg w-full p-5 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-[#30251a] pb-3">
+              <div>
+                <h4 className="font-serif-co text-lg font-bold text-[#f3d48d]">
+                  Portrait de {pj.name}
+                </h4>
+                <p className="text-[11px] text-[#9e907d]">
+                  Générez un portrait adapté à sa race/profil (avec variantes) ou importez votre propre image.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsPortraitModalOpen(false)}
+                className="p-1.5 rounded-lg text-[#9e907d] hover:text-[#ede3d1] hover:bg-[#231c15] cursor-pointer"
+                aria-label="Fermer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <PortraitPicker
+              value={pj.portrait}
+              onChange={(url) => onUpdatePj({ ...pj, portrait: url })}
+              characterDraft={{
+                name: pj.name,
+                race: pj.race,
+                profil: pj.profil,
+                isPnj: pj.isPnj,
+                rolePnj: pj.rolePnj,
+                persoTraits: pj.persoTraits,
+              }}
+              label="Portrait du personnage"
+            />
+
+            <div className="flex justify-end pt-2 border-t border-[#30251a]">
+              <button
+                type="button"
+                onClick={() => setIsPortraitModalOpen(false)}
+                className="px-5 py-2 bg-gradient-to-r from-[#d4a84a] to-[#ab8230] hover:brightness-110 text-black font-bold text-xs rounded-xl shadow-md cursor-pointer"
+              >
+                Terminer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Discreet Signature */}
       <div className="text-right text-[10px] text-[#4d3d2e] font-mono tracking-wider pt-2 select-none">

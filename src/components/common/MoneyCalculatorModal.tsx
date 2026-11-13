@@ -17,6 +17,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { CurrencyBourse } from '../../types/chroniques';
+import { useToast } from './ToastContext';
 
 interface MoneyCalculatorModalProps {
   isOpen: boolean;
@@ -39,6 +40,7 @@ export const MoneyCalculatorModal: React.FC<MoneyCalculatorModalProps> = ({
   isMj = false,
   onDistributeToAllPjs,
 }) => {
+  const { error, warning, success } = useToast();
   const [activeTab, setActiveTab] = useState<'transaction' | 'partage' | 'calculatrice'>('transaction');
 
   // Transaction Inputs
@@ -89,7 +91,7 @@ export const MoneyCalculatorModal: React.FC<MoneyCalculatorModalProps> = ({
     if (costInCopper <= 0) return;
 
     if (costInCopper > totalInCopper) {
-      alert(`Fonds insuffisants ! Coût total: ${costInCopper} PC (${(costInCopper / 100).toFixed(2)} PO), mais votre bourse ne contient que ${totalInCopper} PC.`);
+      error(`Fonds insuffisants ! Coût total: ${costInCopper} PC (${(costInCopper / 100).toFixed(2)} PO), mais votre bourse ne contient que ${totalInCopper} PC.`);
       return;
     }
 
@@ -119,7 +121,7 @@ export const MoneyCalculatorModal: React.FC<MoneyCalculatorModalProps> = ({
   // Faire de la menue monnaie (casser 1 PO en 10 PA, ou 1 PA en 10 PC)
   const handleBreakGold = () => {
     if (currentPo < 1) {
-      alert("Vous n'avez pas de Pièce d'Or à casser.");
+      warning("Vous n'avez pas de Pièce d'Or à casser.");
       return;
     }
     onUpdateBourse({ po: currentPo - 1, pa: currentPa + 10, pc: currentPc });
@@ -127,7 +129,7 @@ export const MoneyCalculatorModal: React.FC<MoneyCalculatorModalProps> = ({
 
   const handleBreakSilver = () => {
     if (currentPa < 1) {
-      alert("Vous n'avez pas de Pièce d'Argent à casser.");
+      warning("Vous n'avez pas de Pièce d'Argent à casser.");
       return;
     }
     onUpdateBourse({ po: currentPo, pa: currentPa - 1, pc: currentPc + 10 });
@@ -581,7 +583,7 @@ export const MoneyCalculatorModal: React.FC<MoneyCalculatorModalProps> = ({
                         pa: currentPa + sharePa,
                         pc: currentPc + sharePc,
                       });
-                      alert(`Part ajoutée à votre bourse : +${sharePo} PO, ${sharePa} PA, ${sharePc} PC !`);
+                      success(`Part ajoutée à votre bourse : +${sharePo} PO, ${sharePa} PA, ${sharePc} PC !`);
                     }}
                     className="flex-1 py-2.5 px-3 rounded-xl bg-gradient-to-r from-[#d4a84a] to-[#ab8230] text-[#1a1208] font-bold text-xs shadow-md hover:brightness-110 flex items-center justify-center gap-1.5 cursor-pointer"
                   >

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Dices, RotateCcw, X, Sparkles, CheckCircle2 } from 'lucide-react';
+import { useToast } from './common/ToastContext';
 
 interface DiceRollHistory {
   id: string;
@@ -20,6 +21,7 @@ interface DiceRollerProps {
 }
 
 export const DiceRoller: React.FC<DiceRollerProps> = ({ isOpen, onClose }) => {
+  const { warning } = useToast();
   // Physical Dice Entry (default & primary)
   const [selectedDie, setSelectedDie] = useState<number>(20);
   const [physicalRollInput, setPhysicalRollInput] = useState<string>('');
@@ -36,7 +38,7 @@ export const DiceRoller: React.FC<DiceRollerProps> = ({ isOpen, onClose }) => {
     if (e) e.preventDefault();
     const rollVal = parseInt(physicalRollInput);
     if (isNaN(rollVal)) {
-      alert('Veuillez entrer le chiffre obtenu sur votre dé physique.');
+      warning('Veuillez entrer le chiffre obtenu sur votre dé physique.');
       return;
     }
 

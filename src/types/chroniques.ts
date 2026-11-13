@@ -112,6 +112,7 @@ export interface Character {
   rolePnj?: string;
   dmPatchAt?: number;
   bourse?: { po: number; pa: number; pc: number };
+  portrait?: string;
 }
 
 export interface CurrencyBourse {
@@ -134,6 +135,7 @@ export interface Monster {
   milieu?: string;
   taille?: string;
   poids?: string;
+  descPhysique?: string;
   caracs?: Partial<Record<CaracName, number>>;
   pouvoirs?: { n: string; t: string }[];
   tactique?: string;
@@ -141,6 +143,10 @@ export interface Monster {
   vitesse?: string;
   sauvegardes?: string;
   resistances?: string;
+  origineNarratif?: string;
+  liensPj?: string;
+  secret?: string;
+  imageUrl?: string;
 }
 
 export interface Equipment {
@@ -207,11 +213,13 @@ export interface Combatant {
   hpMax: number;
   def: number;
   baseInit: number;
-  init: number;
+  init: number | null;
   lastRoll?: number;
   notes: string;
   pjRefId?: string;
   etats?: string[];
+  actedInRound?: boolean;
+  monsterRefName?: string;
 }
 
 export interface TableFeedEntry {

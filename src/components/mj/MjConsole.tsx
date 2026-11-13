@@ -30,6 +30,10 @@ import {
   ClipboardPaste,
   Calculator,
   X,
+  FileText,
+  Eraser,
+  Copy,
+  CheckCircle2,
 } from 'lucide-react';
 import {
   OSGILD_GEOGRAPHY_ASCII,
@@ -42,8 +46,10 @@ import { DetailModal, DetailItem } from '../DetailModal';
 import { StateBadgeList } from '../common/StateBadgeList';
 import { PnjCreatorModal } from './PnjCreatorModal';
 import { CharacterSheetModal } from './CharacterSheetModal';
+import { QuickInitModal } from './QuickInitModal';
 import { OsgildLoreMj } from './OsgildLoreMj';
 import { MoneyCalculatorModal } from '../common/MoneyCalculatorModal';
+import { useToast } from '../common/ToastContext';
 import {
   BESTIAIRE,
   EQUIPEMENTS,
@@ -144,7 +150,9 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
   const [lootCategoryFilter, setLootCategoryFilter] = useState<'all' | 'armes' | 'armures' | 'biens' | 'tharnea' | 'bonbons'>('all');
   const [rolledLoot, setRolledLoot] = useState<{ item: Equipment; rollNumber: number; date: string } | null>(null);
   const [lootHistory, setLootHistory] = useState<{ item: Equipment; rollNumber: number; date: string }[]>([]);
-  const [targetPjForLoot, setTargetPjForLoot] = useState<string>('');
+  const [targetPjIdsForLoot, setTargetPjIdsForLoot] = useState<string[]>([]);
+  const [pendingGiftItem, setPendingGiftItem] = useState<Equipment | null>(null);
+  const [modalRecipientIds, setModalRecipientIds] = useState<string[]>([]);
 
   const [eqSearch, setEqSearch] = useState('');
   const [eqCatFilter, setEqCatFilter] = useState('');
@@ -158,9 +166,48 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
   const [voieSearch, setVoieSearch] = useState('');
   const [voiesProfilFilter, setVoiesProfilFilter] = useState<string>('all');
   const [grimSearch, setGrimSearch] = useState('');
+  const { showToast, success, warning, error, info } = useToast();
   const [detailItem, setDetailItem] = useState<DetailItem | null>(null);
   const [selectedCharacterModal, setSelectedCharacterModal] = useState<Character | null>(null);
   const [moneyCalcTarget, setMoneyCalcTarget] = useState<{ type: 'group' } | { type: 'pj'; pjIndex: number } | null>(null);
+  const [isQuickInitOpen, setIsQuickInitOpen] = useState(false);
+  const [combatRound, setCombatRound] = useState<number>(1);
+  const [bestiaireQuantities, setBestiaireQuantities] = useState<Record<string, number>>({});
+  const [confirmClearCombatOpen, setConfirmClearCombatOpen] = useState(false);
+  const [confirmClearCreaturesOpen, setConfirmClearCreaturesOpen] = useState(false);
+  const [confirmDuplicatePj, setConfirmDuplicatePj] = useState<Character | null>(null);
+
+  const allMonstersCatalog = React.useMemo<Monster[]>(
+    () => [...BESTIAIRE, ...THARNEA_MONSTERS, ...(tableData.bestiaire || [])],
+    [tableData.bestiaire]
+  );
+
+  const resolvePjForCombatant = (c: Combatant): Character | undefined => {
+    if (!c.isPj) return undefined;
+    return tableData.pjs.find(
+      (p) =>
+        (c.pjRefId && p.id === c.pjRefId) ||
+        p.id === c.id ||
+        (p.name && c.n.trim().toLowerCase() === p.name.trim().toLowerCase()) ||
+        (p.name && c.n.toLowerCase().startsWith(p.name.toLowerCase()))
+    );
+  };
+
+  const resolveMonsterForCombatant = (c: Combatant): Monster => {
+    const baseName = (c.monsterRefName || c.n.replace(/\s+#\d+$/, '')).trim().toLowerCase();
+    const found = allMonstersCatalog.find((m) => m.n.trim().toLowerCase() === baseName);
+    if (found) return found;
+    return {
+      n: c.n,
+      nc: c.isPj ? 'PJ' : '?',
+      pv: c.hpMax,
+      def: c.def,
+      init: c.baseInit ?? 10,
+      fam: c.isPnj ? 'PNJ / Allié' : 'Créature personnalisée',
+      att: c.notes || 'Attaque standard',
+      traits: c.notes || 'Combattant engagé sur la piste de combat.',
+    };
+  };
 
   // Finances cumulées du groupe d'aventuriers
   const groupFinances: CurrencyBourse = tableData.pjs.reduce(
@@ -185,7 +232,7 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
 
   const handleDistributeLootToAll = (share: CurrencyBourse) => {
     if (tableData.pjs.length === 0) {
-      alert("Aucun aventurier dans le groupe.");
+      warning("Aucun aventurier dans le groupe.");
       return;
     }
     const updatedPjs = tableData.pjs.map((p) => {
@@ -200,7 +247,7 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
       };
     });
     onUpdateTableData({ ...tableData, pjs: updatedPjs });
-    alert(`Butin distribué à tous les ${updatedPjs.length} aventuriers : +${share.po} PO, ${share.pa} PA, ${share.pc} PC chacun !`);
+    success(`Butin distribué à tous les ${updatedPjs.length} aventuriers : +${share.po} PO, ${share.pa} PA, ${share.pc} PC chacun !`);
   };
 
   // Add custom combatant state
@@ -314,7 +361,7 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
     });
 
     if (pool.length === 0) {
-      alert('Aucun butin ne correspond aux critères de filtre.');
+      warning('Aucun butin ne correspond aux critères de filtre.');
       return;
     }
 
@@ -330,47 +377,261 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
     setLootHistory((prev) => [rollEntry, ...prev.slice(0, 8)]);
   };
 
-  const handleGiveLootToPj = (item: Equipment, pjId?: string) => {
-    const targetId = pjId || targetPjForLoot;
-    if (!targetId) {
-      alert('Veuillez sélectionner un personnage PJ dans la liste.');
+  const getRecipientKey = (p: Character) => p.id || p.name;
+
+  const selectedLootRecipients = React.useMemo(
+    () => tableData.pjs.filter((p) => targetPjIdsForLoot.includes(getRecipientKey(p))),
+    [tableData.pjs, targetPjIdsForLoot]
+  );
+
+  const toggleTargetPjId = (pid: string) => {
+    setTargetPjIdsForLoot((prev) =>
+      prev.includes(pid) ? prev.filter((id) => id !== pid) : [...prev, pid]
+    );
+  };
+
+  const selectAllTargetPjs = () => {
+    setTargetPjIdsForLoot(tableData.pjs.map(getRecipientKey));
+  };
+
+  const clearTargetPjs = () => {
+    setTargetPjIdsForLoot([]);
+  };
+
+  const getGiftButtonLabel = (compact = false) => {
+    if (selectedLootRecipients.length === 0) {
+      return compact ? '+ Choisir PJ/PNJ' : '+ Choisir PJ/PNJ & Donner';
+    }
+    if (selectedLootRecipients.length === 1) {
+      return compact
+        ? `+ ${selectedLootRecipients[0].name}`
+        : `+ Donner à ${selectedLootRecipients[0].name}`;
+    }
+    return compact
+      ? `+ ${selectedLootRecipients.length} PJ/PNJ`
+      : `+ Donner à ${selectedLootRecipients.length} PJ/PNJ`;
+  };
+
+  const renderRecipientMultiSelector = (title = 'Destinataires (PJ & PNJ)') => (
+    <div className="bg-[#120e0a] border border-[#3d3023] rounded-xl p-2.5 space-y-2">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <span className="text-[11px] font-bold text-[#f3d48d]">
+          {title} — {selectedLootRecipients.length}/{tableData.pjs.length} sélectionné(s) :
+        </span>
+        {tableData.pjs.length > 0 && (
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={selectAllTargetPjs}
+              className="px-2 py-0.5 rounded bg-[#231c15] hover:bg-[#32271d] border border-[#3d3023] text-[10px] font-bold text-[#f3d48d] cursor-pointer"
+            >
+              Tout sélectionner
+            </button>
+            <button
+              type="button"
+              onClick={clearTargetPjs}
+              className="px-2 py-0.5 rounded bg-[#231c15] hover:bg-[#32271d] border border-[#3d3023] text-[10px] font-semibold text-[#9e907d] cursor-pointer"
+            >
+              Tout désélectionner
+            </button>
+          </div>
+        )}
+      </div>
+
+      {tableData.pjs.length > 0 ? (
+        <div className="flex flex-wrap gap-1.5">
+          {tableData.pjs.map((p) => {
+            const pid = getRecipientKey(p);
+            const checked = targetPjIdsForLoot.includes(pid);
+            return (
+              <label
+                key={pid}
+                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs cursor-pointer transition-colors ${
+                  checked
+                    ? 'bg-[#1c2e16] border-[#6fa85b] text-[#ede3d1]'
+                    : 'bg-[#1c1611] border-[#30251a] text-[#bba992] hover:border-[#4d3b29]'
+                }`}
+              >
+                <input
+                  type="checkbox"
+                  checked={checked}
+                  onChange={() => toggleTargetPjId(pid)}
+                  className="w-3.5 h-3.5 accent-[#6fa85b] cursor-pointer"
+                />
+                <span className="font-semibold">{p.name}</span>
+                <span
+                  className={`text-[9px] px-1 rounded font-bold ${
+                    p.isPnj
+                      ? 'bg-[#1e3a5f] text-[#93c5fd]'
+                      : 'bg-[#3b2a14] text-[#f3d48d]'
+                  }`}
+                >
+                  {p.isPnj ? 'PNJ' : 'PJ'}
+                </span>
+              </label>
+            );
+          })}
+        </div>
+      ) : (
+        <p className="text-[11px] text-[#9e907d] italic">Aucun PJ ou PNJ dans le groupe.</p>
+      )}
+    </div>
+  );
+
+  const handleGiveLootToPj = (item: Equipment, pjIds?: string[]) => {
+    const targetIds = pjIds && pjIds.length > 0 ? pjIds : targetPjIdsForLoot;
+    if (targetIds.length === 0) {
+      if (tableData.pjs.length === 0) {
+        warning('Aucun PJ ou PNJ dans le groupe pour recevoir cet objet.');
+        return;
+      }
+      setModalRecipientIds([]);
+      setPendingGiftItem(item);
       return;
     }
 
-    const pjs = [...tableData.pjs];
-    const targetIdx = pjs.findIndex((p) => (p.id || p.name) === targetId);
-    if (targetIdx === -1) {
-      alert('Personnage introuvable dans le groupe.');
+    const grantedNames: string[] = [];
+    const updatedPjs = tableData.pjs.map((targetPj) => {
+      const pid = getRecipientKey(targetPj);
+      if (!targetIds.includes(pid)) return targetPj;
+      grantedNames.push(targetPj.name);
+
+      const inv = [...(targetPj.inventaire || [])];
+
+      if (item.isPack || item.n.includes('Pack')) {
+        const packElements = [
+          { n: 'Sac à dos renforcé', q: 1, desc: 'Toile imperméabilisée', note: 'Rangement principal' },
+          { n: 'Corde (15 m) & grappin', q: 1, desc: "Chanvre solide avec crochet d'acier", note: 'Attachée sous le sac' },
+          { n: 'Paillasse portable & couverture', q: 1, desc: 'Couchage rembourré et couverture chaude', note: 'Roulée' },
+          { n: 'Torches de résine', q: 5, desc: "1h d'éclairage à 10 m", isConsumable: true, note: "Plein d'amadou" },
+          { n: 'Briquet à silex et amadou', q: 1, desc: 'Allume un feu rapidement', note: 'Poche étanche' },
+          { n: 'Rations de voyage (1 sem.)', q: 7, desc: 'Vivres de longue conservation', isConsumable: true, note: '1 portion/jour' },
+          { n: "Gourde d'eau en cuir (1L)", q: 1, desc: "Pleine d'eau fraîche", isConsumable: true, note: 'Ceinture' },
+          { n: 'Potion de soins légers', q: 1, desc: 'Rend immédiatement 1d8 PV', isConsumable: true, note: 'Urgence' },
+        ];
+        packElements.forEach((pItem) => {
+          const existIdx = inv.findIndex((x) => x.n === pItem.n);
+          if (existIdx !== -1) {
+            inv[existIdx] = { ...inv[existIdx], q: (inv[existIdx].q || 1) + pItem.q };
+          } else {
+            inv.push({ ...pItem });
+          }
+        });
+        return { ...targetPj, inventaire: inv };
+      }
+
+      const existIdx = inv.findIndex((x) => x.n === item.n);
+      const richDesc = [
+        item.dm ? `DM ${item.dm}${item.crit ? ` (Crit ${item.crit})` : ''}` : '',
+        item.def !== undefined ? `+${item.def} DEF` : '',
+        item.desc || item.props || '',
+      ]
+        .filter(Boolean)
+        .join(' • ');
+
+      if (existIdx !== -1) {
+        inv[existIdx] = { ...inv[existIdx], q: (inv[existIdx].q || 1) + (item.q || 1) };
+      } else {
+        inv.push({
+          n: item.n,
+          desc: richDesc,
+          q: item.q || 1,
+          isConsumable: !!item.isConsumable || !!item.effetSecondaire,
+          note: item.effetSecondaire
+            ? `Effet : ${item.effetSecondaire}`
+            : item.source === 'tharnea'
+            ? 'Codex Tharnéa'
+            : item.cat || '',
+        });
+      }
+
+      let updatedArmes = targetPj.armes || [];
+      if (item.dm) {
+        const alreadyArmed = updatedArmes.some(
+          (w) => w.n.trim().toLowerCase() === item.n.trim().toLowerCase()
+        );
+        if (!alreadyArmed) {
+          updatedArmes = [
+            ...updatedArmes,
+            {
+              n: item.n,
+              t: item.cat?.includes('Distance')
+                ? 'Distance'
+                : item.cat?.includes('Poudre')
+                ? 'Poudre'
+                : 'Contact',
+              dm: item.dm,
+              crit: item.crit || '20',
+              por: item.por || (item.cat?.includes('Distance') ? '30 m' : 'Contact'),
+              props: item.props || item.desc || '',
+              note: item.source === 'tharnea' ? 'Codex Tharnéa' : '',
+            },
+          ];
+        }
+      }
+
+      return { ...targetPj, inventaire: inv, armes: updatedArmes };
+    });
+
+    if (grantedNames.length === 0) {
+      warning('Personnage(s) destinataire(s) introuvable(s).');
       return;
     }
 
-    const targetPj = pjs[targetIdx];
-    const inv = [...(targetPj.inventaire || [])];
-    const exist = inv.find((x) => x.n === item.n);
-    if (exist) {
-      exist.q = (exist.q || 1) + (item.q || 1);
+    onUpdateTableData({ ...tableData, pjs: updatedPjs });
+    const summaryNames =
+      grantedNames.length <= 3
+        ? grantedNames.join(', ')
+        : `${grantedNames.length} personnages (${grantedNames.slice(0, 2).join(', ')}...)`;
+    success(`🎁 "${item.n}" octroyé à ${summaryNames} !`);
+  };
+
+  const requestGiveEquipmentToPj = (item: Equipment) => {
+    if (tableData.pjs.length === 0) {
+      warning('Aucun PJ ou PNJ dans le groupe pour recevoir cet objet.');
+      return;
+    }
+    if (targetPjIdsForLoot.length > 0) {
+      handleGiveLootToPj(item, targetPjIdsForLoot);
     } else {
-      inv.push({
-        n: item.n,
-        desc: item.desc || item.props || '',
-        q: item.q || 1,
-        isConsumable: !!item.isConsumable || !!item.effetSecondaire,
-        note: item.source === 'tharnea' ? 'Codex Tharnéa' : item.cat || '',
-      });
+      setModalRecipientIds([]);
+      setPendingGiftItem(item);
     }
-
-    pjs[targetIdx] = { ...targetPj, inventaire: inv };
-    onUpdateTableData({ ...tableData, pjs });
-    alert(`🎁 "${item.n}" a été ajouté avec succès à l'inventaire de ${targetPj.name} !`);
   };
 
   // ==================== COMBAT ACTIONS ====================
+  const sortByInitDesc = (a: Combatant, b: Combatant) => {
+    const av = a.init === null || a.init === undefined ? -9999 : a.init;
+    const bv = b.init === null || b.init === undefined ? -9999 : b.init;
+    return bv - av;
+  };
+
+  // Groupe de combattants à jouer ensemble (tous les non-joués partageant la plus haute initiative courante)
+  const activeTurnGroup = React.useMemo(() => {
+    const firstUnacted = tableData.combatants.find((c) => !c.actedInRound);
+    if (!firstUnacted) return [] as Combatant[];
+    if (firstUnacted.init !== null && firstUnacted.init !== undefined) {
+      return tableData.combatants.filter(
+        (c) => !c.actedInRound && c.init === firstUnacted.init
+      );
+    }
+    return [firstUnacted];
+  }, [tableData.combatants]);
+
+  const activeTurnIds = React.useMemo(
+    () => new Set(activeTurnGroup.map((c) => c.id)),
+    [activeTurnGroup]
+  );
+
   const rollOneInit = (index: number) => {
     const list = [...tableData.combatants];
     const c = list[index];
     const d20 = Math.floor(Math.random() * 20) + 1;
-    c.lastRoll = d20;
-    c.init = d20 + (c.baseInit || 10);
+    list[index] = {
+      ...c,
+      lastRoll: d20,
+      init: d20 + (c.baseInit || 10),
+    };
     onUpdateTableData({ ...tableData, combatants: list });
   };
 
@@ -381,10 +642,13 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
         ...c,
         lastRoll: d20,
         init: d20 + (c.baseInit || 10),
+        actedInRound: false,
       };
     });
-    list.sort((a, b) => b.init - a.init);
+    list.sort(sortByInitDesc);
+    setCombatRound(1);
     onUpdateTableData({ ...tableData, combatants: list });
+    info('Toutes les initiatives ont été lancées et triées (Round 1).');
   };
 
   const rollMonstersInit = () => {
@@ -395,23 +659,164 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
           ...c,
           lastRoll: d20,
           init: d20 + (c.baseInit || 10),
+          actedInRound: false,
         };
       }
       return c;
     });
-    list.sort((a, b) => b.init - a.init);
+    list.sort(sortByInitDesc);
     onUpdateTableData({ ...tableData, combatants: list });
+    info('Initiatives des monstres lancées et triées.');
   };
 
   const sortCombatantsByInit = () => {
-    const list = [...tableData.combatants].sort((a, b) => b.init - a.init);
+    const list = [...tableData.combatants].sort(sortByInitDesc);
     onUpdateTableData({ ...tableData, combatants: list });
   };
 
-  const clearCombat = () => {
-    if (confirm('Voulez-vous vider la piste de combat ?')) {
-      onUpdateTableData({ ...tableData, combatants: [] });
+  const handleClearPjInit = () => {
+    const list = tableData.combatants.map((c) =>
+      c.isPj ? { ...c, init: null, lastRoll: undefined, actedInRound: false } : { ...c, actedInRound: false }
+    );
+    list.sort(sortByInitDesc);
+    setCombatRound(1);
+    onUpdateTableData({ ...tableData, combatants: list });
+    info('Initiatives des PJ remises à vide.');
+  };
+
+  const handleApplyQuickInit = (
+    updates: Record<string, { init: number | null; lastRoll?: number }>,
+    sortAfter: boolean
+  ) => {
+    let list = tableData.combatants.map((c) => {
+      const upd = updates[c.id];
+      if (!upd) return { ...c, actedInRound: false };
+      return {
+        ...c,
+        init: upd.init,
+        lastRoll: upd.lastRoll !== undefined ? upd.lastRoll : upd.init === null ? undefined : c.lastRoll,
+        actedInRound: false,
+      };
+    });
+    if (sortAfter) {
+      list = [...list].sort(sortByInitDesc);
     }
+    setCombatRound(1);
+    onUpdateTableData({ ...tableData, combatants: list });
+    success(sortAfter ? 'Initiatives enregistrées et piste triée !' : 'Initiatives enregistrées.');
+  };
+
+  const handleFinishTurn = (clickedCombatant?: Combatant) => {
+    if (tableData.combatants.length === 0) return;
+
+    const target = clickedCombatant || activeTurnGroup[0];
+    if (!target) return;
+
+    // Si plusieurs combattants ont le même chiffre d'initiative (non nul), ils jouent et sont traités ensemble
+    const groupIds = new Set<string>();
+    if (target.init !== null && target.init !== undefined) {
+      tableData.combatants.forEach((c) => {
+        if (!c.actedInRound && c.init === target.init) {
+          groupIds.add(c.id);
+        }
+      });
+    }
+    if (groupIds.size === 0) {
+      groupIds.add(target.id);
+    }
+
+    const remaining: Combatant[] = [];
+    const finishedGroup: Combatant[] = [];
+    tableData.combatants.forEach((c) => {
+      if (groupIds.has(c.id)) {
+        finishedGroup.push({ ...c, actedInRound: true });
+      } else {
+        remaining.push(c);
+      }
+    });
+
+    const combined = [...remaining, ...finishedGroup];
+    const allDone = combined.every((c) => c.actedInRound);
+
+    if (allDone) {
+      const nextRound = combatRound + 1;
+      const resetForNewRound = combined
+        .map((c) => ({ ...c, actedInRound: false }))
+        .sort(sortByInitDesc);
+      setCombatRound(nextRound);
+      onUpdateTableData({ ...tableData, combatants: resetForNewRound });
+      info(`🔔 Round ${nextRound} commencé ! Ordre d'initiative prêt.`);
+    } else {
+      onUpdateTableData({ ...tableData, combatants: combined });
+    }
+  };
+
+  const handleResetRound = () => {
+    const resetList = tableData.combatants
+      .map((c) => ({ ...c, actedInRound: false }))
+      .sort(sortByInitDesc);
+    setCombatRound(1);
+    onUpdateTableData({ ...tableData, combatants: resetList });
+    info('Compteur remis au Round 1.');
+  };
+
+  const handleRemoveKoMonsters = () => {
+    const koCount = tableData.combatants.filter((c) => !c.isPj && c.hp <= 0).length;
+    if (koCount === 0) {
+      info('Aucun adversaire KO (0 PV) à retirer.');
+      return;
+    }
+    const kept = tableData.combatants.filter((c) => c.isPj || c.hp > 0);
+    onUpdateTableData({ ...tableData, combatants: kept });
+    success(`🧹 ${koCount} adversaire${koCount > 1 ? 's' : ''} KO retiré${koCount > 1 ? 's' : ''} de la piste.`);
+  };
+
+  const handleDuplicateMonsterCombatant = (c: Combatant) => {
+    const baseName = (c.monsterRefName || c.n.replace(/\s+#\d+$/, '')).trim();
+    const sameBase = tableData.combatants.filter(
+      (item) => (item.monsterRefName || item.n.replace(/\s+#\d+$/, '')).trim().toLowerCase() === baseName.toLowerCase()
+    );
+    const nextNum = sameBase.length + 1;
+    const copy: Combatant = {
+      ...c,
+      id: 'm_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
+      n: `${baseName} #${nextNum}`,
+      hp: c.hpMax,
+      actedInRound: false,
+      monsterRefName: baseName,
+    };
+    const idx = tableData.combatants.indexOf(c);
+    const list = [...tableData.combatants];
+    list.splice(idx + 1, 0, copy);
+    onUpdateTableData({ ...tableData, combatants: list });
+    success(`« ${copy.n} » ajouté au combat !`);
+  };
+
+  const clearCombat = () => {
+    setConfirmClearCombatOpen(true);
+  };
+
+  const clearCreaturesOnly = () => {
+    const creaturesCount = tableData.combatants.filter((c) => !c.isPj).length;
+    if (creaturesCount === 0) {
+      info('Aucune créature à retirer de la piste.');
+      return;
+    }
+    setConfirmClearCreaturesOpen(true);
+  };
+
+  const executeClearCreaturesOnly = () => {
+    const creaturesCount = tableData.combatants.filter((c) => !c.isPj).length;
+    const keptPjs = tableData.combatants
+      .filter((c) => c.isPj)
+      .map((c) => ({ ...c, actedInRound: false }));
+    setConfirmClearCreaturesOpen(false);
+    setConfirmClearCombatOpen(false);
+    setCombatRound(1);
+    onUpdateTableData({ ...tableData, combatants: keptPjs });
+    success(
+      `🧹 ${creaturesCount} créature${creaturesCount > 1 ? 's' : ''} retirée${creaturesCount > 1 ? 's' : ''} — ${keptPjs.length} PJ conservé${keptPjs.length > 1 ? 's' : ''} sur la piste.`
+    );
   };
 
   const alterCombatHp = (index: number, delta: number) => {
@@ -490,7 +895,7 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
 
   const handleAddCustomCombatant = () => {
     if (!newCombatantName.trim()) {
-      alert('Veuillez spécifier un nom.');
+      warning('Veuillez spécifier un nom pour le combattant.');
       return;
     }
     const newC: Combatant = {
@@ -511,46 +916,56 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
     setIsAddCombatantOpen(false);
     setNewCombatantName('');
     setNewCombatantNotes('');
+    success(`« ${newC.n} » ajouté à la piste de combat.`);
   };
 
-  // Add monster to combat
-  const addMonsterToCombat = (m: Monster) => {
-    const newC: Combatant = {
-      id: 'm_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
-      n: m.n,
-      isPj: false,
-      hp: m.pv,
-      hpMax: m.pv,
-      def: m.def,
-      baseInit: m.init,
-      init: m.init,
-      notes: `${m.att} | ${m.traits}`,
-    };
+  // Add monster(s) to combat (avec sélecteur de quantité)
+  const addMonsterToCombat = (m: Monster, quantity: number = 1) => {
+    const count = Math.max(1, Math.min(20, Math.floor(quantity || 1)));
+    const existingSame = tableData.combatants.filter(
+      (c) => (c.monsterRefName || c.n.replace(/\s+#\d+$/, '')).trim().toLowerCase() === m.n.trim().toLowerCase()
+    ).length;
+
+    const newEntries: Combatant[] = [];
+    for (let i = 0; i < count; i++) {
+      const idxNum = existingSame + i + 1;
+      const shouldNumber = count > 1 || existingSame > 0;
+      newEntries.push({
+        id: 'm_' + Date.now() + '_' + i + '_' + Math.random().toString(36).substring(2, 6),
+        n: shouldNumber ? `${m.n} #${idxNum}` : m.n,
+        isPj: false,
+        hp: m.pv,
+        hpMax: m.pv,
+        def: m.def,
+        baseInit: m.init,
+        init: m.init,
+        notes: `${m.att} | ${m.traits}`,
+        monsterRefName: m.n,
+      });
+    }
+
     onUpdateTableData({
       ...tableData,
-      combatants: [...tableData.combatants, newC],
+      combatants: [...tableData.combatants, ...newEntries],
     });
-    alert(`« ${m.n} » a été ajouté à la piste de combat !`);
+    success(
+      count > 1
+        ? `⚔️ ${count} × « ${m.n} » ajoutés à la piste de combat !`
+        : `⚔️ « ${m.n} » ajouté à la piste de combat !`
+    );
   };
 
-  // Send PJ to combat
-  const sendPjToCombat = (pj: Character) => {
-    const existing = tableData.combatants.find((c) => c.pjRefId === pj.id || c.n === pj.name);
-    if (existing) {
-      if (!confirm(`"${pj.name}" est déjà dans le combat. Ajouter une autre occurrence ?`)) {
-        return;
-      }
-    }
+  const pushPjCombatant = (pj: Character) => {
     const hpMax = pj.hpMaxManual || pj.hpMaxAuto || pj.hpBase || 10;
     const newC: Combatant = {
-      id: 'pj_cmb_' + Date.now(),
+      id: 'pj_cmb_' + Date.now() + '_' + Math.random().toString(36).substring(2, 5),
       n: pj.name,
       isPj: true,
       hp: pj.hp,
       hpMax: hpMax,
-      def: 10 + (getMod((pj.base.DEX || 10) + (pj.rb.DEX || 0))),
+      def: 10 + getMod((pj.base.DEX || 10) + (pj.rb.DEX || 0)),
       baseInit: (pj.base.DEX || 10) + (pj.rb.DEX || 0),
-      init: (pj.base.DEX || 10) + (pj.rb.DEX || 0),
+      init: null,
       notes: `${pj.profil} Niv. ${pj.level} (${pj.race})`,
       pjRefId: pj.id,
       etats: pj.etats || [],
@@ -559,25 +974,35 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
       ...tableData,
       combatants: [...tableData.combatants, newC],
     });
-    alert(`"${pj.name}" envoyé au combat !`);
+    success(`"${pj.name}" envoyé au combat !`);
+  };
+
+  // Send PJ to combat
+  const sendPjToCombat = (pj: Character) => {
+    const existing = tableData.combatants.find((c) => c.pjRefId === pj.id || c.n === pj.name);
+    if (existing) {
+      setConfirmDuplicatePj(pj);
+      return;
+    }
+    pushPjCombatant(pj);
   };
 
   const addAllPjToCombat = () => {
     if (!tableData.pjs.length) {
-      alert("Aucun personnage n'est présent dans le groupe.");
+      warning("Aucun personnage n'est présent dans le groupe.");
       return;
     }
-    const combatantsToAdd: Combatant[] = tableData.pjs.map((p) => {
+    const combatantsToAdd: Combatant[] = tableData.pjs.map((p, idx) => {
       const hpMax = p.hpMaxManual || p.hpMaxAuto || p.hpBase || 10;
       return {
-        id: 'pj_cmb_' + p.id + '_' + Date.now(),
+        id: 'pj_cmb_' + (p.id || idx) + '_' + Date.now() + '_' + idx,
         n: p.name,
         isPj: true,
         hp: p.hp,
         hpMax: hpMax,
-        def: 10 + (getMod((p.base.DEX || 10) + (p.rb.DEX || 0))),
+        def: 10 + getMod((p.base.DEX || 10) + (p.rb.DEX || 0)),
         baseInit: (p.base.DEX || 10) + (p.rb.DEX || 0),
-        init: (p.base.DEX || 10) + (p.rb.DEX || 0),
+        init: null,
         notes: `${p.profil} Niv. ${p.level} (${p.race})`,
         pjRefId: p.id,
         etats: p.etats || [],
@@ -588,7 +1013,7 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
       combatants: [...tableData.combatants, ...combatantsToAdd],
     });
     setActiveTab('combat');
-    alert(`${combatantsToAdd.length} personnages envoyés au combat !`);
+    success(`${combatantsToAdd.length} personnages envoyés au combat (initiatives prêtes à saisir) !`);
   };
 
   // Master Save & Load
@@ -613,10 +1038,10 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
             ...tableData,
             ...parsed,
           });
-          alert('Campagne Master restaurée avec succès !');
+          success('Campagne Master restaurée avec succès !');
         }
       } catch (err: any) {
-        alert('Erreur lors du chargement : ' + err.message);
+        error('Erreur lors du chargement : ' + err.message);
       }
     };
     reader.readAsText(file);
@@ -647,7 +1072,7 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
         pending--;
         if (pending === 0) {
           onUpdateTableData({ ...tableData, pjs });
-          alert(`${count} fiches de PJ importées avec succès !`);
+          success(`${count} fiche${count > 1 ? 's' : ''} de PJ importée${count > 1 ? 's' : ''} avec succès !`);
         }
       };
       reader.readAsText(f);
@@ -678,7 +1103,6 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
         `let tableData = ${JSON.stringify(fullExportPayload)};`
       );
       if (injectedHtml === htmlText) {
-        // Fallback replacement si la regex n'a pas matché
         injectedHtml = htmlText.replace(
           'let tableData = LS.get("co_mj_table", {',
           `let tableData = ${JSON.stringify(fullExportPayload)}; // pre-injected\nlet _dummy = ({`
@@ -690,11 +1114,9 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
       a.href = URL.createObjectURL(blob);
       a.download = `Console_MJ_Chroniques_Oubliees_Complete_Offline.html`;
       a.click();
-      alert(
-        'Application HTML Meneur de Jeu autonome téléchargée ! Elle est désormais 100% pré-remplie avec le Bestiaire, tous les Équipements, les Règles, les États, les Profils, les Voies et l\'Extension Tharnéa. Double-cliquez simplement dessus pour jouer hors-ligne !'
-      );
+      success('📥 Console MJ autonome (.html) téléchargée avec tout le Bestiaire et Tharnéa !');
     } catch (err: any) {
-      alert("Erreur lors du téléchargement : " + err.message);
+      error('Erreur lors du téléchargement : ' + err.message);
     }
   };
 
@@ -825,49 +1247,163 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
       {activeTab === 'combat' && (
         <div className="space-y-4">
           <div className="bg-[#181410] border border-[#3d3023] rounded-xl p-4 space-y-3">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
               <div>
-                <h3 className="font-serif-co text-lg font-bold text-[#f3d48d]">
-                  Piste de Combat &amp; Ordre d'Initiative
-                </h3>
+                <div className="flex items-center gap-2.5 flex-wrap">
+                  <h3 className="font-serif-co text-lg font-bold text-[#f3d48d]">
+                    Piste de Combat &amp; Ordre d&apos;Initiative
+                  </h3>
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-[#291d12] border border-[#d4a84a]/50 text-xs font-bold text-[#f3d48d]">
+                    Round {combatRound}
+                    <button
+                      type="button"
+                      onClick={handleResetRound}
+                      title="Réinitialiser au Round 1"
+                      className="text-[#9e907d] hover:text-white cursor-pointer"
+                    >
+                      <RotateCcw className="w-3 h-3" />
+                    </button>
+                  </span>
+                </div>
                 <span className="text-xs text-[#9e907d]">
                   Total engagés : <b className="text-[#ede3d1]">{tableData.combatants.length}</b>
+                  {tableData.combatants.some((c) => !c.isPj && c.hp <= 0) && (
+                    <span className="ml-2 text-[#fca5a5]">
+                      • {tableData.combatants.filter((c) => !c.isPj && c.hp <= 0).length} adversaire(s) KO
+                    </span>
+                  )}
                 </span>
               </div>
 
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="flex flex-wrap items-center gap-1.5">
                 <button
+                  type="button"
+                  onClick={() => setIsQuickInitOpen(true)}
+                  disabled={tableData.combatants.length === 0}
+                  className="px-3 py-1.5 bg-gradient-to-r from-[#d4a84a] to-[#b08328] hover:brightness-110 disabled:opacity-40 text-black text-xs font-bold rounded-lg flex items-center gap-1.5 shadow-xs cursor-pointer"
+                  title="Ouvrir la fenêtre de saisie rapide des initiatives"
+                >
+                  <Zap className="w-3.5 h-3.5" /> Saisir Initiatives
+                </button>
+                <button
+                  type="button"
+                  onClick={handleClearPjInit}
+                  disabled={!tableData.combatants.some((c) => c.isPj)}
+                  className="px-2.5 py-1.5 bg-[#231c15] hover:bg-[#32271d] disabled:opacity-40 border border-[#523d24] text-[#f3d48d] text-xs font-semibold rounded-lg flex items-center gap-1 cursor-pointer"
+                  title="Remettre toutes les initiatives des PJ à vide"
+                >
+                  <Eraser className="w-3.5 h-3.5 text-[#d4a84a]" /> Init PJ à vide
+                </button>
+                <button
+                  type="button"
                   onClick={rollAllInit}
-                  className="px-3 py-1.5 bg-[#d4a84a] hover:bg-[#e0b555] text-black text-xs font-bold rounded-lg flex items-center gap-1.5 shadow-xs"
+                  className="px-2.5 py-1.5 bg-[#231c15] hover:bg-[#32271d] border border-[#d4a84a]/60 text-[#f3d48d] text-xs font-bold rounded-lg flex items-center gap-1 cursor-pointer"
                 >
-                  <Dices className="w-3.5 h-3.5" /> Lancer TOUT (d20+Base)
+                  <Dices className="w-3.5 h-3.5 text-[#d4a84a]" /> Lancer TOUT
                 </button>
                 <button
+                  type="button"
                   onClick={rollMonstersInit}
-                  className="px-3 py-1.5 bg-[#3a2954] hover:bg-[#4d3670] border border-[#654a93] text-[#dccbff] text-xs font-bold rounded-lg flex items-center gap-1.5"
+                  className="px-2.5 py-1.5 bg-[#3a2954] hover:bg-[#4d3670] border border-[#654a93] text-[#dccbff] text-xs font-bold rounded-lg flex items-center gap-1 cursor-pointer"
                 >
-                  <Dices className="w-3.5 h-3.5" /> Lancer Monstres
+                  <Dices className="w-3.5 h-3.5" /> Monstres
                 </button>
                 <button
+                  type="button"
                   onClick={sortCombatantsByInit}
-                  className="px-3 py-1.5 bg-[#231c15] hover:bg-[#32271d] border border-[#3d3023] text-xs font-semibold text-[#ede3d1] rounded-lg flex items-center gap-1.5"
+                  className="px-2.5 py-1.5 bg-[#231c15] hover:bg-[#32271d] border border-[#3d3023] text-xs font-semibold text-[#ede3d1] rounded-lg flex items-center gap-1 cursor-pointer"
                 >
-                  <ArrowUpDown className="w-3.5 h-3.5" /> Trier par Init
+                  <ArrowUpDown className="w-3.5 h-3.5" /> Trier
                 </button>
                 <button
+                  type="button"
                   onClick={() => setIsAddCombatantOpen(true)}
-                  className="px-3 py-1.5 bg-[#231c15] hover:bg-[#32271d] border border-[#3d3023] text-xs font-semibold text-[#f3d48d] rounded-lg flex items-center gap-1"
+                  className="px-2.5 py-1.5 bg-[#231c15] hover:bg-[#32271d] border border-[#3d3023] text-xs font-semibold text-[#f3d48d] rounded-lg flex items-center gap-1 cursor-pointer"
                 >
                   <Plus className="w-3.5 h-3.5" /> Combattant
                 </button>
+                {tableData.combatants.some((c) => !c.isPj && c.hp <= 0) && (
+                  <button
+                    type="button"
+                    onClick={handleRemoveKoMonsters}
+                    className="px-2.5 py-1.5 bg-[#2a1a12] hover:bg-[#3a2317] border border-[#7c4d2b] text-[#fdba74] text-xs font-semibold rounded-lg flex items-center gap-1 cursor-pointer"
+                    title="Retirer tous les adversaires tombés à 0 PV"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" /> Retirer KO
+                  </button>
+                )}
                 <button
-                  onClick={clearCombat}
-                  className="px-3 py-1.5 bg-[#381616] hover:bg-[#4d1f1f] border border-[#6d2525] text-[#ff9d9d] text-xs font-semibold rounded-lg flex items-center gap-1"
+                  type="button"
+                  onClick={clearCreaturesOnly}
+                  disabled={!tableData.combatants.some((c) => !c.isPj)}
+                  className="px-2.5 py-1.5 bg-[#2e1c14] hover:bg-[#42271b] disabled:opacity-40 border border-[#8a4f2b] text-[#ffd4a8] text-xs font-semibold rounded-lg flex items-center gap-1 cursor-pointer"
+                  title="Retirer toutes les créatures / ennemis tout en gardant les PJ sur la piste"
                 >
-                  <Trash2 className="w-3.5 h-3.5" /> Vider
+                  <Trash2 className="w-3.5 h-3.5" /> Vider créatures
+                </button>
+                <button
+                  type="button"
+                  onClick={clearCombat}
+                  className="px-2.5 py-1.5 bg-[#381616] hover:bg-[#4d1f1f] border border-[#6d2525] text-[#ff9d9d] text-xs font-semibold rounded-lg flex items-center gap-1 cursor-pointer"
+                  title="Vider toute la piste de combat (PJ et créatures)"
+                >
+                  <Trash2 className="w-3.5 h-3.5" /> Vider tout
                 </button>
               </div>
             </div>
+
+            {/* Active Turn Banner (gère automatiquement les égalités d'initiative ensemble) */}
+            {activeTurnGroup.length > 0 && (
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 p-3 rounded-xl bg-gradient-to-r from-[#261c11] via-[#1c150e] to-[#16120e] border border-[#d4a84a]/60 shadow-sm">
+                <div className="flex items-center gap-2.5 flex-wrap text-xs">
+                  <span className="px-2 py-0.5 rounded bg-[#d4a84a] text-[#140e08] font-bold uppercase text-[10px] tracking-wider">
+                    {activeTurnGroup.length > 1
+                      ? `⚡ Jouent ensemble (Init ${activeTurnGroup[0].init})`
+                      : `🎯 Tour en cours${
+                          activeTurnGroup[0].init !== null && activeTurnGroup[0].init !== undefined
+                            ? ` · Init ${activeTurnGroup[0].init}`
+                            : ''
+                        }`}
+                  </span>
+                  <div className="flex items-center gap-1.5 flex-wrap font-semibold text-[#f3d48d]">
+                    {activeTurnGroup.map((ag, aIdx) => {
+                      const agPj = resolvePjForCombatant(ag);
+                      const agCol = ag.isPj ? getPjColor(agPj || { id: ag.pjRefId, name: ag.n }, tableData.pjs) : null;
+                      return (
+                        <React.Fragment key={ag.id}>
+                          {aIdx > 0 && <span className="text-[#8a7c69]">+</span>}
+                          <span
+                            className="inline-flex items-center gap-1"
+                            style={{ color: agCol ? agCol.hex : '#fca5a5' }}
+                          >
+                            {agCol && (
+                              <span
+                                className="w-2 h-2 rounded-full"
+                                style={{ backgroundColor: agCol.hex }}
+                              />
+                            )}
+                            {ag.n}
+                          </span>
+                        </React.Fragment>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => handleFinishTurn()}
+                  className="px-3.5 py-1.5 rounded-lg bg-gradient-to-r from-[#2e6f40] to-[#1f4f2d] hover:brightness-110 border border-[#56b870] text-white text-xs font-bold flex items-center gap-1.5 shadow-sm shrink-0 cursor-pointer self-end sm:self-auto"
+                >
+                  <CheckCircle2 className="w-3.5 h-3.5 text-[#86efac]" />
+                  <span>
+                    {activeTurnGroup.length > 1
+                      ? `Tour réalisé (${activeTurnGroup.length} ensemble)`
+                      : 'Tour réalisé'}
+                  </span>
+                </button>
+              </div>
+            )}
 
             {/* Filter Bar */}
             <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-[#30251a]">
@@ -924,16 +1460,25 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                 const globalIdx = tableData.combatants.indexOf(c);
                 const pct = Math.max(0, Math.min(100, Math.round((100 * c.hp) / Math.max(1, c.hpMax))));
                 const barCol = pct > 50 ? '#6fa85b' : pct > 25 ? '#c97d32' : '#cf5544';
-                const matchedPj = c.isPj
-                  ? tableData.pjs.find(
-                      (p) =>
-                        (c.pjRefId && p.id === c.pjRefId) ||
-                        (p.name && c.n.toLowerCase().startsWith(p.name.toLowerCase()))
-                    )
-                  : undefined;
+                const matchedPj = resolvePjForCombatant(c);
                 const pjCol = c.isPj
                   ? getPjColor(matchedPj || { id: c.pjRefId, name: c.n }, tableData.pjs)
                   : null;
+                const isActiveTurn = activeTurnIds.has(c.id);
+                const isTiedGroup = isActiveTurn && activeTurnGroup.length > 1;
+
+                const pjStats = matchedPj ? calcStats(matchedPj) : null;
+                const pmMax = matchedPj
+                  ? matchedPj.pmMaxManual !== null && matchedPj.pmMaxManual !== undefined
+                    ? matchedPj.pmMaxManual
+                    : pjStats?.pmMax || 0
+                  : 0;
+                const pmCurrent = matchedPj
+                  ? matchedPj.pm !== undefined && matchedPj.pm !== null
+                    ? matchedPj.pm
+                    : pmMax
+                  : 0;
+                const pmPct = pmMax > 0 ? Math.max(0, Math.min(100, Math.round((100 * pmCurrent) / pmMax))) : 0;
 
                 return (
                   <div
@@ -941,18 +1486,30 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                     style={
                       pjCol
                         ? {
-                            borderColor: pjCol.borderHex,
+                            borderColor: isActiveTurn ? '#d4a84a' : pjCol.borderHex,
                             borderLeftColor: pjCol.hex,
                             backgroundImage: `linear-gradient(${pjCol.softBg}, ${pjCol.softBg})`,
                           }
+                        : isActiveTurn
+                        ? { borderColor: '#d4a84a' }
                         : undefined
                     }
-                    className={`p-3.5 bg-[#181410] border-l-4 rounded-xl border border-[#3d3023] space-y-2.5 shadow-sm ${
+                    className={`p-3.5 bg-[#181410] border-l-4 rounded-xl border border-[#3d3023] space-y-2.5 shadow-sm transition-opacity ${
                       c.isPj ? 'border-l-[#d4a84a]' : 'border-l-[#9c2a2b]'
+                    } ${isActiveTurn ? 'ring-1 ring-[#d4a84a]/60 shadow-lg' : ''} ${
+                      c.actedInRound ? 'opacity-65' : ''
                     }`}
                   >
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                       <div className="flex flex-wrap items-center gap-2">
+                        {matchedPj?.portrait && (
+                          <img
+                            src={matchedPj.portrait}
+                            alt={c.n}
+                            referrerPolicy="no-referrer"
+                            className="w-8 h-8 rounded-lg object-cover border border-[#d4a84a]/60 shrink-0 shadow-xs"
+                          />
+                        )}
                         <span
                           style={
                             pjCol
@@ -985,7 +1542,18 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                           <span>{c.n}</span>
                         </b>
 
-                        {/* DÉFENSE / CA (Très mise en évidence) */}
+                        {isActiveTurn && (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-[#d4a84a] text-[#140e08] uppercase tracking-wider">
+                            {isTiedGroup ? '⚡ Jouent ensemble' : '🎯 À jouer'}
+                          </span>
+                        )}
+                        {c.actedInRound && (
+                          <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-[#1a2b1d] text-[#86efac] border border-[#2d5e37]">
+                            ✓ Joué (R{combatRound})
+                          </span>
+                        )}
+
+                        {/* DÉFENSE / CA */}
                         <div
                           className="flex items-center gap-1.5 bg-[#121c2a] px-2.5 py-1 rounded-lg border border-[#2b4c6f]"
                           title="Classe d'Armure / Défense (10 + DEX + Armure + Bouclier). Modifiable directement."
@@ -997,7 +1565,7 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                             value={c.def}
                             onChange={(e) => {
                               const list = [...tableData.combatants];
-                              list[globalIdx].def = parseInt(e.target.value) || 10;
+                              list[globalIdx] = { ...list[globalIdx], def: parseInt(e.target.value) || 10 };
                               onUpdateTableData({ ...tableData, combatants: list });
                             }}
                             className="w-10 text-center font-bold text-sm text-[#ffffff] bg-[#0c131c] rounded border border-[#2b4c6f]/60 py-0.5 outline-none"
@@ -1005,24 +1573,31 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                         </div>
                       </div>
 
-                      {/* Initiative input & roll */}
-                      <div className="flex items-center gap-2 self-end sm:self-auto">
+                      {/* Initiative input, Fiche complète & Tour réalisé */}
+                      <div className="flex flex-wrap items-center gap-1.5 self-end sm:self-auto">
                         <div className="flex items-center gap-1.5 bg-[#120f0c] px-2.5 py-1 rounded-lg border border-[#3d3023]">
                           <span className="text-[11px] text-[#9e907d] font-bold uppercase">Init :</span>
                           <input
                             type="number"
-                            value={c.init}
+                            value={c.init === null || c.init === undefined ? '' : c.init}
+                            placeholder="—"
                             onChange={(e) => {
                               const list = [...tableData.combatants];
-                              list[globalIdx].init = parseInt(e.target.value) || 0;
+                              const raw = e.target.value.trim();
+                              list[globalIdx] = {
+                                ...list[globalIdx],
+                                init: raw === '' ? null : parseInt(raw, 10) || 0,
+                              };
                               onUpdateTableData({ ...tableData, combatants: list });
                             }}
-                            className="w-12 text-center font-bold text-base text-[#f3d48d] bg-transparent outline-none"
+                            className="w-12 text-center font-bold text-base text-[#f3d48d] bg-transparent outline-none placeholder-[#6b5d4c]"
                           />
                         </div>
                         <button
+                          type="button"
                           onClick={() => rollOneInit(globalIdx)}
-                          className="px-2.5 py-1 bg-[#231c15] hover:bg-[#32271d] border border-[#3d3023] hover:border-[#d4a84a] text-xs font-semibold rounded text-[#ede3d1] flex items-center gap-1"
+                          className="px-2 py-1 bg-[#231c15] hover:bg-[#32271d] border border-[#3d3023] hover:border-[#d4a84a] text-xs font-semibold rounded text-[#ede3d1] flex items-center gap-1 cursor-pointer"
+                          title="Lancer 1d20 + base"
                         >
                           <Dices className="w-3.5 h-3.5 text-[#d4a84a]" /> Jet
                         </button>
@@ -1030,6 +1605,53 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                           <span className="text-[10px] text-[#9e907d] font-mono">
                             (d20: {c.lastRoll})
                           </span>
+                        )}
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (matchedPj) {
+                              setSelectedCharacterModal(matchedPj);
+                            } else {
+                              setDetailItem({ type: 'monster', data: resolveMonsterForCombatant(c) });
+                            }
+                          }}
+                          className="px-2.5 py-1 bg-[#241b13] hover:bg-[#34261a] border border-[#d4a84a]/50 text-[#f3d48d] text-xs font-bold rounded flex items-center gap-1 cursor-pointer"
+                          title="Ouvrir la fiche complète en pop-up"
+                        >
+                          <FileText className="w-3.5 h-3.5 text-[#d4a84a]" />
+                          <span>Fiche complète</span>
+                        </button>
+
+                        {!c.isPj && (
+                          <button
+                            type="button"
+                            onClick={() => handleDuplicateMonsterCombatant(c)}
+                            className="px-2 py-1 bg-[#231c15] hover:bg-[#32271d] border border-[#3d3023] text-[#cbb8a7] text-xs font-semibold rounded flex items-center gap-1 cursor-pointer"
+                            title="Ajouter une copie numérotée de cet adversaire"
+                          >
+                            <Copy className="w-3 h-3 text-[#d4a84a]" /> +1
+                          </button>
+                        )}
+
+                        {!c.actedInRound && (
+                          <button
+                            type="button"
+                            onClick={() => handleFinishTurn(c)}
+                            className={`px-2.5 py-1 rounded text-xs font-bold flex items-center gap-1 cursor-pointer border ${
+                              isActiveTurn
+                                ? 'bg-[#1f4f2d] hover:bg-[#276339] border-[#56b870] text-white shadow-xs'
+                                : 'bg-[#1a251c] hover:bg-[#233627] border-[#355e3d] text-[#a7f3d0]'
+                            }`}
+                            title={
+                              isTiedGroup
+                                ? 'Valider le tour de tout le groupe à cette initiative et passer en bas de piste'
+                                : 'Marquer le tour réalisé et placer en bas de la piste'
+                            }
+                          >
+                            <CheckCircle2 className="w-3.5 h-3.5 text-[#86efac]" />
+                            <span>{isTiedGroup ? 'Tour réalisé (groupe)' : 'Tour réalisé'}</span>
+                          </button>
                         )}
                       </div>
                     </div>
@@ -1061,14 +1683,16 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                         </div>
                         <div className="flex items-center gap-1">
                           <button
+                            type="button"
                             onClick={() => alterCombatHp(globalIdx, -5)}
-                            className="w-6 h-6 bg-[#231c15] hover:bg-[#32271d] border border-[#3d3023] rounded text-xs font-bold text-[#ede3d1]"
+                            className="w-6 h-6 bg-[#231c15] hover:bg-[#32271d] border border-[#3d3023] rounded text-xs font-bold text-[#ede3d1] cursor-pointer"
                           >
                             -5
                           </button>
                           <button
+                            type="button"
                             onClick={() => alterCombatHp(globalIdx, -1)}
-                            className="w-6 h-6 bg-[#231c15] hover:bg-[#32271d] border border-[#3d3023] rounded text-xs font-bold text-[#ede3d1]"
+                            className="w-6 h-6 bg-[#231c15] hover:bg-[#32271d] border border-[#3d3023] rounded text-xs font-bold text-[#ede3d1] cursor-pointer"
                           >
                             -1
                           </button>
@@ -1079,20 +1703,23 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                             className="w-12 text-center text-xs font-bold text-[#ede3d1] bg-[#120f0c] border border-[#3d3023] rounded py-0.5"
                           />
                           <button
+                            type="button"
                             onClick={() => alterCombatHp(globalIdx, 1)}
-                            className="w-6 h-6 bg-[#231c15] hover:bg-[#32271d] border border-[#3d3023] rounded text-xs font-bold text-[#ede3d1]"
+                            className="w-6 h-6 bg-[#231c15] hover:bg-[#32271d] border border-[#3d3023] rounded text-xs font-bold text-[#ede3d1] cursor-pointer"
                           >
                             +1
                           </button>
                           <button
+                            type="button"
                             onClick={() => alterCombatHp(globalIdx, 5)}
-                            className="w-6 h-6 bg-[#231c15] hover:bg-[#32271d] border border-[#3d3023] rounded text-xs font-bold text-[#ede3d1]"
+                            className="w-6 h-6 bg-[#231c15] hover:bg-[#32271d] border border-[#3d3023] rounded text-xs font-bold text-[#ede3d1] cursor-pointer"
                           >
                             +5
                           </button>
                           <button
+                            type="button"
                             onClick={() => removeCombatant(globalIdx)}
-                            className="p-1 rounded text-[#9e907d] hover:text-[#cf5544] ml-2"
+                            className="p-1 rounded text-[#9e907d] hover:text-[#cf5544] ml-2 cursor-pointer"
                             title="Retirer"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -1107,6 +1734,94 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                         />
                       </div>
                     </div>
+
+                    {/* Jauge visuelle de Mana (PM) si le PJ/PNJ en possède */}
+                    {matchedPj && (pmMax > 0 || pmCurrent > 0) && (
+                      <div className="bg-[#0f1722] border border-[#1e3450] rounded-lg px-2.5 py-2 space-y-1.5">
+                        <div className="flex items-center justify-between text-xs">
+                          <div className="flex items-center gap-1.5 text-[#8dbbff]">
+                            <Sparkles className="w-3.5 h-3.5 shrink-0" />
+                            <span>Points de Mana :</span>
+                            <b className={pmCurrent <= 0 ? 'text-[#ff7b7b]' : 'text-[#cce3ff]'}>
+                              {pmCurrent}
+                            </b>
+                            <span className="text-[#688eb8]">/ {pmMax}</span>
+                            {pmMax > 0 && (
+                              <span className="text-[10px] font-mono text-[#7eaadb]">({pmPct}%)</span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const list = tableData.pjs.map((p) => {
+                                  if (p.id === matchedPj.id || p.name === matchedPj.name) {
+                                    const cur = p.pm !== undefined && p.pm !== null ? p.pm : pmMax;
+                                    return { ...p, pm: Math.max(0, (cur ?? pmMax) - 1) };
+                                  }
+                                  return p;
+                                });
+                                onUpdateTableData({ ...tableData, pjs: list });
+                              }}
+                              className="w-6 h-5 rounded bg-[#162538] hover:bg-[#203652] border border-[#2e5077] text-[#8dbbff] font-bold text-xs cursor-pointer"
+                              title="-1 PM"
+                            >
+                              -1
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const list = tableData.pjs.map((p) => {
+                                  if (p.id === matchedPj.id || p.name === matchedPj.name) {
+                                    const cur = p.pm !== undefined && p.pm !== null ? p.pm : pmMax;
+                                    const nextPm = pmMax > 0 ? Math.min(pmMax, (cur ?? pmMax) + 1) : (cur ?? 0) + 1;
+                                    return { ...p, pm: nextPm };
+                                  }
+                                  return p;
+                                });
+                                onUpdateTableData({ ...tableData, pjs: list });
+                              }}
+                              className="w-6 h-5 rounded bg-[#162538] hover:bg-[#203652] border border-[#2e5077] text-[#8dbbff] font-bold text-xs cursor-pointer"
+                              title="+1 PM"
+                            >
+                              +1
+                            </button>
+                          </div>
+                        </div>
+                        <div className="bg-[#090e15] border border-[#203652] rounded-md h-1.5 overflow-hidden">
+                          <div
+                            className="h-full bg-gradient-to-r from-[#3a69a1] to-[#8dbbff] transition-all duration-200"
+                            style={{ width: `${pmPct}%` }}
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Rappel express des armes équipées pour les PJ */}
+                    {matchedPj && matchedPj.armes && matchedPj.armes.length > 0 && pjStats && (
+                      <div className="flex flex-wrap items-center gap-1.5 bg-[#120f0c] px-2.5 py-1.5 rounded-lg border border-[#2b2219] text-[11px]">
+                        <span className="text-[#9e907d] font-bold uppercase text-[10px] mr-1">
+                          Armes :
+                        </span>
+                        {matchedPj.armes.slice(0, 4).map((w, wIdx) => {
+                          const wType = (w.t || '').toLowerCase();
+                          const isDist = wType.includes('dist') || wType.includes('arc') || wType.includes('arbal');
+                          const isMag = wType.includes('mag') || wType.includes('sort');
+                          const attBonus = isMag && pjStats.mg !== null ? pjStats.mg : isDist ? pjStats.di : pjStats.ct;
+                          return (
+                            <span
+                              key={wIdx}
+                              className="px-2 py-0.5 rounded bg-[#1e1711] border border-[#3d3023] text-[#ede3d1]"
+                            >
+                              <b className="text-[#f3d48d]">{w.n}</b>{' '}
+                              <span className="text-[#86efac] font-mono">
+                                ({attBonus >= 0 ? `+${attBonus}` : attBonus} · {w.dm || '1d6'})
+                              </span>
+                            </span>
+                          );
+                        })}
+                      </div>
+                    )}
 
                     {c.notes && (
                       <p className="text-xs text-[#9e907d] bg-[#120f0c] p-2 rounded border border-[#261f18]">
@@ -1124,7 +1839,7 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                   Piste de Combat Vide
                 </h4>
                 <p className="text-xs text-[#9e907d] max-w-sm mx-auto">
-                  Ajoutez des héros depuis l'onglet « Groupe PJ » ou des créatures depuis le « Bestiaire » pour démarrer un affrontement.
+                  Ajoutez des héros depuis l&apos;onglet « Groupe &amp; PNJ » ou des créatures depuis le « Bestiaire DRS » pour démarrer un affrontement.
                 </p>
               </div>
             )}
@@ -1411,8 +2126,23 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                     }`}
                   >
                     <div>
-                      <div className="flex items-center justify-between mb-1">
-                        <div className="flex items-center gap-1.5 flex-wrap">
+                      <div className="flex items-start justify-between mb-1 gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {p.portrait && (
+                            <button
+                              type="button"
+                              onClick={() => setSelectedCharacterModal(p)}
+                              className="w-11 h-11 rounded-lg overflow-hidden border border-[#d4a84a]/60 shrink-0 shadow-sm cursor-pointer hover:border-[#f3d48d]"
+                              title="Ouvrir la fiche complète"
+                            >
+                              <img
+                                src={p.portrait}
+                                alt={p.name}
+                                referrerPolicy="no-referrer"
+                                className="w-full h-full object-cover"
+                              />
+                            </button>
+                          )}
                           <span
                             style={
                               pjCol
@@ -1615,7 +2345,7 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                             const gifts = (list[pjIdx].ptsCapCadeaux || 0) + 1;
                             list[pjIdx] = { ...list[pjIdx], ptsCap: currentPts + 1, ptsCapCadeaux: gifts };
                             onUpdateTableData({ ...tableData, pjs: list });
-                            alert(`🎁 +1 Point de Capacité Cadeau offert à ${p.name} pour son excellent Roleplay ! (Nouveau total : ${currentPts + 1})`);
+                            success(`🎁 +1 Point de Capacité Cadeau offert à ${p.name} (Total : ${currentPts + 1}) !`);
                           }}
                           className="px-2 py-0.5 rounded bg-gradient-to-r from-[#855325] to-[#593313] hover:brightness-110 text-[#f7e0b5] border border-[#a8743d] font-bold text-[10px] flex items-center gap-1 cursor-pointer shadow-xs"
                           title="Offrir à distance +1 point de capacité pour récompenser un excellent RP"
@@ -1930,6 +2660,13 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                 })
                 .map((m, idx) => {
                   const isTharnea = m.source === 'tharnea' || !!m.source?.toLowerCase().includes('tharnea');
+                  const qtyKey = `drs_${m.num || m.n}`;
+                  const qty = bestiaireQuantities[qtyKey] || 1;
+                  const setQty = (val: number) =>
+                    setBestiaireQuantities((prev) => ({
+                      ...prev,
+                      [qtyKey]: Math.max(1, Math.min(20, val)),
+                    }));
 
                   return (
                     <details
@@ -1940,7 +2677,7 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                           : 'bg-[#181410] border-[#3d3023]'
                       }`}
                     >
-                      <summary className="px-4 py-3 cursor-pointer hover:bg-[#231c15] flex items-center justify-between select-none">
+                      <summary className="px-4 py-3 cursor-pointer hover:bg-[#231c15] flex flex-wrap items-center justify-between gap-2 select-none">
                         <div className="flex items-center gap-2.5 flex-wrap">
                           {isTharnea && (
                             <span className="text-[10px] bg-[#5e194f] text-[#ffddfa] px-1.5 py-0.5 rounded font-mono font-bold border border-[#b8389e]/40">
@@ -1961,32 +2698,86 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                           </span>
                         </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5 ml-auto" onClick={(e) => e.stopPropagation()}>
                     <button
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
                         setDetailItem({ type: 'monster', data: m });
                       }}
-                      className="p-1.5 rounded bg-[#231c15] hover:bg-[#32271d] text-[#d4a84a] hover:text-[#fff] border border-[#3d3023] flex items-center gap-1 text-xs font-semibold"
+                      className="px-2.5 py-1 rounded bg-[#231c15] hover:bg-[#32271d] text-[#d4a84a] hover:text-[#fff] border border-[#3d3023] flex items-center gap-1 text-xs font-semibold cursor-pointer"
                       title="Ouvrir la fiche complète en Pop-up"
                     >
-                      <Info className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Détails</span>
+                      <FileText className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Fiche</span>
                     </button>
+
+                    {/* Sélecteur de quantité + bouton Envoyer au combat */}
+                    <div className="flex items-center bg-[#120f0c] border border-[#3d3023] rounded overflow-hidden">
+                      <button
+                        type="button"
+                        onClick={() => setQty(qty - 1)}
+                        className="px-1.5 py-1 text-xs font-bold text-[#cbb8a7] hover:bg-[#231c15] cursor-pointer"
+                        title="Diminuer la quantité"
+                      >
+                        -
+                      </button>
+                      <input
+                        type="number"
+                        min={1}
+                        max={20}
+                        value={qty}
+                        onChange={(e) => setQty(parseInt(e.target.value, 10) || 1)}
+                        aria-label={`Nombre de ${m.n} à envoyer au combat`}
+                        className="w-8 text-center text-xs font-bold text-[#f3d48d] bg-transparent outline-none"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setQty(qty + 1)}
+                        className="px-1.5 py-1 text-xs font-bold text-[#cbb8a7] hover:bg-[#231c15] cursor-pointer"
+                        title="Augmenter la quantité"
+                      >
+                        +
+                      </button>
+                    </div>
+
                     <button
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
-                        addMonsterToCombat(m);
+                        addMonsterToCombat(m, qty);
                       }}
-                      className="px-3 py-1 bg-[#231c15] hover:bg-[#32271d] border border-[#3d3023] hover:border-[#d4a84a] text-xs font-bold text-[#f3d48d] rounded flex items-center gap-1"
+                      className="px-3 py-1 bg-[#231c15] hover:bg-[#32271d] border border-[#d4a84a]/60 hover:border-[#d4a84a] text-xs font-bold text-[#f3d48d] rounded flex items-center gap-1 cursor-pointer"
                     >
                       <Swords className="w-3.5 h-3.5" /> Combat
                     </button>
                   </div>
                 </summary>
 
-                <div className="p-4 pt-1 border-t border-[#30251a] space-y-2 text-xs">
+                <div className="p-4 pt-2 border-t border-[#30251a] space-y-2 text-xs">
+                  {(m.taille || m.poids || m.milieu) && (
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] bg-[#14100c] px-2.5 py-1.5 rounded border border-[#2b2219] text-[#cbb8a7]">
+                      {m.taille && (
+                        <span>
+                          <b className="text-[#d4a84a]">Taille :</b> {m.taille}
+                        </span>
+                      )}
+                      {m.poids && (
+                        <span>
+                          <b className="text-[#d4a84a]">Poids :</b> {m.poids}
+                        </span>
+                      )}
+                      {m.milieu && (
+                        <span>
+                          <b className="text-[#d4a84a]">Milieu :</b> {m.milieu}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                  {m.descPhysique && (
+                    <div className="italic text-[#dfd4c4] bg-[#16120e] px-2.5 py-1.5 rounded border border-[#2f251c]">
+                      <b className="not-italic text-[#f3d48d]">Aspect :</b> {m.descPhysique}
+                    </div>
+                  )}
                   <div>
                     <b className="text-[#f3d48d]">Attaques :</b>{' '}
                     <span className="text-[#ede3d1]">{m.att}</span>
@@ -2002,10 +2793,10 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                     </div>
                     <button
                       type="button"
-                      onClick={() => setDetailItem({ type: 'monstre', data: m })}
-                      className="px-3 py-1 bg-[#2e1d16] hover:bg-[#3d271e] text-[#f3d48d] rounded border border-[#d4a84a]/40 text-xs font-bold flex items-center gap-1"
+                      onClick={() => setDetailItem({ type: 'monster', data: m })}
+                      className="px-3 py-1 bg-[#2e1d16] hover:bg-[#3d271e] text-[#f3d48d] rounded border border-[#d4a84a]/40 text-xs font-bold flex items-center gap-1 cursor-pointer"
                     >
-                      <ExternalLink className="w-3.5 h-3.5" /> Fiche Pop-up
+                      <ExternalLink className="w-3.5 h-3.5" /> Fiche complète
                     </button>
                   </div>
                 </div>
@@ -2148,10 +2939,17 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                       return fullStr.includes(query);
                     })
                     .map((m) => {
+                      const thQtyKey = `thar_${m.num || m.n}`;
+                      const thQty = bestiaireQuantities[thQtyKey] || 1;
+                      const setThQty = (val: number) =>
+                        setBestiaireQuantities((prev) => ({
+                          ...prev,
+                          [thQtyKey]: Math.max(1, Math.min(20, val)),
+                        }));
                       return (
                         <div
                           key={m.num || m.n}
-                          onClick={() => setDetailItem({ type: 'monstre', data: m })}
+                          onClick={() => setDetailItem({ type: 'monster', data: m })}
                           className="cursor-pointer bg-[#181410] hover:bg-[#20152b] border border-[#581c87]/60 hover:border-[#a855f7] rounded-xl p-3.5 transition-all shadow-sm space-y-2.5"
                         >
                           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
@@ -2173,22 +2971,47 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                               </span>
                             </div>
 
-                            <div className="flex items-center gap-2 self-end sm:self-auto shrink-0" onClick={(e) => e.stopPropagation()}>
+                            <div className="flex items-center gap-1.5 self-end sm:self-auto shrink-0" onClick={(e) => e.stopPropagation()}>
+                              <div className="flex items-center bg-[#120a1c] border border-[#6b21a8] rounded-lg overflow-hidden">
+                                <button
+                                  type="button"
+                                  onClick={() => setThQty(thQty - 1)}
+                                  className="px-1.5 py-1 text-xs font-bold text-[#e9d5ff] hover:bg-[#2c1445] cursor-pointer"
+                                >
+                                  -
+                                </button>
+                                <input
+                                  type="number"
+                                  min={1}
+                                  max={20}
+                                  value={thQty}
+                                  onChange={(e) => setThQty(parseInt(e.target.value, 10) || 1)}
+                                  aria-label={`Nombre de ${m.n} à envoyer au combat`}
+                                  className="w-8 text-center text-xs font-bold text-[#f3e8ff] bg-transparent outline-none"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => setThQty(thQty + 1)}
+                                  className="px-1.5 py-1 text-xs font-bold text-[#e9d5ff] hover:bg-[#2c1445] cursor-pointer"
+                                >
+                                  +
+                                </button>
+                              </div>
                               <button
                                 type="button"
-                                onClick={() => addMonsterToCombat(m)}
-                                className="px-3 py-1 bg-gradient-to-r from-[#9333ea] to-[#7e22ce] hover:brightness-110 text-white text-xs font-bold rounded-lg flex items-center gap-1 shadow-xs"
+                                onClick={() => addMonsterToCombat(m, thQty)}
+                                className="px-3 py-1 bg-gradient-to-r from-[#9333ea] to-[#7e22ce] hover:brightness-110 text-white text-xs font-bold rounded-lg flex items-center gap-1 shadow-xs cursor-pointer"
                                 title="Ajouter cette créature au tracker de combat"
                               >
                                 <Swords className="w-3.5 h-3.5" /> Combat
                               </button>
                               <button
                                 type="button"
-                                onClick={() => setDetailItem({ type: 'monstre', data: m })}
-                                className="px-2.5 py-1 bg-[#231530] hover:bg-[#341d47] border border-[#6b21a8] text-[#e9d5ff] text-xs font-semibold rounded-lg flex items-center gap-1"
+                                onClick={() => setDetailItem({ type: 'monster', data: m })}
+                                className="px-2.5 py-1 bg-[#231530] hover:bg-[#341d47] border border-[#6b21a8] text-[#e9d5ff] text-xs font-semibold rounded-lg flex items-center gap-1 cursor-pointer"
                                 title="Afficher la fiche complète détaillée en pop-up"
                               >
-                                <ExternalLink className="w-3.5 h-3.5" /> Fiche Pop-up
+                                <ExternalLink className="w-3.5 h-3.5" /> Fiche complète
                               </button>
                             </div>
                           </div>
@@ -2199,16 +3022,23 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                             <span>Défense/CA : <b className="text-[#7db5ff]">{m.def}</b></span>
                             <span>Initiative : <b className="text-[#f3d48d]">{m.init}</b></span>
                             <span className="truncate">Attaque : <b className="text-white">{m.att}</b></span>
+                            {m.taille && <span className="text-[#e9d5ff]">📏 {m.taille}</span>}
+                            {m.poids && <span className="text-[#e9d5ff]">⚖️ {m.poids}</span>}
                             {m.milieu && <span className="text-[#a78bfa] italic ml-auto">📍 {m.milieu}</span>}
                           </div>
 
-                          {/* Aperçu rapide & lien vers pop-up */}
+                          {/* Aspect physique & Aperçu rapide */}
+                          {m.descPhysique && (
+                            <p className="text-xs italic text-[#e9d5ff]/90 bg-[#140b20] px-2.5 py-1.5 rounded-lg border border-[#4c1d95]/50 line-clamp-2">
+                              <b className="not-italic text-[#f3d48d]">Aspect :</b> {m.descPhysique}
+                            </p>
+                          )}
                           <div className="flex items-center justify-between text-xs text-[#c4b5fd]">
                             <p className="line-clamp-1 italic text-[#a78bfa]">
                               {m.traits || (m.tactique ? `Tactique MJ : ${m.tactique}` : 'Créature du Codex')}
                             </p>
                             <span className="text-[11px] text-[#c084fc] shrink-0 font-medium ml-2 flex items-center gap-1">
-                              <span>Voir tactique &amp; pouvoirs complets</span>
+                              <span>Voir tactique, liens PJ &amp; secrets</span>
                               <ExternalLink className="w-3 h-3" />
                             </span>
                           </div>
@@ -2222,15 +3052,18 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
             {/* SUB-TAB 2 : ARTÉFACTS & RELIQUES */}
             {tharneaSubTab === 'artefacts' && (
               <div className="space-y-3">
-                <div className="flex items-center gap-2 bg-[#181410] p-3 rounded-xl border border-[#3d3023]">
-                  <Search className="w-3.5 h-3.5 text-[#9e907d]" />
-                  <input
-                    type="text"
-                    placeholder="Rechercher une relique (Lame, Anneau, Bâton, Masque, Pendentif...)..."
-                    value={tharneaSearch}
-                    onChange={(e) => setTharneaSearch(e.target.value)}
-                    className="w-full bg-transparent text-xs text-[#ede3d1] outline-none"
-                  />
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 bg-[#181410] p-3 rounded-xl border border-[#3d3023]">
+                    <Search className="w-3.5 h-3.5 text-[#9e907d]" />
+                    <input
+                      type="text"
+                      placeholder="Rechercher une relique (Lame, Anneau, Bâton, Masque, Pendentif...)..."
+                      value={tharneaSearch}
+                      onChange={(e) => setTharneaSearch(e.target.value)}
+                      className="w-full bg-transparent text-xs text-[#ede3d1] outline-none"
+                    />
+                  </div>
+                  {renderRecipientMultiSelector('Octroyer les reliques à')}
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -2271,9 +3104,22 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                             )}
                           </div>
 
-                          <div className="pt-2 border-t border-[#3b1259] flex items-center justify-between text-[11px] text-[#c084fc]">
-                            <span>Cliquer pour la fiche détaillée</span>
-                            <ExternalLink className="w-3.5 h-3.5" />
+                          <div className="pt-2 border-t border-[#3b1259] flex items-center justify-between gap-2 text-[11px] text-[#c084fc]">
+                            <span className="flex items-center gap-1">
+                              Détails <ExternalLink className="w-3 h-3" />
+                            </span>
+                            {tableData.pjs.length > 0 && (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  requestGiveEquipmentToPj(a);
+                                }}
+                                  className="px-2.5 py-1 rounded bg-[#6fa85b] hover:bg-[#7ebd67] text-black font-bold text-[10px] cursor-pointer"
+                                >
+                                  {getGiftButtonLabel()}
+                                </button>
+                            )}
                           </div>
                         </div>
                       );
@@ -2285,6 +3131,8 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
             {/* SUB-TAB 3 : BOÎTE À BONBONS */}
             {tharneaSubTab === 'bonbons' && (
               <div className="space-y-3">
+                {renderRecipientMultiSelector('Destinataires pour la boîte ou les bonbons')}
+
                 {/* Carte Vedette : Boîte à Bonbons de l'Obscure */}
                 {(() => {
                   const boite = THARNEA_ARTIFACTS.find((a) => a.n.includes('Boîte à Bonbons') || a.n.includes('Boite a Bonbons'));
@@ -2303,11 +3151,11 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                               <ExternalLink className="w-3.5 h-3.5 text-[#fde047]" />
                             </h4>
                             <span className="text-[10px] uppercase font-bold tracking-widest text-[#d8b4fe]">
-                              Coffret d'Ébène Inédit • 36 Bonbons (3x chacun des 12 types)
+                              Coffret d&apos;Ébène Inédit • 36 Bonbons (3x chacun des 12 types)
                             </span>
                           </div>
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <span className="text-xs font-mono font-bold px-2.5 py-1 rounded bg-[#200730] text-[#fde047] border border-[#d4a84a]/50">
                             Prix : {boite.prix || '500 pa'}
                           </span>
@@ -2317,10 +3165,22 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                               e.stopPropagation();
                               setDetailItem({ type: 'equipement', data: boite });
                             }}
-                            className="px-3 py-1 bg-[#d4a84a] text-black font-bold text-xs rounded-lg flex items-center gap-1 shadow-sm"
+                            className="px-3 py-1 bg-[#d4a84a] text-black font-bold text-xs rounded-lg flex items-center gap-1 shadow-sm cursor-pointer"
                           >
-                            <ExternalLink className="w-3.5 h-3.5" /> Fiche Pop-up
+                            <ExternalLink className="w-3.5 h-3.5" /> Fiche
                           </button>
+                          {tableData.pjs.length > 0 && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                requestGiveEquipmentToPj(boite);
+                              }}
+                              className="px-3 py-1 bg-[#6fa85b] hover:bg-[#7ebd67] text-black font-bold text-xs rounded-lg shadow-sm cursor-pointer"
+                            >
+                              {getGiftButtonLabel()}
+                            </button>
+                          )}
                         </div>
                       </div>
                       <p className="text-xs text-[#f5d0fe] leading-relaxed">
@@ -2338,7 +3198,7 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                     <span>🍬</span> Les 12 Bonbons Alchimiques Individuels
                   </h4>
                   <p className="text-xs text-[#d8b4fe]">
-                    Chaque bonbon est une confiserie imprégnée d'essences surnaturelles. Cliquez sur un bonbon pour ouvrir sa fiche détaillée en pop-up.
+                    Chaque bonbon est une confiserie imprégnée d&apos;essences surnaturelles. Cliquez sur un bonbon pour ouvrir sa fiche détaillée ou octroyez-le à un PJ choisi.
                   </p>
                 </div>
 
@@ -2362,9 +3222,22 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                             {c.desc}
                           </p>
                         </div>
-                        <div className="pt-2 border-t border-[#3b1259] flex items-center justify-between text-[10px] text-[#c084fc]">
-                          <span>Détails &amp; Consommation</span>
-                          <ExternalLink className="w-3 h-3" />
+                        <div className="pt-2 border-t border-[#3b1259] flex items-center justify-between gap-2 text-[10px] text-[#c084fc]">
+                          <span className="flex items-center gap-1">
+                            Détails <ExternalLink className="w-3 h-3" />
+                          </span>
+                          {tableData.pjs.length > 0 && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                requestGiveEquipmentToPj(c);
+                              }}
+                              className="px-2 py-0.5 rounded bg-[#6fa85b] hover:bg-[#7ebd67] text-black font-bold text-[10px] cursor-pointer"
+                            >
+                              {getGiftButtonLabel(true)}
+                            </button>
+                          )}
                         </div>
                       </div>
                     );
@@ -2541,33 +3414,21 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                   )}
 
                   {/* Actions de distribution */}
-                  <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-[#332517]">
-                    <button
-                      onClick={() => setDetailItem({ type: 'equipment', data: rolledLoot.item })}
-                      className="px-3 py-1.5 bg-[#231c15] hover:bg-[#32271d] border border-[#3d3023] text-xs font-semibold text-[#f3d48d] rounded-lg flex items-center gap-1.5"
-                    >
-                      <Info className="w-3.5 h-3.5" /> Fiche Détaillée
-                    </button>
-
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-[#9e907d]">Donner ce butin à :</span>
-                      <select
-                        value={targetPjForLoot}
-                        onChange={(e) => setTargetPjForLoot(e.target.value)}
-                        className="px-2.5 py-1.5 bg-[#231c15] border border-[#3d3023] rounded-lg text-xs text-[#ede3d1] outline-none"
-                      >
-                        <option value="">-- Choisir un Héros --</option>
-                        {tableData.pjs.map((p) => (
-                          <option key={p.id || p.name} value={p.id || p.name}>
-                            {p.name} (Niv. {p.level} {p.profil})
-                          </option>
-                        ))}
-                      </select>
+                  <div className="space-y-2.5 pt-2 border-t border-[#332517]">
+                    {renderRecipientMultiSelector('Donner ce butin à')}
+                    <div className="flex flex-wrap items-center justify-between gap-2">
                       <button
-                        onClick={() => handleGiveLootToPj(rolledLoot.item)}
-                        className="px-4 py-1.5 bg-[#6fa85b] hover:bg-[#7ebd67] text-black font-bold text-xs rounded-lg shadow-sm"
+                        onClick={() => setDetailItem({ type: 'equipment', data: rolledLoot.item })}
+                        className="px-3 py-1.5 bg-[#231c15] hover:bg-[#32271d] border border-[#3d3023] text-xs font-semibold text-[#f3d48d] rounded-lg flex items-center gap-1.5 cursor-pointer"
                       >
-                        + Ajouter au Sac du PJ
+                        <Info className="w-3.5 h-3.5" /> Fiche Détaillée
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => requestGiveEquipmentToPj(rolledLoot.item)}
+                        className="px-4 py-1.5 bg-[#6fa85b] hover:bg-[#7ebd67] text-black font-bold text-xs rounded-lg shadow-sm cursor-pointer"
+                      >
+                        {getGiftButtonLabel()}
                       </button>
                     </div>
                   </div>
@@ -2634,6 +3495,9 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                 </div>
               </div>
 
+              {/* Sélecteur multiple de destinataires pour les boutons d'octroi du tableau */}
+              {renderRecipientMultiSelector("Destinataires pré-cochés pour l'octroi rapide")}
+
               {/* Table numérotée exhaustive */}
               <div className="overflow-x-auto border border-[#30251a] rounded-lg">
                 <table className="w-full text-left text-xs border-collapse">
@@ -2685,18 +3549,23 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                         <td className="p-2.5 text-right space-x-1.5 whitespace-nowrap">
                           <button
                             onClick={() => setDetailItem({ type: 'equipment', data: it })}
-                            className="p-1.5 rounded bg-[#231c15] hover:bg-[#32271d] border border-[#3d3023] text-[#f3d48d] inline-flex items-center"
+                            className="p-1.5 rounded bg-[#231c15] hover:bg-[#32271d] border border-[#3d3023] text-[#f3d48d] inline-flex items-center cursor-pointer"
                             title="Voir la fiche détaillée"
                           >
                             <Info className="w-3.5 h-3.5" />
                           </button>
                           {tableData.pjs.length > 0 && (
                             <button
-                              onClick={() => handleGiveLootToPj(it, tableData.pjs[0].id || tableData.pjs[0].name)}
-                              className="px-2 py-1 rounded bg-[#382b1b] hover:bg-[#4d3b25] border border-[#5a4227] text-white text-[10px] font-bold inline-flex items-center gap-1"
-                              title={`Donner à ${tableData.pjs[0].name}`}
+                              type="button"
+                              onClick={() => requestGiveEquipmentToPj(it)}
+                              className="px-2 py-1 rounded bg-[#6fa85b] hover:bg-[#7ebd67] text-black text-[10px] font-bold inline-flex items-center gap-1 cursor-pointer"
+                              title={
+                                selectedLootRecipients.length > 0
+                                  ? `Octroyer aux ${selectedLootRecipients.length} sélectionné(s)`
+                                  : 'Choisir les PJ/PNJ destinataires avant de donner'
+                              }
                             >
-                              + Donner
+                              {getGiftButtonLabel(true)}
                             </button>
                           )}
                         </td>
@@ -2821,6 +3690,11 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                   </button>
                 )}
               </div>
+
+              {/* Sélecteur multiple de destinataires pour l'octroi d'équipements */}
+              <div className="pt-2 border-t border-[#30251a]">
+                {renderRecipientMultiSelector("Destinataires pré-cochés pour l'octroi d'équipement")}
+              </div>
             </div>
 
             <div className="bg-[#181410] border border-[#3d3023] rounded-xl overflow-x-auto shadow-sm">
@@ -2831,6 +3705,7 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                     <th className="p-3">Catégorie</th>
                     <th className="p-3">Prix</th>
                     <th className="p-3">DM / DEF / Propriétés &amp; Effets</th>
+                    <th className="p-3 text-right">Octroi MJ</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#261f18]">
@@ -2914,6 +3789,20 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                               <span className="block text-[11px] text-[#ff9fc8] italic mt-0.5">
                                 ⚠️ {it.effetSecondaire}
                               </span>
+                            )}
+                          </td>
+                          <td className="p-3 text-right whitespace-nowrap">
+                            {tableData.pjs.length > 0 && (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  requestGiveEquipmentToPj(it);
+                                }}
+                                className="px-2.5 py-1 rounded bg-[#6fa85b] hover:bg-[#7ebd67] text-black text-[10px] font-bold cursor-pointer"
+                              >
+                                {getGiftButtonLabel(true)}
+                              </button>
                             )}
                           </td>
                         </tr>
@@ -3519,9 +4408,15 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
       <DetailModal
         item={detailItem}
         onClose={() => setDetailItem(null)}
+        pjRecipients={tableData.pjs}
+        selectedPjIds={targetPjIdsForLoot}
+        onChangeSelectedPjIds={setTargetPjIdsForLoot}
         onAction={(action, data) => {
           if (action === 'send_to_combat') {
             addMonsterToCombat(data);
+          } else if (action === 'give_to_pj' && data?.item) {
+            const ids = data.pjIds || (data.pjId ? [data.pjId] : []);
+            handleGiveLootToPj(data.item, ids);
           }
         }}
       />
@@ -3585,7 +4480,7 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                     const parsed = JSON.parse(decodedStr);
                     const hero = parsed.hero || parsed;
                     if (!hero.name || !hero.profil) {
-                      alert('Code invalide ou personnage incomplet.');
+                      error('Code invalide ou personnage incomplet.');
                       return;
                     }
                     const list = [...tableData.pjs];
@@ -3600,9 +4495,9 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                     onUpdateTableData({ ...tableData, pjs: list });
                     setIsImportCodeModalOpen(false);
                     setTransferCodeInput('');
-                    alert(`✅ Héros "${hero.name}" (${hero.race} ${hero.profil}) intégré avec succès à votre table !`);
+                    success(`✅ Héros "${hero.name}" (${hero.race} ${hero.profil}) intégré avec succès à votre table !`);
                   } catch (err: any) {
-                    alert('Erreur lors du décodage : ' + err.message);
+                    error('Erreur lors du décodage : ' + err.message);
                   }
                 }}
                 className="px-5 py-2 bg-gradient-to-r from-[#3a6fa8] to-[#254b73] hover:brightness-110 text-white font-bold text-xs rounded-xl shadow-md cursor-pointer"
@@ -3638,6 +4533,257 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
           isMj={true}
           onDistributeToAllPjs={handleDistributeLootToAll}
         />
+      )}
+
+      {/* Modale Saisie Rapide des Initiatives */}
+      <QuickInitModal
+        isOpen={isQuickInitOpen}
+        onClose={() => setIsQuickInitOpen(false)}
+        combatants={tableData.combatants}
+        pjs={tableData.pjs}
+        onApply={handleApplyQuickInit}
+      />
+
+      {/* Confirmation intégrée : Vider la piste de combat */}
+      {confirmClearCombatOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-xs p-4">
+          <div className="bg-[#181410] border-2 border-[#9c2a2b] rounded-2xl w-full max-w-md shadow-2xl p-5 space-y-4">
+            <h3 className="font-serif-co text-lg font-bold text-[#ffb8b8]">
+              Vider la piste de combat ?
+            </h3>
+            <p className="text-xs text-[#cbb8a7] leading-relaxed">
+              Tous les combattants ({tableData.combatants.length}) seront retirés de la piste et le compteur reviendra au Round 1.
+              {tableData.combatants.some((c) => c.isPj) && tableData.combatants.some((c) => !c.isPj) && (
+                <> Vous pouvez aussi choisir de retirer uniquement les créatures pour garder vos PJ.</>
+              )}
+            </p>
+            <div className="flex flex-wrap items-center justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setConfirmClearCombatOpen(false)}
+                className="px-4 py-2 rounded-xl bg-[#231c15] hover:bg-[#32271d] border border-[#3d3023] text-xs font-semibold text-[#ede3d1] cursor-pointer"
+              >
+                Annuler
+              </button>
+              {tableData.combatants.some((c) => c.isPj) && tableData.combatants.some((c) => !c.isPj) && (
+                <button
+                  type="button"
+                  onClick={executeClearCreaturesOnly}
+                  className="px-4 py-2 rounded-xl bg-[#6e3a1c] hover:bg-[#874723] border border-[#a85d32] text-[#ffe1c4] font-bold text-xs cursor-pointer"
+                >
+                  Garder les PJ (créatures seules)
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => {
+                  setConfirmClearCombatOpen(false);
+                  setCombatRound(1);
+                  onUpdateTableData({ ...tableData, combatants: [] });
+                  info('Piste de combat vidée.');
+                }}
+                className="px-4 py-2 rounded-xl bg-[#9c2a2b] hover:bg-[#b83233] text-white font-bold text-xs cursor-pointer"
+              >
+                Oui, tout vider
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation intégrée : Vider uniquement les créatures (conserver les PJ) */}
+      {confirmClearCreaturesOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-xs p-4">
+          <div className="bg-[#181410] border-2 border-[#a85d32] rounded-2xl w-full max-w-sm shadow-2xl p-5 space-y-4">
+            <h3 className="font-serif-co text-lg font-bold text-[#ffd4a8]">
+              Vider toutes les créatures ?
+            </h3>
+            <p className="text-xs text-[#cbb8a7] leading-relaxed">
+              Les <b>{tableData.combatants.filter((c) => !c.isPj).length} créature(s)</b> seront retirées de la piste de combat, tandis que vos <b>{tableData.combatants.filter((c) => c.isPj).length} PJ</b> resteront en place (compteur remis au Round 1).
+            </p>
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setConfirmClearCreaturesOpen(false)}
+                className="px-4 py-2 rounded-xl bg-[#231c15] hover:bg-[#32271d] border border-[#3d3023] text-xs font-semibold text-[#ede3d1] cursor-pointer"
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                onClick={executeClearCreaturesOnly}
+                className="px-4 py-2 rounded-xl bg-[#9a4d1e] hover:bg-[#b85d24] text-white font-bold text-xs cursor-pointer"
+              >
+                Oui, vider les créatures
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation intégrée : Ajouter une autre occurrence d'un PJ déjà en combat */}
+      {confirmDuplicatePj && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-xs p-4">
+          <div className="bg-[#181410] border-2 border-[#d4a84a] rounded-2xl w-full max-w-sm shadow-2xl p-5 space-y-4">
+            <h3 className="font-serif-co text-lg font-bold text-[#f3d48d]">
+              {confirmDuplicatePj.name} déjà en combat
+            </h3>
+            <p className="text-xs text-[#cbb8a7] leading-relaxed">
+              Ce personnage est déjà présent sur la piste de combat. Souhaitez-vous tout de même en ajouter une autre occurrence ?
+            </p>
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setConfirmDuplicatePj(null)}
+                className="px-4 py-2 rounded-xl bg-[#231c15] hover:bg-[#32271d] border border-[#3d3023] text-xs font-semibold text-[#ede3d1] cursor-pointer"
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const target = confirmDuplicatePj;
+                  setConfirmDuplicatePj(null);
+                  pushPjCombatant(target);
+                }}
+                className="px-4 py-2 rounded-xl bg-[#d4a84a] hover:bg-[#e5bd62] text-black font-bold text-xs cursor-pointer"
+              >
+                Ajouter quand même
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ==================== MODAL CHOIX MULTIPLE DES DESTINATAIRES (PJ & PNJ) AVANT OCTROI ==================== */}
+      {pendingGiftItem && (
+        <div className="fixed inset-0 z-[75] flex items-center justify-center bg-black/80 backdrop-blur-xs p-4">
+          <div className="bg-[#181410] border-2 border-[#d4a84a] rounded-2xl w-full max-w-md shadow-2xl p-5 space-y-4">
+            <div className="flex items-start justify-between border-b border-[#30251a] pb-3 gap-2">
+              <div>
+                <h3 className="font-serif-co text-lg font-bold text-[#f3d48d]">
+                  À qui octroyer cet objet ?
+                </h3>
+                <p className="text-xs text-[#cbb8a7] mt-0.5">
+                  Objet sélectionné : <b className="text-white">« {pendingGiftItem.n} »</b>
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPendingGiftItem(null)}
+                className="p-1.5 rounded-lg text-[#9e907d] hover:text-[#ede3d1] hover:bg-[#231c15] cursor-pointer"
+                aria-label="Fermer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="flex flex-wrap items-center justify-between gap-2 bg-[#120e0a] border border-[#30251a] rounded-lg px-3 py-2">
+              <span className="text-[11px] font-bold text-[#f3d48d]">
+                {modalRecipientIds.length}/{tableData.pjs.length} sélectionné(s)
+              </span>
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setModalRecipientIds(tableData.pjs.map(getRecipientKey))}
+                  className="px-2.5 py-1 rounded bg-[#231c15] hover:bg-[#32271d] border border-[#3d3023] text-[10px] font-bold text-[#f3d48d] cursor-pointer"
+                >
+                  Tout sélectionner
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setModalRecipientIds([])}
+                  className="px-2.5 py-1 rounded bg-[#231c15] hover:bg-[#32271d] border border-[#3d3023] text-[10px] font-semibold text-[#9e907d] cursor-pointer"
+                >
+                  Tout désélectionner
+                </button>
+              </div>
+            </div>
+
+            <div className="space-y-2 max-h-[50vh] overflow-y-auto pr-1">
+              {tableData.pjs.map((p) => {
+                const pid = getRecipientKey(p);
+                const checked = modalRecipientIds.includes(pid);
+                return (
+                  <label
+                    key={pid}
+                    className={`w-full p-2.5 rounded-xl border flex items-center justify-between gap-3 text-left transition-all cursor-pointer ${
+                      checked
+                        ? 'bg-[#1c2e16] border-[#6fa85b]'
+                        : 'bg-[#231c15] hover:bg-[#2e241b] border-[#3d3023]'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() =>
+                          setModalRecipientIds((prev) =>
+                            prev.includes(pid) ? prev.filter((id) => id !== pid) : [...prev, pid]
+                          )
+                        }
+                        className="w-4 h-4 accent-[#6fa85b] cursor-pointer shrink-0"
+                      />
+                      {p.portrait && (
+                        <img
+                          src={p.portrait}
+                          alt={p.name}
+                          referrerPolicy="no-referrer"
+                          className="w-9 h-9 rounded-lg object-cover border border-[#d4a84a]/60 shrink-0"
+                        />
+                      )}
+                      <div className="min-w-0">
+                        <b className="text-sm text-[#f3d48d] block truncate">{p.name}</b>
+                        <span className="text-[11px] text-[#9e907d] block truncate">
+                          {p.race} · {p.profil} · Niveau {p.level}
+                        </span>
+                      </div>
+                    </div>
+                    <span
+                      className={`px-2 py-0.5 rounded font-bold text-[10px] shrink-0 ${
+                        p.isPnj
+                          ? 'bg-[#1e3a5f] text-[#93c5fd]'
+                          : 'bg-[#3b2a14] text-[#f3d48d]'
+                      }`}
+                    >
+                      {p.isPnj ? 'PNJ' : 'PJ'}
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#30251a]">
+              <button
+                type="button"
+                onClick={() => setPendingGiftItem(null)}
+                className="px-4 py-2 rounded-xl bg-[#231c15] hover:bg-[#32271d] border border-[#3d3023] text-xs font-semibold text-[#ede3d1] cursor-pointer"
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                disabled={modalRecipientIds.length === 0}
+                onClick={() => {
+                  const item = pendingGiftItem;
+                  const ids = [...modalRecipientIds];
+                  setTargetPjIdsForLoot(ids);
+                  setPendingGiftItem(null);
+                  handleGiveLootToPj(item, ids);
+                }}
+                className={`px-4 py-2 rounded-xl font-bold text-xs cursor-pointer transition-all ${
+                  modalRecipientIds.length > 0
+                    ? 'bg-[#6fa85b] hover:bg-[#7ebd67] text-black shadow-md'
+                    : 'bg-[#2a2219] text-[#7a6b59] border border-[#3d3023] cursor-not-allowed'
+                }`}
+              >
+                {modalRecipientIds.length > 0
+                  ? `Octroyer aux ${modalRecipientIds.length} sélectionné(s)`
+                  : 'Cochez au moins 1 nom'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Discreet Signature */}

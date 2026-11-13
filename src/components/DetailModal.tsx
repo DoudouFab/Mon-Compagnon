@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   X,
   Swords,
@@ -14,6 +14,11 @@ import {
   Heart,
   Skull,
   Plus,
+  RefreshCw,
+  Upload,
+  Link2,
+  Trash2,
+  Image as ImageIcon,
 } from 'lucide-react';
 import {
   Equipment,
@@ -25,6 +30,18 @@ import {
   SpellItem,
   WayRank,
 } from '../types/chroniques';
+import {
+  buildMonsterVisualSvg,
+  inspectMonsterCriteria,
+} from '../utils/fantasyPortraitGenerator';
+import {
+  CachedCreatureVisual,
+  getCreatureVisual,
+  removeCreatureVisual,
+  setCreatureVisual,
+} from '../utils/creatureVisualCache';
+import { compressImageFile, isSafeImageUrl, svgToCompressedDataUrl } from '../utils/imageUtils';
+import { useToast } from './common/ToastContext';
 
 export type DetailItem =
   | { type: 'monster' | 'monstre'; data: Monster }
@@ -59,15 +76,127 @@ export type DetailItem =
   | { type: 'race'; data: RaceData }
   | { type: 'profil'; data: ProfilData };
 
+export interface DetailPjRecipient {
+  id?: string;
+  name: string;
+  level?: number;
+  profil?: string;
+  isPnj?: boolean;
+}
+
 interface DetailModalProps {
   item: DetailItem | null;
   onClose: () => void;
   onAction?: (action: string, payload?: any) => void;
   hidePrice?: boolean;
+  pjRecipients?: DetailPjRecipient[];
+  selectedPjIds?: string[];
+  onChangeSelectedPjIds?: (pjIds: string[]) => void;
 }
 
-export const DetailModal: React.FC<DetailModalProps> = ({ item, onClose, onAction, hidePrice = false }) => {
+export const DetailModal: React.FC<DetailModalProps> = ({
+  item,
+  onClose,
+  onAction,
+  hidePrice = false,
+  pjRecipients,
+  selectedPjIds = [],
+  onChangeSelectedPjIds,
+}) => {
+  const { success, warning, error } = useToast();
+  const monsterFileRef = useRef<HTMLInputElement>(null);
+  const [monsterVisual, setMonsterVisual] = useState<CachedCreatureVisual | null>(null);
+  const [visualSeed, setVisualSeed] = useState<number>(0);
+  const [visualBusy, setVisualBusy] = useState<boolean>(false);
+  const [showVisualUrlInput, setShowVisualUrlInput] = useState<boolean>(false);
+  const [visualUrlDraft, setVisualUrlDraft] = useState<string>('');
+  const [localSelectedIds, setLocalSelectedIds] = useState<string[]>(selectedPjIds);
+
+  useEffect(() => {
+    setLocalSelectedIds(selectedPjIds);
+  }, [selectedPjIds, item]);
+
+  const isMonster = item && (item.type === 'monster' || item.type === 'monstre');
+  const currentMonster = isMonster ? (item.data as Monster) : null;
+
+  useEffect(() => {
+    if (currentMonster) {
+      const cached = getCreatureVisual(currentMonster);
+      setMonsterVisual(cached);
+      setVisualSeed(cached?.variantSeed || 0);
+      setShowVisualUrlInput(false);
+      setVisualUrlDraft('');
+    } else {
+      setMonsterVisual(null);
+    }
+  }, [currentMonster?.n, currentMonster?.source]);
+
   if (!item) return null;
+
+  const handleGenerateMonsterVisual = async (nextSeed: number) => {
+    if (!currentMonster) return;
+    setVisualBusy(true);
+    try {
+      const svg = buildMonsterVisualSvg(currentMonster, nextSeed);
+      const dataUrl = await svgToCompressedDataUrl(svg, 384, 0.85);
+      const saved = setCreatureVisual(currentMonster, {
+        url: dataUrl,
+        mode: 'generated',
+        variantSeed: nextSeed,
+      });
+      setVisualSeed(nextSeed);
+      setMonsterVisual({
+        url: dataUrl,
+        mode: 'generated',
+        variantSeed: nextSeed,
+        updatedAt: Date.now(),
+      });
+      if (!saved) {
+        warning('Visuel généré, mais le cache local du navigateur est plein.');
+      }
+    } catch (err: any) {
+      error('Erreur de génération : ' + (err?.message || 'Erreur inconnue'));
+    } finally {
+      setVisualBusy(false);
+    }
+  };
+
+  const handleUploadMonsterVisual = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file || !currentMonster) return;
+    setVisualBusy(true);
+    try {
+      const compressed = await compressImageFile(file, 384, 0.8);
+      setCreatureVisual(currentMonster, { url: compressed, mode: 'uploaded' });
+      setMonsterVisual({ url: compressed, mode: 'uploaded', updatedAt: Date.now() });
+      success(`Visuel de "${currentMonster.n}" importé et mis en cache !`);
+    } catch (err: any) {
+      error(err?.message || "Impossible d'importer l'image.");
+    } finally {
+      setVisualBusy(false);
+    }
+  };
+
+  const handleApplyMonsterUrl = () => {
+    if (!currentMonster) return;
+    if (!visualUrlDraft.trim() || !isSafeImageUrl(visualUrlDraft)) {
+      warning("Veuillez saisir une URL d'image valide (https://... ou /...).");
+      return;
+    }
+    const cleanUrl = visualUrlDraft.trim();
+    setCreatureVisual(currentMonster, { url: cleanUrl, mode: 'url' });
+    setMonsterVisual({ url: cleanUrl, mode: 'url', updatedAt: Date.now() });
+    setShowVisualUrlInput(false);
+    setVisualUrlDraft('');
+    success(`Visuel lié à "${currentMonster.n}" !`);
+  };
+
+  const handleClearMonsterVisual = () => {
+    if (!currentMonster) return;
+    removeCreatureVisual(currentMonster);
+    setMonsterVisual(currentMonster.imageUrl ? { url: currentMonster.imageUrl, mode: 'url', updatedAt: 0 } : null);
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-xs p-3 sm:p-5 animate-fadeIn">
@@ -141,7 +270,7 @@ export const DetailModal: React.FC<DetailModalProps> = ({ item, onClose, onActio
         {/* Modal Scrollable Body */}
         <div className="p-5 sm:p-6 overflow-y-auto space-y-4">
           {/* ==================== 1. MONSTER DETAILS ==================== */}
-          {item.type === 'monster' && (
+          {(item.type === 'monster' || item.type === 'monstre') && (
             <div className="space-y-4">
               {item.data.source === 'tharnea' && (
                 <div className="flex items-center justify-between p-2.5 bg-[#31162b] border border-[#6b285b] rounded-xl text-xs text-[#f5b8ec]">
@@ -154,6 +283,132 @@ export const DetailModal: React.FC<DetailModalProps> = ({ item, onClose, onActio
                   </span>
                 </div>
               )}
+
+              {/* Visuel de la créature (aperçu immédiat gratuit / variante / importé / cache) */}
+              {(() => {
+                const crit = inspectMonsterCriteria(item.data);
+                const liveSvgPreview = !monsterVisual?.url
+                  ? `data:image/svg+xml;utf8,${encodeURIComponent(buildMonsterVisualSvg(item.data, visualSeed))}`
+                  : null;
+                const displayUrl = monsterVisual?.url || liveSvgPreview;
+                return (
+                  <div className="bg-[#14100c] border border-[#3d3023] rounded-xl p-3 flex flex-col sm:flex-row items-center gap-3.5">
+                    <div className="w-32 h-32 rounded-xl overflow-hidden border-2 border-[#d4a84a]/60 bg-[#0d0a08] shrink-0 flex items-center justify-center shadow-inner relative">
+                      {displayUrl ? (
+                        <img
+                          src={displayUrl}
+                          alt={item.data.n}
+                          referrerPolicy="no-referrer"
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="text-center p-2 text-[#7a6b59]">
+                          <ImageIcon className="w-8 h-8 mx-auto opacity-50 mb-1" />
+                          <span className="text-[10px] block leading-tight">
+                            Aucun visuel en cache
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex-1 w-full space-y-2">
+                      <div className="flex flex-wrap items-center gap-1.5 text-[10px]">
+                        <span className="px-2 py-0.5 rounded bg-[#231c15] border border-[#3d3023] text-[#f3d48d] font-semibold">
+                          {crit.archetypeLabel}
+                        </span>
+                        <span className="px-2 py-0.5 rounded bg-[#231c15] border border-[#3d3023] text-[#cbb8a7]">
+                          📍 {crit.environmentLabel}
+                        </span>
+                        <span className="px-2 py-0.5 rounded bg-[#231c15] border border-[#3d3023] text-[#cbb8a7]">
+                          📏 {crit.scaleLabel}
+                        </span>
+                        <span className="px-2 py-0.5 rounded bg-[#231c15] border border-[#3d3023] text-[#ff9d9d] font-bold">
+                          {crit.dangerLabel}
+                        </span>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <button
+                          type="button"
+                          disabled={visualBusy}
+                          onClick={() => handleGenerateMonsterVisual(monsterVisual?.mode === 'generated' ? visualSeed + 1 : 0)}
+                          className="px-2.5 py-1.5 rounded-lg bg-[#2a1d12] hover:bg-[#3b2919] border border-[#d4a84a]/60 text-[#f3d48d] text-xs font-bold flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                          title="Générer un visuel gratuit fidèle aux critères de la créature (ou rafraîchir une variante)"
+                        >
+                          {monsterVisual?.mode === 'generated' ? (
+                            <RefreshCw className="w-3.5 h-3.5" />
+                          ) : (
+                            <Sparkles className="w-3.5 h-3.5" />
+                          )}
+                          <span>
+                            {monsterVisual?.mode === 'generated'
+                              ? 'Variante (Refresh)'
+                              : 'Générer visuel (critères)'}
+                          </span>
+                        </button>
+
+                        <button
+                          type="button"
+                          disabled={visualBusy}
+                          onClick={() => monsterFileRef.current?.click()}
+                          className="px-2.5 py-1.5 rounded-lg bg-[#231c15] hover:bg-[#32271d] border border-[#3d3023] text-[#ede3d1] text-xs font-semibold flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                          title="Importer votre propre illustration pour cette créature"
+                        >
+                          <Upload className="w-3.5 h-3.5 text-[#86efac]" />
+                          <span>Importer visuel</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setShowVisualUrlInput((s) => !s)}
+                          className="px-2.5 py-1.5 rounded-lg bg-[#231c15] hover:bg-[#32271d] border border-[#3d3023] text-[#cbb8a7] text-xs font-semibold flex items-center gap-1 cursor-pointer"
+                        >
+                          <Link2 className="w-3.5 h-3.5 text-[#93c5fd]" />
+                          <span>URL</span>
+                        </button>
+
+                        {monsterVisual && (
+                          <button
+                            type="button"
+                            onClick={handleClearMonsterVisual}
+                            className="px-2 py-1.5 rounded-lg bg-[#301616] hover:bg-[#471f1f] border border-[#6b2525] text-[#fca5a5] text-xs font-semibold flex items-center gap-1 cursor-pointer"
+                            title="Retirer le visuel en cache"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
+
+                      <input
+                        ref={monsterFileRef}
+                        type="file"
+                        accept="image/*"
+                        onChange={handleUploadMonsterVisual}
+                        className="hidden"
+                      />
+
+                      {showVisualUrlInput && (
+                        <div className="flex items-center gap-1.5">
+                          <input
+                            type="url"
+                            value={visualUrlDraft}
+                            onChange={(e) => setVisualUrlDraft(e.target.value)}
+                            placeholder="https://exemple.com/creature.jpg"
+                            className="flex-1 bg-[#1e1711] border border-[#3d3023] focus:border-[#d4a84a] rounded-lg px-2.5 py-1 text-xs text-[#ede3d1] outline-none"
+                          />
+                          <button
+                            type="button"
+                            onClick={handleApplyMonsterUrl}
+                            className="px-2.5 py-1 rounded-lg bg-[#d4a84a] text-black font-bold text-xs cursor-pointer"
+                          >
+                            OK
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
 
               {/* Stat badges */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
@@ -183,23 +438,21 @@ export const DetailModal: React.FC<DetailModalProps> = ({ item, onClose, onActio
                 </div>
               </div>
 
-              {/* Gabarit & Milieu */}
-              {(item.data.taille || item.data.poids || item.data.milieu) && (
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs bg-[#231c15] border border-[#3d3023] rounded-xl p-2.5 text-[#ede3d1]">
-                  <div>
-                    <span className="text-[10px] text-[#9e907d] uppercase block">Gabarit / Taille :</span>
-                    <b>{item.data.taille || 'Moyenne'}</b>
-                  </div>
-                  <div>
-                    <span className="text-[10px] text-[#9e907d] uppercase block">Poids estimé :</span>
-                    <b>{item.data.poids || 'Variable'}</b>
-                  </div>
-                  <div>
-                    <span className="text-[10px] text-[#9e907d] uppercase block">Milieu de vie :</span>
-                    <b>{item.data.milieu || item.data.fam || 'Terres de Tharnéa'}</b>
-                  </div>
+              {/* Gabarit, Poids & Milieu */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs bg-[#231c15] border border-[#3d3023] rounded-xl p-2.5 text-[#ede3d1]">
+                <div>
+                  <span className="text-[10px] text-[#9e907d] uppercase block">Gabarit / Taille :</span>
+                  <b>{item.data.taille || 'Moyenne (1,50 à 2 m)'}</b>
                 </div>
-              )}
+                <div>
+                  <span className="text-[10px] text-[#9e907d] uppercase block">Poids estimé :</span>
+                  <b>{item.data.poids || 'Variable'}</b>
+                </div>
+                <div>
+                  <span className="text-[10px] text-[#9e907d] uppercase block">Milieu / Famille :</span>
+                  <b>{item.data.milieu || item.data.fam || "Terres d'Osgild"}</b>
+                </div>
+              </div>
 
               {/* Caractéristiques 6-voies si présentes */}
               {item.data.caracs && (
@@ -255,11 +508,24 @@ export const DetailModal: React.FC<DetailModalProps> = ({ item, onClose, onActio
                 </p>
               </div>
 
+              {/* Apparence Physique Simple (à décrire aux joueurs) */}
+              {item.data.descPhysique && (
+                <div className="bg-[#1b1611] border border-[#4a3925] rounded-xl p-4 space-y-1.5">
+                  <div className="flex items-center gap-2 text-xs font-bold text-[#f3d48d] uppercase tracking-wider">
+                    <BookOpen className="w-4 h-4 text-[#d4a84a]" />
+                    <span>Apparence Physique (Description rapide MJ)</span>
+                  </div>
+                  <p className="text-xs sm:text-sm text-[#ede3d1] leading-relaxed italic">
+                    {item.data.descPhysique}
+                  </p>
+                </div>
+              )}
+
               {/* Description & Traits */}
               <div className="bg-[#231c15] border border-[#3d3023] rounded-xl p-4 space-y-1.5">
                 <div className="flex items-center gap-2 text-xs font-bold text-[#f3d48d] uppercase tracking-wider">
                   <Sparkles className="w-4 h-4 text-[#d4a84a]" />
-                  <span>Description &amp; Tempérament</span>
+                  <span>Capacités, Traits &amp; Tempérament</span>
                 </div>
                 <p className="text-xs text-[#ede3d1] leading-relaxed whitespace-pre-line">
                   {item.data.traits}
@@ -311,14 +577,47 @@ export const DetailModal: React.FC<DetailModalProps> = ({ item, onClose, onActio
                     <Coins className="w-3.5 h-3.5 text-[#f3d48d]" />
                     Butin &amp; Reliques à récupérer :
                   </b>
-                  <p className="text-[#ede3d1]">{item.data.butin}</p>
+                  <p className="text-[#ede3d1] whitespace-pre-line">{item.data.butin}</p>
+                </div>
+              )}
+
+              {/* Origine & Rôle Narratif (Figures majeures Tharnéa) */}
+              {item.data.origineNarratif && (
+                <div className="p-3.5 bg-[#17141a] border border-[#48385c] rounded-xl text-xs space-y-1">
+                  <b className="text-[#cbafff] flex items-center gap-1.5">
+                    <BookOpen className="w-3.5 h-3.5 text-[#cbafff]" />
+                    Origine &amp; Rôle Narratif :
+                  </b>
+                  <p className="text-[#ede3d1] leading-relaxed whitespace-pre-line">{item.data.origineNarratif}</p>
+                </div>
+              )}
+
+              {/* Liens Personnels avec les PJ */}
+              {item.data.liensPj && (
+                <div className="p-3.5 bg-[#1a1514] border border-[#5e342d] rounded-xl text-xs space-y-1">
+                  <b className="text-[#ffad99] flex items-center gap-1.5">
+                    <Flame className="w-3.5 h-3.5 text-[#ffad99]" />
+                    Liens Personnels avec les PJ :
+                  </b>
+                  <p className="text-[#ede3d1] leading-relaxed whitespace-pre-line">{item.data.liensPj}</p>
+                </div>
+              )}
+
+              {/* Secret de la Figure Majeure */}
+              {item.data.secret && (
+                <div className="p-3.5 bg-[#10141a] border border-[#2d445c] rounded-xl text-xs space-y-1">
+                  <b className="text-[#8dbbff] flex items-center gap-1.5">
+                    <Activity className="w-3.5 h-3.5 text-[#8dbbff]" />
+                    Secret Caché (Réservé au MJ) :
+                  </b>
+                  <p className="text-[#ede3d1] leading-relaxed whitespace-pre-line">{item.data.secret}</p>
                 </div>
               )}
             </div>
           )}
 
           {/* ==================== 2. EQUIPMENT DETAILS ==================== */}
-          {item.type === 'equipment' && (
+          {(item.type === 'equipment' || item.type === 'equipement') && (
             <div className="space-y-4">
               {item.data.source === 'tharnea' && (
                 <div className="flex items-center justify-between p-2.5 bg-[#2d1b10] border border-[#663b1e] rounded-xl text-xs text-[#f3d48d]">
@@ -426,26 +725,109 @@ export const DetailModal: React.FC<DetailModalProps> = ({ item, onClose, onActio
                 </div>
               )}
 
-              {/* Action Button */}
-              {onAction && (
-                <div className="pt-2 flex justify-end">
-                  <button
-                    onClick={() => {
-                      onAction('add_to_inventory', item.data);
-                      onClose();
-                    }}
-                    className="px-4 py-2 bg-[#d4a84a] hover:bg-[#e0b555] text-black font-bold text-xs rounded-lg shadow-md flex items-center gap-1.5"
-                  >
-                    <Plus className="w-4 h-4" />
-                    Ajouter à l'inventaire du PJ
-                  </button>
+              {/* Action Octroi MJ (sélection multiple PJ & PNJ par cases à cocher) */}
+              {onAction && pjRecipients && pjRecipients.length > 0 && (
+                <div className="pt-3 border-t border-[#30251a] space-y-2.5 bg-[#120e0a] p-3 rounded-xl border">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="text-xs font-bold text-[#f3d48d]">
+                      Octroyer à (PJ &amp; PNJ) — {localSelectedIds.length}/{pjRecipients.length} sélectionné(s) :
+                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const all = pjRecipients.map((p) => p.id || p.name);
+                          setLocalSelectedIds(all);
+                          onChangeSelectedPjIds?.(all);
+                        }}
+                        className="px-2 py-1 rounded bg-[#231c15] hover:bg-[#32271d] border border-[#3d3023] text-[10px] font-bold text-[#f3d48d] cursor-pointer"
+                      >
+                        Tout sélectionner
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setLocalSelectedIds([]);
+                          onChangeSelectedPjIds?.([]);
+                        }}
+                        className="px-2 py-1 rounded bg-[#231c15] hover:bg-[#32271d] border border-[#3d3023] text-[10px] font-semibold text-[#9e907d] cursor-pointer"
+                      >
+                        Tout désélectionner
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 max-h-40 overflow-y-auto pr-1">
+                    {pjRecipients.map((p) => {
+                      const pid = p.id || p.name;
+                      const checked = localSelectedIds.includes(pid);
+                      return (
+                        <label
+                          key={pid}
+                          className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg border text-xs cursor-pointer transition-colors ${
+                            checked
+                              ? 'bg-[#1c2e16] border-[#6fa85b] text-[#ede3d1]'
+                              : 'bg-[#1c1611] border-[#30251a] text-[#bba992] hover:border-[#4d3b29]'
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => {
+                              const next = checked
+                                ? localSelectedIds.filter((id) => id !== pid)
+                                : [...localSelectedIds, pid];
+                              setLocalSelectedIds(next);
+                              onChangeSelectedPjIds?.(next);
+                            }}
+                            className="w-3.5 h-3.5 accent-[#6fa85b] cursor-pointer shrink-0"
+                          />
+                          <span className="truncate font-semibold flex-1">{p.name}</span>
+                          <span
+                            className={`text-[9px] px-1.5 py-0.5 rounded font-bold shrink-0 ${
+                              p.isPnj
+                                ? 'bg-[#1e3a5f] text-[#93c5fd]'
+                                : 'bg-[#3b2a14] text-[#f3d48d]'
+                            }`}
+                          >
+                            {p.isPnj ? 'PNJ' : 'PJ'}
+                          </span>
+                        </label>
+                      );
+                    })}
+                  </div>
+
+                  <div className="flex justify-end">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (localSelectedIds.length === 0) {
+                          warning('Cochez au moins un PJ ou PNJ destinataire.');
+                          return;
+                        }
+                        onAction('give_to_pj', { item: item.data, pjIds: localSelectedIds });
+                        onClose();
+                      }}
+                      disabled={localSelectedIds.length === 0}
+                      className={`px-4 py-2 font-bold text-xs rounded-lg shadow-md flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                        localSelectedIds.length > 0
+                          ? 'bg-[#6fa85b] hover:bg-[#7ebd67] text-black'
+                          : 'bg-[#2a2219] text-[#7a6b59] border border-[#3d3023] cursor-not-allowed'
+                      }`}
+                    >
+                      <Plus className="w-4 h-4" />
+                      {localSelectedIds.length > 0
+                        ? `Octroyer aux ${localSelectedIds.length} sélectionné(s)`
+                        : 'Cochez au moins un destinataire'}
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
           )}
 
           {/* ==================== 3. SPELL DETAILS ==================== */}
-          {item.type === 'spell' && (
+          {(item.type === 'spell' || item.type === 'sort') && (
             <div className="space-y-4">
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                 <div className="bg-[#231c15] border border-[#3a2954] rounded-xl p-3 text-center">
@@ -531,7 +913,7 @@ export const DetailModal: React.FC<DetailModalProps> = ({ item, onClose, onActio
           )}
 
           {/* ==================== 5. RULE DETAILS ==================== */}
-          {item.type === 'rule' && (
+          {(item.type === 'rule' || item.type === 'regle') && (
             <div className="space-y-4">
               <span className="text-xs font-bold bg-[#1e2f47] text-[#b0d7ff] px-2.5 py-1 rounded-lg border border-[#2d4973]">
                 Section : {item.data.cat}

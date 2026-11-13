@@ -15,8 +15,10 @@ export const THARNEA_MONSTERS: Monster[] = [
     caracs: { FOR: 0, DEX: 3, CON: 1, INT: 0, SAG: 1, CHA: -2 },
     att: 'Morsure sacrilège 1d4',
     fam: "Abomination de l'Ombre",
+    descPhysique:
+      'Un rongeur colossal dont la peau pelée et parcheminée laisse entrevoir des muscles striés de noirceur. Ses yeux laiteux, dépourvus de pupilles, semblent fixer une réalité invisible. Des murmures sacrilèges s’échappent de sa gueule, imitant des litanies religieuses déformées par la corruption.',
     traits:
-      '« Il prie avant de mordre... quel respect. » Un rongeur colossal à la peau pelée striée de noirceur. Ses yeux laiteux fixent le vide tandis que des murmures sacrilèges s’échappent de sa gueule.',
+      '« Il prie avant de mordre... quel respect. » Rongeur corrompu imitant des litanies religieuses déformées avant de bondir.',
     pouvoirs: [
       {
         n: 'Essaim',
@@ -45,8 +47,10 @@ export const THARNEA_MONSTERS: Monster[] = [
     caracs: { FOR: 1, DEX: 3, CON: 1, INT: 0, SAG: 1, CHA: -1 },
     att: 'Dague en os ou griffes 1d6',
     fam: 'Humanoïde corrompu',
+    descPhysique:
+      "Petit humanoïde osseux à la peau grisâtre si tendue qu'elle semble collée directement à ses côtes saillantes. Il hante les cryptes, ses yeux brillant d’une lueur malsaine dans l'obscurité. Il se nourrit des restes de sépultures, dégageant une odeur de terre humide et de putréfaction.",
     traits:
-      "« Ça pue... mais c’est chez moi ! » Petit humanoïde osseux à la peau grisâtre tendue sur ses côtes saillantes. Il hante les cryptes et se nourrit des restes de sépultures.",
+      '« Ça pue... mais c’est chez moi ! » Charognard des cryptes à l’odeur de terre humide et de putréfaction.',
     pouvoirs: [
       {
         n: 'Attaque aux chevilles',
@@ -54,8 +58,8 @@ export const THARNEA_MONSTERS: Monster[] = [
       },
     ],
     tactique:
-      "Charognard opportuniste. Préfère gratter les cercueils ou voler des bottes. En combat, il utilise son gabarit pour se faufiler et faire tomber ses adversaires avant de s'enfuir dans les recoins étroits.",
-    butin: "Restes d'os de gobelin ou babioles volées.",
+      "Le Gobelin des fosses est un charognard opportuniste. Il préfère gratter les cercueils ou voler des bottes. En combat, il utilise son gabarit pour se faufiler et faire tomber ses adversaires avant de s'enfuir dans les recoins étroits.",
+    butin: "Restes d'os de Gobelin ou babioles volées.",
   },
   {
     num: 3,
@@ -71,8 +75,10 @@ export const THARNEA_MONSTERS: Monster[] = [
     caracs: { FOR: 1, DEX: 1, CON: 2, INT: 0, SAG: 1, CHA: 3 },
     att: 'Pustule écrasée 1d6',
     fam: 'Plante monstrueuse',
+    descPhysique:
+      "Un champignon humanoïde dont le corps est constellé de pustules colorées et suintantes. Il tremble de sanglots convulsifs, habité par une mélancolie profonde qui semble infecter l'air autour de lui. Il se nourrit de la tristesse des voyageurs égarés.",
     traits:
-      "« J’existe... je crois. » Champignon humanoïde constellé de pustules colorées et suintantes. Il tremble de sanglots convulsifs, habité par une mélancolie qui infecte l'air ambiant.",
+      '« J’existe... je crois. » Créature fongique mélancolique qui infecte l’air de sa tristesse et de ses sanglots.',
     pouvoirs: [
       {
         n: 'Spores hallucinogènes',
@@ -80,7 +86,7 @@ export const THARNEA_MONSTERS: Monster[] = [
       },
     ],
     tactique:
-      "Ne cherche pas activement le combat mais entrave la progression. Placez-le dans des zones humides et confinées pour maximiser l'effet de ses spores et briser le moral du groupe.",
+      "Il ne cherche pas activement le combat mais entrave la progression. Placez-le dans des zones humides et confinées pour maximiser l'effet de ses spores et briser le moral du groupe.",
     butin: 'Herbes rares ou spores de mélancolie.',
   },
   {
@@ -97,8 +103,10 @@ export const THARNEA_MONSTERS: Monster[] = [
     caracs: { FOR: 2, DEX: 0, CON: 2, INT: 0, SAG: 1, CHA: 1 },
     att: 'Étreinte cadavérique 1d6',
     fam: 'Mort-vivant de l’Obscure',
+    descPhysique:
+      "Un cadavre conservé avec un soin macabre, vêtu d'habits d'époque. Malgré ses yeux dénués de vie, il conserve des manières polies et une voix calme, presque apaisante. Il offre du thé imaginaire aux imprudents, dissimulant sa faim sous une courtoisie glaciale.",
     traits:
-      "« Reste dîner... pour toujours. » Un cadavre conservé avec un soin macabre, vêtu d'habits d'époque. Malgré ses yeux dénués de vie, il conserve des manières polies et une voix calme, presque apaisante.",
+      '« Reste dîner... pour toujours. » Hôte morbide d’une courtoisie glaciale dans les villages en ruines.',
     pouvoirs: [
       {
         n: 'Recrutement funèbre',
@@ -123,8 +131,10 @@ export const THARNEA_MONSTERS: Monster[] = [
     caracs: { FOR: 0, DEX: 3, CON: 1, INT: 1, SAG: 2, CHA: 2 },
     att: 'Griffes terreuses 1d4',
     fam: 'Fée sombre',
+    descPhysique:
+      'Une petite créature noueuse dissimulée sous un amoncellement de paille et de boue. Ses longs doigts agiles sont faits pour la manipulation et la farce malveillante. Il se délecte de la frayeur des bêtes et des enfants dans les fermes isolées.',
     traits:
-      "« Bouh. » Petite créature noueuse dissimulée sous un amoncellement de paille et de boue. Ses longs doigts agiles sont faits pour la manipulation et la farce malveillante.",
+      '« Bouh. » Esprit farceur des granges et des fermes isolées, maître de la malice et du harcèlement.',
     pouvoirs: [
       {
         n: 'Farces rurales',
@@ -149,8 +159,10 @@ export const THARNEA_MONSTERS: Monster[] = [
     caracs: { FOR: -5, DEX: 2, CON: 0, INT: 3, SAG: 3, CHA: 4 },
     att: 'Plume d’encre spectrale 1d8',
     fam: 'Esprit de l’Obscure',
+    descPhysique:
+      "Une entité translucide portant les haillons d'un archiviste, flottant au-dessus de registres dont les pages tournent sans vent. Il exige des comptes pour chaque respiration prise dans son domaine.",
     traits:
-      "« Signez ici... avec votre sang. » Une entité translucide portant les haillons d'un archiviste, flottant au-dessus de registres dont les pages tournent sans vent.",
+      '« Signez ici... avec votre sang. » Archiviste spectral intangible exigeant des comptes pour chaque pas.',
     pouvoirs: [
       {
         n: 'Contrat spectral',
@@ -179,8 +191,10 @@ export const THARNEA_MONSTERS: Monster[] = [
     caracs: { FOR: 0, DEX: 3, CON: 2, INT: 1, SAG: 2, CHA: 0 },
     att: 'Bourdonnement rongeur 1d6',
     fam: 'Nuée démoniaque',
+    descPhysique:
+      'Un essaim tourbillonnant de mouches aux facettes écarlates, dont le bourdonnement collectif imite un rire moqueur et dément. Elles semblent attirées par les secrets inavoués et la trahison.',
     traits:
-      '« Ha ha ha... menteur. » Essaim tourbillonnant de mouches aux facettes écarlates, dont le bourdonnement collectif imite un rire moqueur et dément.',
+      '« Ha ha ha... menteur. » Essaim démoniaque attiré par les secrets inavoués et les mensonges.',
     pouvoirs: [
       {
         n: 'Détecteur de mensonges',
@@ -205,8 +219,10 @@ export const THARNEA_MONSTERS: Monster[] = [
     caracs: { FOR: 0, DEX: 2, CON: 0, INT: 1, SAG: 3, CHA: 3 },
     att: 'Chaîne d’âmes 1d8',
     fam: 'Esprit enchaîné',
+    descPhysique:
+      "Une forme brumeuse et mouvante où s'entremêlent plusieurs visages et silhouettes enchaînées les unes aux autres. Ils cherchent à intégrer chaque vivant à leur masse hurlante.",
     traits:
-      '« Ils ne supportent pas la solitude... ni ta respiration. » Forme brumeuse où s’entremêlent plusieurs visages et silhouettes enchaînées les unes aux autres.',
+      '« Ils ne supportent pas la solitude... ni ta respiration. » Masse spectrale enchaînée chassant toujours en groupe.',
     pouvoirs: [
       {
         n: 'Lien spectral',
@@ -214,7 +230,7 @@ export const THARNEA_MONSTERS: Monster[] = [
       },
     ],
     tactique:
-      'Attaquent toujours en meute pour souligner leur nature grégaire. Ils hantent les cryptes et sont sensibles aux rituels de purification ou au sel.',
+      'Ils attaquent toujours en meute pour souligner leur nature grégaire. Ils hantent les cryptes et sont sensibles aux rituels de purification ou au sel.',
     butin: 'Fragment de chaîne spectrale.',
   },
   {
@@ -231,16 +247,18 @@ export const THARNEA_MONSTERS: Monster[] = [
     caracs: { FOR: 1, DEX: 3, CON: 2, INT: 0, SAG: 1, CHA: 2 },
     att: 'Bec incandescent 1d8',
     fam: 'Créature infernale',
+    descPhysique:
+      "Un gallinacé massif au plumage roussi par les feux infernaux, dont les yeux rougeoyants trahissent une haine viscérale. Elle gratte le sol de ses griffes d'obsidienne.",
     traits:
-      "« Cluck... BOUM. » Gallinacé massif au plumage roussi par les feux infernaux, dont les yeux rougeoyants trahissent une haine viscérale.",
+      '« Cluck... BOUM. » Volaille infernale haineuse pondeuse de projectiles explosifs.',
     pouvoirs: [
       {
         n: 'Œufs instables',
-        t: 'À chaque tour, elle peut pondre un projectile explosif dont l’effet est imprévisible (1d6 dégâts de feu en zone).',
+        t: 'À chaque tour, elle peut pondre un projectile explosif dont l’effet est imprévisible.',
       },
     ],
     tactique:
-      'Menace imprévisible. Doit être éliminée rapidement avant que ses œufs ne dévastent le groupe. Devient plus agressive si elle se sent observée.',
+      'Menace imprévisible. Elle doit être éliminée rapidement avant que ses œufs ne dévastent le groupe. Elle devient plus agressive si elle se sent observée.',
     butin: 'Plume brûlée ou résidu explosif.',
   },
   {
@@ -257,8 +275,10 @@ export const THARNEA_MONSTERS: Monster[] = [
     caracs: { FOR: 4, DEX: 0, CON: 3, INT: -1, SAG: 2, CHA: -3 },
     att: 'Grande Hache de forestier 1d12',
     fam: 'Monstre maudit',
+    descPhysique:
+      'Un colosse décapité dont le cou laisse échapper un sang noirci et séché qui ne finit jamais de couler. Il brandit une hache de forestier massive, capable de fendre le chêne comme les os.',
     traits:
-      '« Il ne perd pas la tête... il l’a déjà perdue. » Colosse décapité dont le cou laisse échapper un sang noirci. Il brandit une hache capable de fendre le chêne comme les os.',
+      '« Il ne perd pas la tête... il l’a déjà perdue. » Colosse aveugle guidé uniquement par le bruit.',
     pouvoirs: [
       {
         n: 'Chasseur de sons',
@@ -266,7 +286,7 @@ export const THARNEA_MONSTERS: Monster[] = [
       },
     ],
     tactique:
-      'Puissant mais prévisible. Les joueurs peuvent le manipuler par des diversions sonores. Il est vulnérable au fer froid, qui ralentit sa régénération impie.',
+      'Puissant mais prévisible. Les joueurs peuvent le manipuler par des diversions sonores. Il est vulnérable au fer froid, ralentissant sa régénération impie.',
     butin: 'Hache de bûcheron robuste ou essence de violence.',
   },
   {
@@ -283,8 +303,10 @@ export const THARNEA_MONSTERS: Monster[] = [
     caracs: { FOR: 3, DEX: 1, CON: 3, INT: 0, SAG: 2, CHA: 0 },
     att: 'Lianes épineuses 1d10',
     fam: 'Végétal corrompu',
+    descPhysique:
+      "Humanoïde végétal né d'un rite occulte raté, entièrement composé de lierre épineux et de racines suintant une sève toxique. Ses membres se tordent comme des serpents ligneux.",
     traits:
-      '« Laisse les plantes tranquilles. » Humanoïde végétal né d’un rite occulte raté, entièrement composé de lierre épineux et de racines suintant une sève toxique.',
+      '« Laisse les plantes tranquilles. » Entraveur végétal né d’un rite occulte raté.',
     pouvoirs: [
       {
         n: 'Racines fouets',
@@ -292,7 +314,7 @@ export const THARNEA_MONSTERS: Monster[] = [
       },
     ],
     tactique:
-      'Utilisez-le dans les forêts denses. Il immobilise ses proies avant de les étrangler. Possède une faiblesse majeure au feu, mais sa robustesse au corps à corps est redoutable.',
+      'Utilisez-le dans les forêts denses. Il immobilise ses proies avant de les étrangler. Il possède une faiblesse majeure au feu, mais sa robustesse au corps à corps est redoutable.',
     butin: 'Sève de Ronceur (poison mineur) ou bois de sorbier corrompu.',
   },
   {
@@ -309,16 +331,18 @@ export const THARNEA_MONSTERS: Monster[] = [
     caracs: { FOR: 3, DEX: 3, CON: 2, INT: 1, SAG: 2, CHA: 1 },
     att: 'Mâchoires du néant 1d10',
     fam: 'Loup spectral',
+    descPhysique:
+      "Un esprit-loup à la fourrure sombre comme le néant et aux yeux brillant d'une intelligence prédatrice effrayante. Il semble chevaucher les vents qui précèdent les tempêtes de la Faille.",
     traits:
-      '« Il hurle ton nom, et tu cours trop tard. » Un esprit-loup à la fourrure sombre comme le néant et aux yeux brillant d’une intelligence prédatrice effrayante.',
+      '« Il hurle ton nom, et tu cours trop tard. » Esprit-loup annonciateur des tempêtes de la Faille.',
     pouvoirs: [
       {
         n: 'Hurlement de présage',
-        t: 'Son cri force les mortels à tester leur peur (test de SAG DD 12) sous peine de fuir.',
+        t: 'Son cri force les mortels à tester leur peur sous peine de fuir.',
       },
     ],
     tactique:
-      'Traqueur infatigable. Utilise son hurlement pour disperser les groupes. Utilisez sa haute perception pour traquer les blessés. Sensible à la lumière vive.',
+      'Traqueur infatigable. Il utilise son hurlement pour disperser les groupes. Utilisez sa haute perception pour traquer les blessés. Sensible à la lumière vive.',
     butin: 'Croc de loup spectral.',
   },
   {
@@ -335,16 +359,18 @@ export const THARNEA_MONSTERS: Monster[] = [
     caracs: { FOR: 2, DEX: 3, CON: 2, INT: 3, SAG: 3, CHA: 4 },
     att: 'Frappe miroitante 1d10',
     fam: 'Métamorphe de verre',
+    descPhysique:
+      "Une entité au corps lisse et réfléchissant comme du mercure liquide, capable de copier instantanément les traits de ses victimes. Sa véritable forme n'est qu'une silhouette vide.",
     traits:
-      '« Tu es moi... en moins bien. » Entité au corps lisse et réfléchissant comme du mercure liquide, capable de copier instantanément les traits de ses victimes.',
+      '« Tu es moi... en moins bien. » Usurpateur d’identité au corps de mercure liquide.',
     pouvoirs: [
       {
         n: 'Vol d’identité',
-        t: 'Peut prendre la place et l’apparence exacte d’un PJ pendant 1d3 tours, semant la confusion et le doute.',
+        t: "Peut prendre la place d'un PJ pendant 1d3 tours, semant la confusion.",
       },
     ],
     tactique:
-      'Utilisez-le pour briser la cohésion du groupe. Il frappe là où la confiance est fragile. Il est vulnérable si son miroir d’origine est brisé ou exposé à une lumière pure.',
+      "Utilisez-le pour briser la cohésion du groupe. Il frappe là où la confiance est fragile. Il est vulnérable si son miroir d'origine est brisé ou exposé à une lumière pure.",
     butin: 'Éclat de miroir magique.',
   },
   {
@@ -361,12 +387,14 @@ export const THARNEA_MONSTERS: Monster[] = [
     caracs: { FOR: 4, DEX: 3, CON: 3, INT: 2, SAG: 2, CHA: 4 },
     att: 'Griffes bourbeuses 1d10',
     fam: 'Mort-vivant amphibie',
+    descPhysique:
+      "Une silhouette élancée et humide, maculée de boue noire et de sang coagulé. Il dégage une odeur insoutenable de vase et de charogne. Il hante les eaux croupies, attendant qu'une main s'enfonce dans la boue.",
     traits:
-      '« Il sent la vase... et la mort. » Silhouette élancée et humide, maculée de boue noire et de sang coagulé. Dégage une odeur de charogne croupie.',
+      '« Il sent la vase... et la mort. » Prédateur amphibie des eaux croupies et des brumes marécageuses.',
     pouvoirs: [
       {
         n: 'Charme',
-        t: 'Un regard hypnotique forçant l’obéissance temporaire de la victime.',
+        t: "Un regard hypnotique forçant l'obéissance.",
       },
       {
         n: 'Drain vital',
@@ -374,7 +402,7 @@ export const THARNEA_MONSTERS: Monster[] = [
       },
     ],
     tactique:
-      'Attaque depuis la brume ou sous l’eau. Il est extrêmement sensible au sel et au fer froid, qui brûlent sa chair humide.',
+      "Il attaque depuis la brume ou l'eau. Il est extrêmement sensible au sel et au fer froid, qui brûlent sa chair humide.",
     butin: 'Sang de vampire purifié.',
   },
   {
@@ -391,16 +419,18 @@ export const THARNEA_MONSTERS: Monster[] = [
     caracs: { FOR: 0, DEX: 3, CON: 0, INT: 2, SAG: 4, CHA: 5 },
     att: 'Griffe fantomatique 1d12',
     fam: 'Esprit vengeur',
+    descPhysique:
+      "Un esprit féminin dont la chevelure flotte comme des algues mortes dans un courant invisible. Son visage est figé dans un hurlement capable de fendre le roc. Elle n'apparaît que pour annoncer la fin.",
     traits:
-      '« Quand elle chante, c’est trop tard. » Un esprit féminin dont la chevelure flotte comme des algues mortes. Son visage est figé dans un hurlement fendant le roc.',
+      '« Quand elle chante, c’est trop tard. » Esprit annonciateur de mort dont le cri fend la pierre.',
     pouvoirs: [
       {
         n: 'Hurlement funeste',
-        t: 'Déclenche une onde de choc forçant toutes les créatures proches à affronter leur propre fin (test de peur DD 14).',
+        t: 'Déclenche une onde de choc forçant toutes les créatures proches à affronter leur propre fin (test de peur).',
       },
     ],
     tactique:
-      'Utilisez son cri pour interrompre les rituels ou disperser les PJ. Sa nature éthérée la rend difficile à blesser physiquement. Craint les symboles bénis.',
+      "Utilisez son cri pour interrompre les rituels ou disperser les PJ. Sa nature éthérée la rend difficile à blesser physiquement. Elle craint les symboles de l'Ordre bénis.",
     butin: 'Larme cristallisée de Banshee.',
   },
   {
@@ -417,16 +447,18 @@ export const THARNEA_MONSTERS: Monster[] = [
     caracs: { FOR: 2, DEX: 4, CON: 2, INT: 2, SAG: 2, CHA: 3 },
     att: 'Dagues jumelles 1d10',
     fam: 'Assassin de l’Ombre',
+    descPhysique:
+      "Une assassine redoutable, silhouette féminine drapée de voiles noirs qui semblent absorber la lumière ambiante. Elle se déplace avec la grâce d'une prédatrice féline.",
     traits:
-      '« Elle t’épargne... quand elle s’ennuie. » Assassine redoutable drapée de voiles noirs absorbant la lumière. Elle se déplace avec la grâce féline.',
+      '« Elle t’épargne... quand elle s’ennuie. » Prédatrice féline de l’ombre frappant en embuscade.',
     pouvoirs: [
       {
         n: 'Assassin des ombres',
-        t: 'Ses dégâts sont doublés lorsqu’elle frappe depuis une position dissimulée ou en embuscade.',
+        t: "Ses dégâts sont doublés lorsqu'elle frappe depuis une position dissimulée.",
       },
     ],
     tactique:
-      'Prédatrice de l’ombre. N’attaque que par embuscade. Utilisez sa DEX élevée pour des manœuvres de contournement. Vulnérable à la détection magique et à la lumière.',
+      "Prédatrice de l'ombre. Elle n'attaque que par embuscade. Utilisez sa DEX élevée pour des manœuvres de flanc. Vulnérable à la détection magique et à la lumière.",
     butin: 'Dague de noir-acier.',
   },
   {
@@ -443,20 +475,22 @@ export const THARNEA_MONSTERS: Monster[] = [
     caracs: { FOR: -5, DEX: 1, CON: 4, INT: 6, SAG: 5, CHA: 4 },
     att: 'Décharge psychique 1d12',
     fam: 'Aberration psychique',
+    descPhysique:
+      "Une masse de chair pulsante et tentaculaire, d'où émergent les visages hurlants de ses victimes passées, fondus dans sa substance. Il vibre d'une énergie psychique qui tord le réel.",
     traits:
-      '« Je pense, donc tu pleures. » Masse de chair pulsante et tentaculaire d’où émergent les visages hurlants de ses victimes passées. Vibre d’énergie psychique.',
+      '« Je pense, donc tu pleures. » Entité télépathique tordant la réalité et l’esprit des intrus.',
     pouvoirs: [
       {
         n: 'Absorption mentale',
-        t: 'Peut prendre le contrôle d’un PJ sur un échec critique.',
+        t: "Peut prendre le contrôle d'un PJ sur un échec critique.",
       },
       {
-        n: 'Télépathie délirante',
-        t: 'Murmure des vérités insensées directement dans l’esprit des cibles.',
+        n: 'Télépathie',
+        t: "Murmure des vérités insensées directement dans l'esprit des cibles.",
       },
     ],
     tactique:
-      'Boss psychique. Doit rester à distance, protégé par des serviteurs (comme des spectres), utilisant son INT colossale pour manipuler les PJ.',
+      'Boss psychique. Il doit rester à distance, protégé par des serviteurs (comme des spectres), utilisant son INT pour manipuler les PJ.',
     butin: 'Essence de pensée pure.',
   },
   {
@@ -473,8 +507,10 @@ export const THARNEA_MONSTERS: Monster[] = [
     caracs: { FOR: 3, DEX: 2, CON: 4, INT: 5, SAG: 4, CHA: 5 },
     att: 'Toucher corrompu 1d12',
     fam: 'Sorcière antique',
+    descPhysique:
+      'Sorcière antique dont la peau craquelée ressemble à du parchemin brûlé. Elle est un tas de haine ambulante, immortelle et putride. Elle dégage une aura de mort ancienne.',
     traits:
-      '« Tu croyais m’avoir enterrée ? » Sorcière dont la peau craquelée ressemble à du parchemin brûlé. Haine ambulante immortelle dégageant une aura de mort ancienne.',
+      '« Tu croyais m’avoir enterrée ? » Nécromancienne immortelle saturant le terrain de serviteurs relevés.',
     pouvoirs: [
       {
         n: 'Nécromancie majeure',
@@ -482,7 +518,7 @@ export const THARNEA_MONSTERS: Monster[] = [
       },
     ],
     tactique:
-      'Ne combat jamais seule. Utilise ses serviteurs pour saturer le terrain. Vulnérable au sel sanctifié et aux rituels de lumière majeure.',
+      'Elle ne combat jamais seule. Elle utilise ses serviteurs pour saturer le terrain. Elle est vulnérable au sel sanctifié et aux rituels de lumière majeure.',
     butin: 'Grimoire de rituels interdits.',
   },
   {
@@ -499,20 +535,22 @@ export const THARNEA_MONSTERS: Monster[] = [
     caracs: { FOR: 4, DEX: 4, CON: 4, INT: 4, SAG: 4, CHA: 6 },
     att: 'Faux du Néant 1d20',
     fam: 'Démone supérieure',
+    descPhysique:
+      "Ancienne prêtresse dont le corps a été dévoré par la Faille. Elle apparaît comme une silhouette ailée faite d'ombre solide et de chair sanglante. Elle est l'incarnation du néant qui cherche à dévorer la lumière.",
     traits:
-      '« Sa voix est un écho du vide. » Ancienne prêtresse dont le corps a été dévoré par la Faille. Silhouette ailée faite d’ombre solide et de chair sanglante.',
+      '« Sa voix est un écho du vide. » Avatar ailé du néant absorbant la vitalité de chaque vaincu.',
     pouvoirs: [
       {
         n: 'Dévoreuse d’âmes',
-        t: 'Sa puissance et ses PV augmentent à chaque ennemi vaincu.',
+        t: 'Sa puissance augmente à chaque ennemi vaincu.',
       },
       {
         n: 'Rituel de la Faille',
-        t: 'Si on lui laisse le temps (2 tours), elle invoque une horreur majeure.',
+        t: 'Si on lui laisse le temps, elle invoque une horreur majeure.',
       },
     ],
     tactique:
-      'Avatar du néant. Point culminant d’une confrontation. Sa voix sape la volonté. Vulnérable aux reliques de l’Ordre de la Lumière.',
+      "C'est un avatar du néant. Elle doit être le point culminant d'une confrontation. Sa voix sape la volonté. Elle est vulnérable aux reliques de l'Ordre de la Lumière.",
     butin: 'Cœur de Faille (Relique majeure).',
   },
   {
@@ -529,8 +567,10 @@ export const THARNEA_MONSTERS: Monster[] = [
     caracs: { FOR: 1, DEX: 3, CON: 1, INT: 0, SAG: 1, CHA: -2 },
     att: 'Morsure incandescente 1d4',
     fam: 'Vermine ignée',
+    descPhysique:
+      "Un rat noir dont le pelage semble perpétuellement couvert de cendres chaudes et de suie. Ses moustaches fument légèrement, dégageant une odeur de soufre et de brûlé. Ses petits yeux rouges brillent comme des braises dans l'obscurité des forges.",
     traits:
-      'Rat noir au pelage couvert de suie et de cendres fumantes. Yeux rouges brillants comme des braises dans l’obscurité des forges.',
+      'Vermine des zones volcaniques et ruines incendiées acharnée contre les cibles déjà blessées.',
     pouvoirs: [
       {
         n: 'Morsure ardente',
@@ -538,7 +578,7 @@ export const THARNEA_MONSTERS: Monster[] = [
       },
     ],
     tactique:
-      'Hante les zones volcaniques ou les ruines incendiées. Faiblesse marquée à la lumière vive et aux armes de métal pur.',
+      'Hante les zones volcaniques ou les ruines incendiées. Il possède une faiblesse marquée à la lumière vive et aux armes de métal pur, qui dissipent sa chaleur surnaturelle.',
     butin: 'Cendres éternelles (composant alchimique).',
   },
   {
@@ -555,16 +595,18 @@ export const THARNEA_MONSTERS: Monster[] = [
     caracs: { FOR: 0, DEX: 1, CON: 1, INT: 0, SAG: 2, CHA: 1 },
     att: 'Projection visqueuse 1d3',
     fam: 'Végétal alarme',
+    descPhysique:
+      "Un spécimen violet et boursouflé, gonflé de pores d'où s'échappe un sifflement strident et constant, semblable à un cri étouffé. Sa surface est visqueuse, réagissant violemment au moindre mouvement d'air.",
     traits:
-      'Spécimen violet et boursouflé gonflé de pores d’où s’échappe un sifflement strident et constant.',
+      'Alarme fongique naturelle réagissant au moindre courant d’air par un sifflement strident.',
     pouvoirs: [
       {
         n: 'Spores irritantes',
-        t: 'Provoque des quintes de toux et un malus aux attaques dans une zone de 3 m.',
+        t: 'Provoque des quintes de toux et des malus aux attaques dans une zone de 3m.',
       },
     ],
     tactique:
-      'Agit comme une alarme vivante. Extrêmement vulnérable au sel et au feu, qui le flétrissent instantanément.',
+      'Agit comme une alarme naturelle. Il est extrêmement vulnérable au sel et au feu, qui le font se flétrir instantanément.',
     butin: 'Poudre sifflante.',
   },
   {
@@ -581,16 +623,18 @@ export const THARNEA_MONSTERS: Monster[] = [
     caracs: { FOR: 0, DEX: 4, CON: 1, INT: 1, SAG: 3, CHA: 1 },
     att: 'Coup de bec 1d4',
     fam: 'Oiseau sentinelle',
+    descPhysique:
+      "Un corbeau massif dont les plumes noires semblent absorber la lumière. Ses yeux sont d'un blanc pur et laiteux, indiquant qu'il voit au-delà du spectre mortel, percevant les flux de la Faille.",
     traits:
-      'Corbeau massif aux plumes absorbant la lumière et aux yeux blanc laiteux percevant les flux invisibles de la Faille.',
+      'Sentinelle du vide percevant les flux de la Faille au-delà du spectre mortel.',
     pouvoirs: [
       {
-        n: 'Alerte stridente',
-        t: 'Son croassement alerte tous les alliés dans un rayon de 50 mètres.',
+        n: 'Alerte',
+        t: 'Son croassement prévient tous les alliés dans un rayon de 50 mètres.',
       },
     ],
     tactique:
-      'Sentinelle du vide. À éliminer à distance en priorité. Craint les éclats de lumière soudaine.',
+      "Sentinelle du vide. Éliminez-le en premier par des attaques à distance pour garder l'effet de surprise. Il craint les éclats de lumière soudaine.",
     butin: 'Œil de voyance (fétiche).',
   },
   {
@@ -607,8 +651,10 @@ export const THARNEA_MONSTERS: Monster[] = [
     caracs: { FOR: 0, DEX: 3, CON: 0, INT: 1, SAG: 2, CHA: 2 },
     att: 'Griffe d’ombre 1d4',
     fam: 'Ombre planaire',
+    descPhysique:
+      "Une silhouette bidimensionnelle, noire comme l'encre la plus profonde, qui reste collée aux parois et aux sols. Elle se déforme de manière grotesque pour suivre ses proies sans jamais se détacher des surfaces.",
     traits:
-      'Silhouette bidimensionnelle d’encre pure collée aux parois et sols qui glisse sans bruit.',
+      'Silhouette d’encre bidimensionnelle glissant sur les murs et ignorant les protections magiques ordinaires.',
     pouvoirs: [
       {
         n: 'Griffe d’ombre',
@@ -616,7 +662,7 @@ export const THARNEA_MONSTERS: Monster[] = [
       },
     ],
     tactique:
-      'Attaque depuis les angles morts. Dissipée ou affaiblie par toute source de lumière vive ou de sel.',
+      'Utilisez sa discrétion élevée pour attaquer depuis les angles morts. Elle est instantanément dissipée ou affaiblie par toute source de lumière vive ou par le sel.',
     butin: 'Essence spectrale mineure.',
   },
   {
@@ -633,16 +679,18 @@ export const THARNEA_MONSTERS: Monster[] = [
     caracs: { FOR: 2, DEX: 1, CON: 2, INT: -1, SAG: 1, CHA: -2 },
     att: 'Morsure corrosive 1d6',
     fam: 'Parasite souterrain',
+    descPhysique:
+      'Un ver pâle et visqueux, dont le corps est entremêlé de racines sombres qui semblent pulser comme des veines. Il rampe dans la terre corrompue, laissant un sillage de bile corrosive.',
     traits:
-      'Ver pâle et visqueux entremêlé de racines sombres pulsant comme des veines. Laisse un sillage de bile acide.',
+      'Embusqué souterrain surgissant du sol corrompu en laissant un sillage d’acide.',
     pouvoirs: [
       {
         n: 'Bile corrosive',
-        t: 'Sa morsure ronge l’armure, réduisant la DEF/CA de la cible de 1 point pour le combat.',
+        t: 'Sa morsure ronge l’armure, réduisant la CA de la cible de 1 point pour le combat.',
       },
     ],
     tactique:
-      'Surgit du sol pour surprendre. Idéal pour punir les PJ lents. Redoute le fer froid et les flammes.',
+      'Il surgit du sol pour surprendre les voyageurs. Idéal pour punir les PJ lents. Il redoute les armes de fer froid et les flammes.',
     butin: 'Glande acide.',
   },
   {
@@ -659,17 +707,19 @@ export const THARNEA_MONSTERS: Monster[] = [
     caracs: { FOR: 0, DEX: 3, CON: 1, INT: 0, SAG: 2, CHA: 1 },
     att: 'Fléchette glacée 1d4+1',
     fam: 'Oiseau de givre',
+    descPhysique:
+      "Un oiseau dont les plumes blanches sont aussi rigides et tranchantes que des aiguilles de glace. Son cri est un sifflement glacial qui semble geler l'air ambiant.",
     traits:
-      'Oiseau aux plumes blanches rigides et tranchantes comme des aiguilles de glace. Son cri gèle l’air ambiant.',
+      'Chasseur aérien des étendues enneigées projetant ses plumes comme des fléchettes.',
     pouvoirs: [
       {
         n: 'Pluie d’épines',
-        t: 'Projette ses plumes comme des fléchettes sur plusieurs cibles dans un cône de 4 m.',
+        t: 'Projette ses plumes comme des fléchettes sur plusieurs cibles.',
       },
     ],
     tactique:
-      'Attaque à distance depuis les hauteurs. Quasi-invisible dans la neige. Vulnérabilité critique au feu.',
-    butin: 'Plumes-aiguilles (projectiles tranchants).',
+      'Attaque à distance depuis les hauteurs. Sa discrétion le rend presque invisible dans la neige. Il possède une vulnérabilité critique au feu.',
+    butin: 'Plumes-aiguilles (projectiles).',
   },
   {
     num: 26,
@@ -685,16 +735,18 @@ export const THARNEA_MONSTERS: Monster[] = [
     caracs: { FOR: 0, DEX: 4, CON: 1, INT: 1, SAG: 2, CHA: 3 },
     att: 'Jet de caillou précis 1d4+1',
     fam: 'Esprit facétieux',
+    descPhysique:
+      "Un petit esprit malicieux et instable dont les yeux brillent d'une lueur changeante. Il rit d'un son cristallin et moqueur, apparaissant et disparaissant dans des éclats de lumière.",
     traits:
-      'Petit être ailé malicieux et instable aux yeux changeants, apparaissant et disparaissant dans des éclats de lumière.',
+      'Esprit joueur et trompeur cherchant à attirer les imprudents dans des pièges.',
     pouvoirs: [
       {
         n: 'Jet de caillou',
-        t: 'Attaque précise visant les yeux ou articulations pour déstabiliser (octroie avantage aux alliés).',
+        t: 'Une attaque précise visant les points sensibles (yeux, articulations).',
       },
     ],
     tactique:
-      'Cherche à distraire et attirer les PJ dans des trappes. Banni par les objets en fer pur ou prières sincères.',
+      'Il cherche à distraire. Utilisez sa tromperie pour attirer les PJ dans des pièges. Il peut être banni par des objets en fer pur ou des prières.',
     butin: 'Caillou de chance.',
   },
   {
@@ -711,16 +763,18 @@ export const THARNEA_MONSTERS: Monster[] = [
     caracs: { FOR: 2, DEX: 3, CON: 2, INT: 0, SAG: 2, CHA: 1 },
     att: 'Croc mélancolique 1d6',
     fam: 'Canidé spectral',
+    descPhysique:
+      "Un jeune canidé à la fourrure d'ébène et aux yeux pâles, dégageant une aura de mélancolie insondable. Son ombre semble trop longue et se détache parfois de ses mouvements.",
     traits:
-      'Jeune canidé d’ébène aux yeux laiteux dégageant une mélancolie insondable. Son ombre se détache de lui.',
+      'Traqueur des blessés dont l’ombre s’allonge et se détache parfois de son corps.',
     pouvoirs: [
       {
         n: 'Pisteur de sang',
-        t: 'Suit infailliblement l’odeur du sang des blessés sur plusieurs lieues.',
+        t: 'Suit infailliblement l’odeur du sang des blessés.',
       },
     ],
     tactique:
-      'Harcèle les traînards et isolés. Craint les torches, le feu et les bruits soudains.',
+      "Harcèle les traînards. Sa perception l'empêche de perdre sa proie. Il craint les torches et les bruits soudains.",
     butin: 'Collier usé.',
   },
   {
@@ -737,8 +791,10 @@ export const THARNEA_MONSTERS: Monster[] = [
     caracs: { FOR: 2, DEX: 2, CON: 2, INT: 0, SAG: 2, CHA: 0 },
     att: 'Rameaux tranchants 1d4+1',
     fam: 'Végétal d’assaut',
+    descPhysique:
+      'Un petit arbre humanoïde aux mouvements saccadés, dont les branches se terminent par des bords tranchants comme des rasoirs. Son écorce est striée de sève noire et empoisonnée.',
     traits:
-      'Petit arbre humanoïde aux mouvements saccadés dont les branches se terminent par des rasoirs suintant la sève noire.',
+      'Embusqué forestier camouflé dans la végétation et armé de branches tranchantes.',
     pouvoirs: [
       {
         n: 'Entaille végétale',
@@ -746,7 +802,7 @@ export const THARNEA_MONSTERS: Monster[] = [
       },
     ],
     tactique:
-      'Camouflage parfait en milieu boisé. Faiblesse majeure au feu et aux haches de fer froid.',
+      'Se camoufle parfaitement dans la végétation. Frappe les imprudents en embuscade. Faiblesse majeure au feu et aux haches de fer froid.',
     butin: 'Bois de sorbier.',
   },
   {
@@ -763,8 +819,10 @@ export const THARNEA_MONSTERS: Monster[] = [
     caracs: { FOR: 2, DEX: 3, CON: 2, INT: 1, SAG: 1, CHA: -2 },
     att: 'Morsure corrompue 1d3+1',
     fam: 'Vermine de la Faille',
+    descPhysique:
+      "Un rat d'une taille anormale, dont le corps est parcouru de veines rouges pulsatiles d'une énergie noire instable. Il dégage une odeur de métal brûlé et de corruption pure.",
     traits:
-      'Rat de taille anormale parcouru de veines rouges pulsatiles d’énergie noire instable dégageant une odeur de métal brûlé.',
+      'Vermine instable gorgée d’énergie noire pouvant imploser sous la lumière sanctifiée.',
     pouvoirs: [
       {
         n: 'Bile de Faille',
@@ -772,7 +830,7 @@ export const THARNEA_MONSTERS: Monster[] = [
       },
     ],
     tactique:
-      'Plus robuste que les rats ordinaires. Sensible au sel et à la lumière sanctifiée qui stabilisent sa charge jusqu’à l’explosion.',
+      "Plus résistant que les rats ordinaires. Il est vulnérable au sel et à la lumière sanctifiée, qui stabilisent l'énergie de la faille en lui jusqu'à l'explosion.",
     butin: 'Organe corrompu (instable).',
   },
   {
@@ -789,16 +847,18 @@ export const THARNEA_MONSTERS: Monster[] = [
     caracs: { FOR: 2, DEX: 3, CON: 2, INT: 0, SAG: 1, CHA: 0 },
     att: 'Griffes allongées 1d8',
     fam: 'Gobelinoïde muté',
+    descPhysique:
+      'Un gobelin squelettique dont les bras démesurément longs permettent à ses doigts griffus de racler le sol. Sa peau grise est couverte de cicatrices rituelles.',
     traits:
-      'Gobelin squelettique dont les bras démesurément longs raclent le sol. Peau grise bardée de cicatrices rituelles.',
+      'Combattant à allonge frappant ses ennemis à couvert derrière des obstacles.',
     pouvoirs: [
       {
         n: 'Griffes à longue portée',
-        t: 'Peut frapper ses ennemis à 2 mètres de distance sans s’exposer.',
+        t: "Peut frapper ses ennemis à 2 mètres de distance sans s'exposer.",
       },
     ],
     tactique:
-      'Attaque depuis l’arrière d’obstacles ou de murets. Faiblesse majeure au fer froid.',
+      'Utilisez sa portée pour attaquer depuis derrière des obstacles. Sa faiblesse majeure réside dans le fer froid, qui tranche sa chair avec une efficacité accrue.',
     butin: 'Griffes de Gobelin.',
   },
   {
@@ -815,16 +875,18 @@ export const THARNEA_MONSTERS: Monster[] = [
     caracs: { FOR: 2, DEX: 3, CON: 2, INT: 0, SAG: 1, CHA: 1 },
     att: 'Faucille ensanglantée 1d8',
     fam: 'Gobelin sanguinaire',
+    descPhysique:
+      'Reconnaissable à son couvre-chef rugueux, perpétuellement imbibé de sang frais qui goutte sur ses épaules. Ses dents sont pointues et toujours visibles dans un rictus sauvage.',
     traits:
-      'Reconnaissable à son couvre-chef rugueux perpétuellement imbibé de sang frais qui goutte sur ses épaules.',
+      'Gobelin sanguinaire terrorisé par les torches et les flammes vives.',
     pouvoirs: [
       {
         n: 'Morsure sanglante',
-        t: 'Cause un saignement persistant (1 PV/tour) jusqu’à soin.',
+        t: 'Cause un saignement persistant (1 PV/tour) jusqu’à ce que la cible soit soignée.',
       },
     ],
     tactique:
-      'Terrifié par les torches et le feu vif qui annulent son agressivité.',
+      'Il est terrifié par les torches et le feu vif. Maintenez-le à distance avec des sources lumineuses pour annuler son agressivité.',
     butin: 'Tissu imprégné de sang.',
   },
   {
@@ -841,16 +903,18 @@ export const THARNEA_MONSTERS: Monster[] = [
     caracs: { FOR: 4, DEX: 1, CON: 3, INT: 0, SAG: 1, CHA: -1 },
     att: 'Masse en fémur 1d8',
     fam: 'Gobelin d’assaut',
+    descPhysique:
+      "Une brute massive couverte de boue séchée et de dépôts calcaires, maniant une lourde masse faite d'os de fémur humain. Ses yeux sont habitués à l'obscurité totale.",
     traits:
-      'Brute massive couverte de boue séchée et de dépôts calcaires maniant un fémur géant comme une massue.',
+      'Colosse gobelinoïde blindé de croûtes calcaires servant de tank à sa meute.',
     pouvoirs: [
       {
         n: 'Masse d’os',
-        t: 'Ses coups violents peuvent repousser de 3 mètres ou fendre les boucliers.',
+        t: "Ses coups peuvent repousser les adversaires (3m) ou briser l'équipement.",
       },
     ],
     tactique:
-      'Le tank de la meute gobelinoïde. L’eau courante dissout ses croûtes protectrices et l’affaiblit.',
+      'C’est le "tank" de sa meute. Il possède une faiblesse naturelle à l’eau courante, qui dissout ses croûtes protectrices et l’affaiblit.',
     butin: 'Os de Gobelin géant.',
   },
   {
@@ -867,16 +931,18 @@ export const THARNEA_MONSTERS: Monster[] = [
     caracs: { FOR: 2, DEX: 3, CON: 2, INT: 1, SAG: 2, CHA: 0 },
     att: 'Dague d’os envenimée 1d8',
     fam: 'Rôdeur gobelin',
+    descPhysique:
+      "Orné de multiples talismans d'os cliquetants, ce gobelin possède un regard d'une précision effrayante. Il se déplace sans un bruit, son corps peint de cendres funéraires.",
     traits:
-      'Orné de talismans d’os cliquetants, corps peint de cendres funéraires, regard d’une précision effrayante.',
+      'Traqueur tactique silencieux utilisant talismans funéraires et lames empoisonnées.',
     pouvoirs: [
       {
         n: 'Dague empoisonnée',
-        t: 'Test de Constitution requis sous peine d’un état de Faiblesse (-2 à toutes les actions).',
+        t: 'Ses attaques obligent à un test de Constitution pour éviter un malus de faiblesse.',
       },
     ],
     tactique:
-      'Combattant tactique et sournois. Le sel ou le bois de sorbier annulent ses avantages magiques.',
+      'Combattant tactique. Utilisez le sel ou le bois de sorbier pour annuler ses avantages magiques et le rendre vulnérable.',
     butin: 'Dague d’os (envenimée).',
   },
   {
@@ -893,16 +959,18 @@ export const THARNEA_MONSTERS: Monster[] = [
     caracs: { FOR: 4, DEX: 1, CON: 4, INT: -1, SAG: 2, CHA: -2 },
     att: 'Rostre & aiguillons 1d8',
     fam: 'Insecto-reptile osseux',
+    descPhysique:
+      "Le Skelt possède un corps squelettique et sinueux, à mi-chemin entre le reptile décharné et l'insecte. Sa tête blindée de plaques osseuses arbore un long rostre effilé comme une aiguille, tandis que son tronc segmenté se prolonge par une longue queue épineuse. Elle se déplace sur d'immenses pattes grêles et articulées, évoquant une faucheuse cauchemardesque prête à fondre sur sa proie.",
     traits:
-      'Corps squelettique sinueux entre reptile et mante géante, rostre effilé et tronc segmenté prolongé d’une queue épineuse.',
+      'Faucheuse squelettique hérissée de pointes dorsales blessant quiconque l’attaque au contact.',
     pouvoirs: [
       {
         n: 'Pointes dorsales',
-        t: 'Toute attaque de corps à corps réussie contre lui inflige des dégâts de retour (1d4 perforant).',
+        t: 'Toute attaque de corps à corps contre lui inflige des dégâts de retour (1d4).',
       },
     ],
     tactique:
-      'Force les PJ à privilégier les tirs à distance. L’exposition à une lumière vive ou au feu rend ses épines cassantes.',
+      "Force les PJ à privilégier les attaques à distance. Sa faiblesse réside dans l'exposition à une lumière vive ou au feu, qui rend ses épines cassantes.",
     butin: 'Épine de Skelt.',
   },
   {
@@ -919,16 +987,18 @@ export const THARNEA_MONSTERS: Monster[] = [
     caracs: { FOR: 3, DEX: 1, CON: 3, INT: 1, SAG: 2, CHA: 1 },
     att: 'Poings terreux 1d8',
     fam: 'Mort-vivant racinaire',
+    descPhysique:
+      "Un cadavre animé, recouvert de terre humide et de racines entrelacées, dont les yeux conservent une étincelle de conscience tourmentée. Il rampe plus qu'il ne marche, s'extirpant du sol.",
     traits:
-      'Cadavre animé recouvert de terre humide et de racines entrelacées, dont les yeux conservent une étincelle de tourment.',
+      'Mort-vivant tellurique drainant la force vitale à travers l’armure physique.',
     pouvoirs: [
       {
         n: 'Drain racinaire',
-        t: 'Absorbe l’énergie vitale pour se soigner, ignorant l’armure physique.',
+        t: "Absorbe l'énergie vitale pour se soigner, ignorant l'armure physique.",
       },
     ],
     tactique:
-      'Le sel tracé au sol bloque ses mouvements. Connaître son nom véritable annule sa résistance aux dégâts.',
+      'Le sel tracé au sol peut bloquer ses mouvements. Connaître son nom véritable permet d’annuler sa résistance aux dégâts.',
     butin: 'Terre tombale bénie.',
   },
   {
@@ -945,16 +1015,18 @@ export const THARNEA_MONSTERS: Monster[] = [
     caracs: { FOR: 1, DEX: 2, CON: 2, INT: 4, SAG: 4, CHA: 3 },
     att: 'Lames d’eau pressurisées 2d6',
     fam: 'Sorcière élémentaire',
+    descPhysique:
+      "Une femme à la peau translucide dont les cheveux longs ruissellent constamment d'une eau saumâtre et fétide. Son regard est noyé, et ses doigts sont palmés.",
     traits:
-      'Peau translucide, longs cheveux d’eau saumâtre, regard noyé et doigts palmés tranchants comme le verre.',
+      'Incantatrice aquatique tranchant le métal par jets d’eau pressurisés.',
     pouvoirs: [
       {
         n: 'Lames d’eau',
-        t: 'Jets d’eau sous haute pression capables de trancher le métal et d’inonder le sol.',
+        t: 'Projette des jets pressurisés capables de trancher le métal.',
       },
     ],
     tactique:
-      'Combat à distance. Le sel déshydrate violemment son essence magique et lui inflige double dégâts.',
+      'Utilise sa magie à distance. Elle redoute le sel, qui déshydrate violemment son essence magique.',
     butin: 'Essence aqueuse.',
   },
   {
@@ -971,16 +1043,18 @@ export const THARNEA_MONSTERS: Monster[] = [
     caracs: { FOR: 2, DEX: 3, CON: 3, INT: 4, SAG: 3, CHA: 4 },
     att: 'Griffes écarlates 2d6',
     fam: 'Hémomancienne',
+    descPhysique:
+      "Sorcière maculée d'un sang qui ne sèche jamais, ses yeux rouges brûlent d'une soif insatiable. Elle porte des bijoux faits de caillots cristallisés.",
     traits:
-      'Maculée d’un sang qui ne sèche jamais, yeux rouges de soif insatiable, parée de caillots cristallisés.',
+      'Duelliste sanguinaire provoquant des hémorragies incessantes au corps à corps.',
     pouvoirs: [
       {
         n: 'Griffes de sang',
-        t: 'Provoque un saignement continu (2 PV/tour) jusqu’à soin magique.',
+        t: 'Ses attaques provoquent des saignements permanents.',
       },
     ],
     tactique:
-      'Agressive au contact. Le fer froid perturbe son contrôle sanguin et amplifie les dégâts subis.',
+      "Agressive, elle cherche le contact. Le fer froid perturbe sa maîtrise du sang, augmentant les dégâts qu'elle subit.",
     butin: 'Fiole de sang pur.',
   },
   {
@@ -997,16 +1071,18 @@ export const THARNEA_MONSTERS: Monster[] = [
     caracs: { FOR: 2, DEX: 2, CON: 4, INT: 4, SAG: 4, CHA: 2 },
     att: 'Fouet d’ossements 2d6',
     fam: 'Ostéomancienne',
+    descPhysique:
+      "Son corps est entouré d'une ceinture d'ossements humains qui flottent et s'assemblent en boucliers ou en armes selon ses désirs.",
     traits:
-      'Entourée d’une ceinture d’ossements humains flottants s’assemblant en boucliers ou en fouets selon ses désirs.',
+      'Pivot défensif entouré d’une nuée d’ossements animés.',
     pouvoirs: [
       {
         n: 'Fouet d’os',
-        t: 'Arme cinétique animée capable de frapper à 3 m et de balayer les pieds.',
+        t: 'Une arme animée capable de frapper avec une force cinétique surnaturelle.',
       },
     ],
     tactique:
-      'Pivot défensif. Sensible aux armes contondantes (marteaux, masses) et au sel qui brisent ses os animés.',
+      'Pivot défensif. Elle est sensible aux armes contondantes et au sel, qui fragilise ses os animés.',
     butin: 'Ossements rituels.',
   },
   {
@@ -1023,16 +1099,18 @@ export const THARNEA_MONSTERS: Monster[] = [
     caracs: { FOR: 5, DEX: 3, CON: 4, INT: 2, SAG: 3, CHA: 3 },
     att: 'Gueule d’ombre 2d6',
     fam: 'Molosse infernal',
+    descPhysique:
+      "Un chien démoniaque colossal dont l'ombre est absente. Sa fourrure est faite de ténèbres palpables, et ses crocs sont d'ivoire jauni par la corruption.",
     traits:
-      'Chien démoniaque colossal sans ombre, fourrure de ténèbres mouvantes et crocs d’ivoire corrompus.',
+      'Maître des embuscades routières dépourvu d’ombre propre.',
     pouvoirs: [
       {
         n: 'Morsure de terreur',
-        t: 'Chaque morsure réussie force un test de SAG ou plonge la cible dans une terreur paralysante.',
+        t: 'Chaque morsure réussie inflige une peur paralysante (test de SAG).',
       },
     ],
     tactique:
-      'Maître des embuscades de route. Le fer froid et la lumière vive forcent son ombre à réapparaître et l’affaiblissent.',
+      "Maître des embuscades routières. Il possède une vulnérabilité au fer froid et à la lumière vive, qui force son ombre à réapparaître, l'affaiblissant.",
     butin: 'Griffe de Barghest.',
   },
   {
@@ -1049,16 +1127,18 @@ export const THARNEA_MONSTERS: Monster[] = [
     caracs: { FOR: 4, DEX: 4, CON: 3, INT: 1, SAG: 3, CHA: 2 },
     att: 'Morsure spectrale 2d6',
     fam: 'Spectre canin',
+    descPhysique:
+      'Un canidé spectral aux yeux globuleux et injectés de sang. Une corde de chanvre usée pend autour de son cou éthéré.',
     traits:
-      'Canidé spectral aux yeux injectés de sang avec une corde de chanvre usée pendue autour du cou.',
+      'Molosse fantôme traversant les murs et obstacles en pleine charge.',
     pouvoirs: [
       {
         n: 'Charge spectrale',
-        t: 'Peut traverser les murs et obstacles lors de sa course.',
+        t: 'Peut traverser les murs et les obstacles solides lors de sa course.',
       },
     ],
     tactique:
-      'Inarrêtable en terrain complexe. Le sel et les symboles de l’Ordre le forcent à se matérialiser.',
+      "Inarrêtable en terrain complexe. Il redoute le sel et les symboles de l'Ordre, qui le forcent à rester tangible.",
     butin: 'Corde de pendu (maudite).',
   },
   {
@@ -1075,16 +1155,18 @@ export const THARNEA_MONSTERS: Monster[] = [
     caracs: { FOR: 6, DEX: 1, CON: 6, INT: 1, SAG: 2, CHA: -1 },
     att: 'Poing de granit & blocs 2d6',
     fam: 'Golem / Élémentaire de pierre',
+    descPhysique:
+      'Une statue vivante dont la pierre est parcourue de fissures lumineuses instables. Elle se déplace avec un fracas de séisme.',
     traits:
-      'Statue vivante parcourue de failles de magma lumineuses, se déplaçant avec un fracas de séisme.',
+      'Colosse minéral lent mais dévastateur projetant des éclats de son propre corps.',
     pouvoirs: [
       {
         n: 'Jet de blocs',
-        t: 'Projette des fragments de son corps avec une puissance fracassante à 15 m.',
+        t: 'Projette des fragments de son corps avec une force dévastatrice.',
       },
     ],
     tactique:
-      'Adversaire titanesque. Utiliser des outils de mineur en fer froid pour percer sa défense. Lent mais dévastateur.',
+      'Adversaire robuste. Utilisez des outils de mineur en fer froid pour pénétrer sa défense rocheuse. Il est lent mais dévastateur.',
     butin: 'Fragment de pierre runique.',
   },
   {
@@ -1101,16 +1183,18 @@ export const THARNEA_MONSTERS: Monster[] = [
     caracs: { FOR: 2, DEX: 4, CON: 2, INT: 3, SAG: 3, CHA: 5 },
     att: 'Baiser empoisonné 1d12',
     fam: 'Monstre serpentine',
+    descPhysique:
+      "Une femme d'une beauté surnaturelle, dont les pupilles verticales de reptile et la langue fourchue trahissent la nature monstrueuse.",
     traits:
-      'Femme d’une beauté surnaturelle dont les pupilles verticales et la langue fourchue trahissent la monstruosité.',
+      'Séductrice ophidienne dissimulant sa forme véritable derrière un masque de grâce.',
     pouvoirs: [
       {
         n: 'Étreinte empoisonnée',
-        t: 'Immobilise sa victime tout en injectant un venin affaiblissant la Volonté.',
+        t: 'Immobilise sa victime tout en injectant un venin affaiblissant.',
       },
     ],
     tactique:
-      'Utilise la séduction pour approcher. Les miroirs de sel et la lumière pure dévoilent sa nature reptilienne.',
+      'Utilise sa séduction pour approcher. Elle craint les miroirs de sel et la lumière pure, qui révèlent son apparence reptilienne.',
     butin: 'Écaille de Lamia.',
   },
   {
@@ -1127,16 +1211,18 @@ export const THARNEA_MONSTERS: Monster[] = [
     caracs: { FOR: 5, DEX: 4, CON: 5, INT: 3, SAG: 4, CHA: 5 },
     att: 'Griffes d’obsidienne 2d8',
     fam: 'Vampire bestial',
+    descPhysique:
+      "Un vampire revenu à l'état bestial, doté d'ongles noirs comme l'obsidienne et d'une musculature hypertrophiée. Il grogne plus qu'il ne parle.",
     traits:
-      'Vampire retourné à l’état bestial brutal, ongles noirs acérés, musculature colossale, grogne sans parler.',
+      'Prédateur vampirique bestial drainant durablement la force physique de ses proies.',
     pouvoirs: [
       {
         n: 'Griffes drainantes',
-        t: 'Ses attaques réduisent de manière permanente la FOR de la cible (-1 par coup critique).',
+        t: 'Ses attaques réduisent de manière permanente la FOR de la cible.',
       },
     ],
     tactique:
-      'Prédateur hyper agressif. Le fer froid et le sel sont indispensables pour stopper sa régénération.',
+      'Prédateur agressif. Le fer froid et le sel sont indispensables pour contrer sa régénération et sa force brute.',
     butin: 'Croc de Strigoï.',
   },
   {
@@ -1153,16 +1239,18 @@ export const THARNEA_MONSTERS: Monster[] = [
     caracs: { FOR: 6, DEX: 3, CON: 5, INT: 3, SAG: 4, CHA: 4 },
     att: 'Constriction & crocs 2d10',
     fam: 'Serpent colossal',
+    descPhysique:
+      "Un corps de serpent géant de quatre mètres, surmonté d'un torse féminin puissant couvert d'écailles sombres et d'ambre.",
     traits:
-      'Corps de reptile géant surmonté d’un torse féminin cuirassé d’écailles sombres et d’ambre.',
+      'Véritable forme de la Lamia écrasant et empoisonnant ses victimes par constriction.',
     pouvoirs: [
       {
         n: 'Étreinte venimeuse',
-        t: 'Écrase les côtes de sa proie tout en inoculant un venin cutané paralysant.',
+        t: 'Écrase ses proies tout en les empoisonnant par contact cutané.',
       },
     ],
     tactique:
-      'Isole les cibles avec sa constriction. Vulnérable au froid intense et aux lames de fer froid.',
+      'Isolez les cibles avec sa lutte. Elle est vulnérable au froid intense et aux lames de fer froid.',
     butin: 'Venin de Lamia supérieur.',
   },
   {
@@ -1179,16 +1267,18 @@ export const THARNEA_MONSTERS: Monster[] = [
     caracs: { FOR: 1, DEX: 5, CON: 3, INT: 5, SAG: 4, CHA: 6 },
     att: 'Rayon de décrépitude 2d8',
     fam: 'Fée de corruption',
+    descPhysique:
+      'Créature ailée aux membres trop longs et aux ailes déchirées, dégageant une aura de charme mortel et de décrépitude.',
     traits:
-      'Créature aux membres étirés et ailes déchirées dégageant une aura de charme mortel et de décrépitude.',
+      'Manipulatrice mentale retournant ses victimes contre elles-mêmes.',
     pouvoirs: [
       {
         n: 'Charme mortel',
-        t: 'Oblige une cible charmée à s’infliger des blessures ou à attaquer ses propres alliés.',
+        t: "Oblige une cible à la protéger ou à s'infliger des blessures.",
       },
     ],
     tactique:
-      'Manipulatrice mentale volant hors de portée. Le fer froid annule instantanément ses charmes.',
+      'Manipulateur mental. Le fer froid annule ses charmes au contact. Ciblez-la rapidement avec des archers.',
     butin: 'Poussière de fée noire.',
   },
   {
@@ -1205,16 +1295,18 @@ export const THARNEA_MONSTERS: Monster[] = [
     caracs: { FOR: 6, DEX: 2, CON: 6, INT: 1, SAG: 3, CHA: -2 },
     att: 'Engloutissement noir 1d20',
     fam: 'Ooze / Masse de goudron',
+    descPhysique:
+      "Masse mouvante de boue noire et de goudron occulte, où l'on distingue les silhouettes de ceux qu'elle a déjà absorbés. Elle ne possède pas de forme fixe.",
     traits:
-      'Masse mouvante de boue noire et de goudron occulte où flottent les ossements et visages de ses victimes.',
+      'Obstacle visqueux informe engloutissant et asphyxiant quiconque s’en approche.',
     pouvoirs: [
       {
         n: 'Asphyxie par boue',
-        t: 'Engloutit une cible, lui infligeant des dégâts de suffocation constants à chaque tour.',
+        t: 'Engloutit une cible, lui infligeant des dégâts de suffocation constants.',
       },
     ],
     tactique:
-      'Obstacle quasi infranchissable. Le feu la durcit et le sel la dissipe.',
+      'Obstacle infranchissable. Elle redoute le feu (qui la durcit) et le sel (qui la dissipe).',
     butin: 'Noyau de goudron occulte.',
   },
   {
@@ -1231,20 +1323,22 @@ export const THARNEA_MONSTERS: Monster[] = [
     caracs: { FOR: 4, DEX: 5, CON: 4, INT: 2, SAG: 3, CHA: 1 },
     att: 'Mandibules d’ombre 2d10',
     fam: 'Arachnide de l’Ombre',
+    descPhysique:
+      "Une araignée de la taille d'un cheval de guerre, dont les pattes semblent faites de fumée solidifiée. Elle tisse des toiles qui capturent les ombres des voyageurs, les laissant physiquement affaiblis.",
     traits:
-      'Araignée de la taille d’un destrier aux pattes de fumée solidifiée tissant des toiles qui piègent les ombres.',
+      'Arachnide des hauteurs capturant les ombres et drainant la magie dans ses toiles.',
     pouvoirs: [
       {
         n: 'Toile de Néant',
-        t: 'Immobilise la cible et draine ses points de mana/magie (1d4 par tour).',
+        t: 'Immobilise la cible et draine ses points de compétence magique (1d4 par tour).',
       },
       {
         n: 'Pattes d’araignée',
-        t: 'Capacité innée d’escalader murs et plafonds sans aucun malus.',
+        t: "Capacité innée de se déplacer sur n'importe quelle surface, y compris les plafonds.",
       },
     ],
     tactique:
-      'Attaque depuis les plafonds. Ses toiles brûlent instantanément face aux torches et à la lumière pure.',
+      'Elle attaque depuis les hauteurs. Sa faiblesse réside dans la lumière pure et les torches, qui brûlent ses toiles immatérielles instantanément.',
     butin: 'Soie d’ombre (rare).',
   },
   {
@@ -1261,16 +1355,18 @@ export const THARNEA_MONSTERS: Monster[] = [
     caracs: { FOR: 5, DEX: 4, CON: 5, INT: 2, SAG: 3, CHA: 1 },
     att: 'Venin d’âme 2d10',
     fam: 'Arachnide planaire',
+    descPhysique:
+      "Son abdomen pulse d'une lueur violette malsaine, révélant les énergies de la Faille qu'elle a ingérées. Ses mandibules dégoulinent d'un venin qui brûle non pas la chair, mais l'âme.",
     traits:
-      'Abdomen pulsant d’une lueur violette malsaine révélant l’énergie brute de la Faille. Son venin brûle l’âme.',
+      'Tueuse de héros dont le venin inflige directement des dégâts de corruption à l’âme.',
     pouvoirs: [
       {
         n: 'Venin de Faille',
-        t: 'Dégâts de corruption directs à chaque morsure (test de Constitution DD 14).',
+        t: 'Inflige des dégâts de corruption directs à chaque morsure réussie (test de CO).',
       },
     ],
     tactique:
-      'Tueuse de héros. Cible les PJ porteurs de corruption. Vulnérabilité critique au sel et armes bénies de l’Ordre.',
+      "Tueuse de héros. Ciblez les PJ les plus corrompus. Elle possède une vulnérabilité critique au sel et aux armes bénies par l'Ordre.",
     butin: 'Glande de venin du vide.',
   },
   {
@@ -1287,20 +1383,22 @@ export const THARNEA_MONSTERS: Monster[] = [
     caracs: { FOR: 6, DEX: 4, CON: 6, INT: 3, SAG: 4, CHA: 3 },
     att: 'Broyeur abyssal 1d20',
     fam: 'Seigneur Arachnide',
+    descPhysique:
+      "Une monstruosité titanesque, souveraine absolue des profondeurs de la Faille. Son dos porte des milliers d'yeux rouges qui observent simultanément toutes les réalités. Elle dégage une aura de terreur ancestrale.",
     traits:
-      'Monstruosité souveraine des profondeurs dont le dos porte des milliers d’yeux rouges observant toutes les réalités.',
+      'Souveraine titanesque des abysses se téléportant à travers ses toiles dimensionnelles.',
     pouvoirs: [
       {
         n: 'Marche Dimensionnelle',
-        t: 'Téléportation instantanée vers toute surface couverte de ses toiles dans la zone.',
+        t: 'Peut se téléporter instantanément vers toute surface couverte de ses toiles dans la zone.',
       },
       {
         n: 'Domination du Gouffre',
-        t: 'Aura de terreur imposant un malus de -2 à tous les jets de moralité et d’attaque des PJ.',
+        t: 'Sa présence impose un malus de -2 à tous les jets de moralité des PJ.',
       },
     ],
     tactique:
-      'Boss final d’arc souterrain. Ne peut être vaincue que par l’usage combiné de la Lumière pure et de reliques majeures.',
+      "Boss final. Utilisez sa masse pour écraser et ses pouvoirs pour isoler les attaquants. Elle ne peut être vaincue que par l'usage combiné de la Lumière pure et de reliques majeures.",
     butin: 'Œil de la Reine (Artéfact légendaire).',
   },
   {
@@ -1320,8 +1418,10 @@ export const THARNEA_MONSTERS: Monster[] = [
     vitesse: '9 m',
     sauvegardes: 'SAG +5, CHA +7',
     resistances: 'Dégâts nécrotiques, Dégâts psychiques',
+    descPhysique:
+      "Silhouette longiligne, drapée dans une aube cléricale blanche immaculée sur le haut, mais dont le bas est calciné, se désintégrant constamment en volutes de cendres flottantes et d'encre noire. • Le Masque-Miroir : plaque d'acier poli à la surface mouvante qui projette les visages blêmes des enfants sacrifiés du manoir ou les pires remords de ceux qui le regardent. • Le Pas du Miroir : apparaît soudainement dans n'importe quelle surface réfléchissante — un miroir cassé du manoir, la flasque d'alcool de Hugolin ou la lame d'une épée.",
     traits:
-      'L’Inquisiteur-Miroir, Grand Conservateur de la Faille. Aube cléricale calcinée, Masque-Miroir projetant les pires remords de ceux qui le regardent. « Votre douleur n’est qu’une donnée statistique dans l’équilibre du monde. »',
+      'L’Inquisiteur-Miroir, Grand Conservateur de la Faille. Haut dignitaire du Cercle Voilé qui pactisa avec son double de l’Obscure. « Votre douleur n’est qu’une donnée statistique dans l’équilibre du monde. »',
     pouvoirs: [
       {
         n: 'Bouclier de Chair',
@@ -1339,10 +1439,20 @@ export const THARNEA_MONSTERS: Monster[] = [
         n: 'Écho du Manoir (Recharge 5-6)',
         t: 'Impulsion psychique à travers son masque : test de Sagesse DD 15 ou 3d6 dégâts psychiques + Effrayé et immobilisé 1 tour.',
       },
+      {
+        n: 'Pas du Miroir',
+        t: 'Se téléporte d’une surface réfléchissante à une autre (miroir brisé, lame polie, flasque métallique) dans la zone.',
+      },
     ],
     tactique:
       'Domine le terrain en dictant les règles et en invoquant les traumatismes des PJ. Utilise sa connaissance de leurs dossiers personnels pour briser leur volonté avant même le premier assaut.',
-    butin: 'Masque-Miroir brisé, Décrets du Cercle Voilé, Lame d’Effroi.',
+    origineNarratif:
+      'Ancien haut dignitaire du Cercle Voilé (Haut Conseil Luminal) supervisant les expériences du Manoir Blakthorn. A conclu un pacte avec son double de l’Obscure. Considère les PJ comme des « variables imprévues » ou des « rebuts de laboratoire ».',
+    liensPj:
+      '• Elyndra : l’appelle « Petite Infirmière », son masque projette le visage des enfants qu’elle soignait.\n• Merline : signataire de l’édit de « Récupération de l’Enfant », la qualifie de « ressource magique gaspillée ».\n• Hachlys : rival politique au sein de l’Ordre ; lui propose une place de Haute Matriarche si elle trahit.\n• Sashou : insinue avoir orchestré l’explosion de l’atelier de son maître (« gamin explosif »).\n• Hugolin : a ordonné le « nettoyage » où Brigitte a péri, le qualifiant de « perte collatérale mineure ».',
+    secret:
+      'La Logistique du Néant : il n’y a aucun visage sous le masque, juste un vide noirci. Le véritable Tom Vador est mort depuis des années ; cette entité est un égrégore né de la culpabilité de l’Ordre. Il convoite le titre de Grand Conservateur de l’Arbre-Cœur et veut fusionner Tharnéa et l’Obscure.',
+    butin: 'Masque-Miroir brisé, Décrets du Cercle Voilé, Lame d’Effroi en Fer Froid.',
   },
   {
     num: 51,
@@ -1360,12 +1470,14 @@ export const THARNEA_MONSTERS: Monster[] = [
     fam: 'Allié du Groupe / Apprenti Aventurier',
     vitesse: '7 m',
     sauvegardes: 'SAG +5, CHA +7',
+    descPhysique:
+      "L'Enfant de la Fange (10 ans), petite taille, tignasse brune ébouriffée, peau hâlée et taches de rousseur couvertes de cendre. • Armure de Fortune : vieux tablier de cuir trop grand volé à l'arrière-boutique de l'auberge, rembourré de ficelles, de billes et de morceaux de craie. • Regard Clair : yeux noisette brillants d'une détermination sans faille. • Le Barda : vieille sacoche en toile usée (« son antre aux trésors »).",
     traits:
-      'Gamin d’Elden au regard clair et tablier de cuir trop grand. Boussole morale indomptable face à la Faille. « Regardez-moi ! Je n’ai pas de pouvoirs, je n’ai que 10 ans... mais je n’ai pas peur de leur Faille ! »',
+      'Gamin d’Elden, mascotte, assistant logistique et boussole morale de l’escouade face à la Faille. « Regardez-moi ! Je n’ai pas de pouvoirs, je n’ai que 10 ans... mais je n’ai pas peur de leur Faille ! »',
     pouvoirs: [
       {
         n: 'Jet de Caillou (Action)',
-        t: 'Attaque +4 à 5/15m (1d3 contondant). Vise les yeux pour créer une distraction (octroie avantage au prochain allié).',
+        t: 'Attaque +4 à 5/15 m (1d3 contondant). Vise les yeux pour créer une distraction (octroie avantage au prochain allié).',
       },
       {
         n: 'Raccourcis de l’Aubergiste (Passif)',
@@ -1373,7 +1485,7 @@ export const THARNEA_MONSTERS: Monster[] = [
       },
       {
         n: 'Sac de Munitions (1 / Session)',
-        t: 'Lance un objet crucial à 6m : fiole d’huile, kit de soins d’urgence, billes pour trébucher, ou torche prête.',
+        t: 'Lance un objet crucial à 6 m : fiole d’huile, kit de soins d’urgence, billes pour trébucher, ou torche prête.',
       },
       {
         n: 'Décret d’Amitié (Bonus)',
@@ -1381,8 +1493,14 @@ export const THARNEA_MONSTERS: Monster[] = [
       },
     ],
     tactique:
-      'Soutien logistique et moral. Ne doit pas combattre au contact direct. Il redonne espoir quand le groupe sombre.',
-    butin: 'Pierre de Chance bleutée, Épée de bois des Promesses.',
+      'Soutien logistique et moral. Ne doit jamais combattre au contact direct. Reste à couvert pour ravitailler les héros et leur redonner espoir quand le groupe sombre.',
+    origineNarratif:
+      'Fils de Garom, tavernier du « Sanglier Assoupi » à Elden. A survécu seul face à une Ombre-Fendue et suit désormais l’escouade comme mascotte et assistant logistique.',
+    liensPj:
+      '• Hugolin : son idole absolue, son « chevalier blanc ».\n• Sashou : son « Maître Alchimiste » admiré.\n• Elyndra : la « Sainte des Ruines » en qui il place une confiance aveugle.\n• Hachlys : la « Voix de la Lumière ».\n• Merline : la « Protectrice de l’Arbre-Cœur ».',
+    secret:
+      'Cache sous sa paillasse une Pierre de Chance bleutée ramassée après l’attaque de l’Ombre-Fendue, ainsi qu’une Épée de bois des Promesses sur laquelle il a gravé au couteau les cinq noms : Hugolin, Sashou, Elyndra, Hachlys, Merline.',
+    butin: 'Pierre de Chance bleutée, Épée de bois des Promesses (objet affectif sacré).',
   },
   {
     num: 52,
@@ -1400,8 +1518,10 @@ export const THARNEA_MONSTERS: Monster[] = [
     fam: 'Allié Légendaire / Souverain de Kalgard',
     vitesse: '6 m (Lourd mais stable)',
     sauvegardes: 'SAG +5, CHA +7',
+    descPhysique:
+      "Colosse de 2,20 m sculpté dans la roche volcanique, vêtu de plaques noires et rouges gravées de runes de stabilisation incandescente. Coiffé d'un Heaume d'Ours aux yeux luisants d'orange braise, il porte un monumental bouclier runique capable de couvrir deux alliés à la fois.",
     traits:
-      'Colosse sculpté dans la roche volcanique, heaume en tête d’ours aux yeux de braise, bouclier runique couvrant deux alliés. « Tenez bon derrière mon bouclier, je serai votre muraille jusqu’à ce que la forge s’éteigne. »',
+      'Souverain de Kalgard dans l’Obscure, Maître des Fortifications et de la Forge de Magma. « Tenez bon derrière mon bouclier, je serai votre muraille jusqu’à ce que la forge s’éteigne. »',
     pouvoirs: [
       {
         n: 'Interception Runique (Réaction)',
@@ -1417,8 +1537,14 @@ export const THARNEA_MONSTERS: Monster[] = [
       },
     ],
     tactique:
-      'Pilier défensif absolu. S’il s’éloigne trop longtemps des terres du Sud, son corps se pétrifie lentement.',
-    butin: 'Armure de plaques runique, Bouclier de Kalgard.',
+      'Pilier défensif absolu — l’Ancre qui tient le front. Protège prioritairement les blessés et lanceurs de sorts.',
+    origineNarratif:
+      'Souverain de Kalgard dans l’Obscure, Maître des Fortifications et de la Forge de Magma. Dans Tharnéa, la cité de Varnheim fut édifiée et nommée en sa mémoire.',
+    liensPj:
+      '• Hugolin : respecte profondément sa résilience ; considère la gourde de Brigitte comme un véritable « Ancrage de l’Âme ».\n• Sashou : le surnomme « Apprenti du Feu » et s’intéresse aux minerais de Kalgard.\n• Elyndra : l’appelle « La Suture du Monde ».\n• Hachlys : lui rappelle que « la vraie lumière ne brûle pas, elle réchauffe ceux qui ont froid ».\n• Merline : voit son lien à l’Arbre-Cœur comme une défense vitale pour les deux mondes.',
+    secret:
+      'Varn est physiquement lié à la muraille de Bastion-Souffle : s’il s’éloigne trop longtemps des terres du Sud, son corps se pétrifie lentement. Il accepte sereinement de devenir un jour la statue-frontière éternelle.',
+    butin: 'Armure de plaques runique, Bouclier de Kalgard, Masse runique de magma.',
   },
   {
     num: 53,
@@ -1436,8 +1562,10 @@ export const THARNEA_MONSTERS: Monster[] = [
     fam: 'Entité Métaphysique / Boss Divin (Danger 6+)',
     vitesse: '10 m',
     sauvegardes: 'SAG +5, CHA +7',
+    descPhysique:
+      "Silhouette colossale et changeante haute de 3 mètres, drapée dans une peau d'obsidienne noire et de cendre mate parcourue de veines de magma écarlate. Son dos déploie un Manteau d'Écailles fait d'ailes vivantes de dragon ancien. • Regard du Vide : deux pupilles verticales jaunes scrutant simultanément Tharnéa et l'Obscure. • Aura Primordiale : odeur écrasante de soufre, de sang pur et d'ozone.",
     traits:
-      'Souverain de la Nuit Éternelle, Père des Dragons & Racine de l’Arbre-Cœur. Peau d’obsidienne et magma écarlate, ailes de dragon ancien. « Sans moi, votre lumière ne serait qu’un aveuglement. Je suis le repos que vous craignez mais dont vous avez besoin. »',
+      'Souverain de la Nuit Éternelle, Père des Dragons & Racine de l’Arbre-Cœur. « Sans moi, votre lumière ne serait qu’un aveuglement. Je suis le repos que vous craignez mais dont vous avez besoin. »',
     pouvoirs: [
       {
         n: 'L’Appel du Miroir / Reflet du Paradoxe',
@@ -1448,12 +1576,18 @@ export const THARNEA_MONSTERS: Monster[] = [
         t: 'Souffle d’ombre dévastateur dans un cône de 10 m : 4d6 dégâts de froid nécrotique (Jet de SAG DD 16 pour demi-dégâts).',
       },
       {
-        n: 'Ancre de l’Existence',
-        t: 'Maintient la Faille ouverte pour éviter que Tharnéa et l’Obscure ne s’annihilent mutuellement.',
+        n: 'Griffes du Néant Pur',
+        t: 'Frappe dévastatrice (+8 toucher, 2d10 dégâts + 1 point de Corruption direct sur la victime).',
       },
     ],
     tactique:
-      'Boss cosmique. Frappe avec détachement métaphysique. Utilise les miroirs et les ombres pour tester les convictions des héros.',
+      'Boss cosmique. Frappe avec un détachement métaphysique glaçant. Utilise les miroirs, les doubles d’ombre et les révélations personnelles pour ébranler les convictions des héros.',
+    origineNarratif:
+      'Écho primordial du monde miroir régnant sur Orynthal, Morthalia et Kalgard. Architecte secret du Pacte des Sorcières ayant donné naissance à Amon. Voit Tharnéa comme une « ébauche ratée » et une « brûlure de lumière » et nourrit délibérément la Faille.',
+    liensPj:
+      '• Amon : le « Père » dont la voix résonne jusque dans ses cauchemars.\n• Merline : la surnomme « La Petite Voleuse de Cendres ».\n• Hachlys : seul être capable de la réduire au silence ; qualifie sa Lumière de « parasite ».\n• Sashou : prétend que son maître le sert volontairement au Palais des Glaces.\n• Hugolin : l’entité qui murmure au fond de sa gourde que Brigitte a été « sacrifiée par la Lumière ».',
+    secret:
+      'L’Ancre de l’Existence : Le Malin empêche l’Arbre-Cœur de se consumer. Si la Lumière l’emporte totalement, le monde explose par rupture d’équilibre ; si l’Obscure triomphe seule, tout sombre dans le silence éternel. Il maintient la Faille ouverte pour empêcher leur annihilation mutuelle.',
     butin: 'Écailles de Dragon Primordial, Fragment de l’Arbre-Cœur Noir.',
   },
   {
@@ -1470,25 +1604,27 @@ export const THARNEA_MONSTERS: Monster[] = [
     caracs: { FOR: 3, DEX: 2, CON: 3, INT: 1, SAG: 2, CHA: 2 },
     att: 'Épée longue 1d8+2 ou Lance 1d10',
     fam: 'Humain / Armée du Roi',
+    descPhysique:
+      "Un combattant professionnel discipliné, sanglé dans une armure de cuir renforcé ou une cotte de mailles bien entretenue. Il porte l'emblème royal (lion, tour ou épée). Son regard balaye constamment les ombres pour parer aux incursions de la Faille.",
     traits:
-      'Combattant professionnel discipliné en cuir renforcé ou cotte de mailles, regard balayant les ombres pour parer la Faille.',
+      'Troupe régulière disciplinée de l’Armée du Roi, entraînée au combat en formation serrée.',
     pouvoirs: [
       {
         n: 'Mur de Boucliers (Passif)',
-        t: 'Adjacent à un allié soldat ou PJ, il gagne +2 à sa DEF contre les attaques de corps à corps.',
+        t: 'Adjacent à un autre soldat (#54/#55) ou un PJ, il gagne +2 à sa DEF contre les attaques au corps à corps.',
       },
       {
         n: 'Discipline de Fer',
-        t: 'Avantage sur jets de sauvegarde contre la Peur en présence d’un officier.',
+        t: 'Avantage sur ses jets de sauvegarde contre la Peur tant qu’un officier ou sergent se trouve à moins de 18 m.',
       },
       {
         n: 'Frappe Coordonnée',
-        t: 'Si sa cible est déjà engagée par un allié, ajoute +2 aux dégâts.',
+        t: 'Si sa cible est déjà engagée au corps à corps par un allié, ajoute +2 aux dégâts.',
       },
     ],
     tactique:
-      'Ne combat jamais seul. Garde la ligne de front et protège les accès sensibles.',
-    butin: 'Solde militaire (1 Argent, 5 Airain), Épée longue, Insigne de régiment.',
+      'Ne combat jamais seul. Garde la ligne de front, sécurise les accès sensibles (Manoir Blakthorn, portes urbaines) et obéit strictement aux ordres reçus.',
+    butin: '1 Argent et 5 Airain (solde militaire), Épée longue, Insigne de régiment.',
   },
   {
     num: 55,
@@ -1504,25 +1640,27 @@ export const THARNEA_MONSTERS: Monster[] = [
     caracs: { FOR: 4, DEX: 2, CON: 4, INT: 2, SAG: 2, CHA: 3 },
     att: 'Épée Longue de Maître 1d10+3',
     fam: 'Humain / Vétéran d’Élite',
+    descPhysique:
+      "Un guerrier aguerri portant une armure de plaques complète ornée du blason doré de l'Ours ou du soleil de l'Ordre de la Lumière. Sa cape sombre est marquée par les campagnes contre la Faille.",
     traits:
-      'Guerrier en armure de plaques complète ornée du blason de l’Ours ou du soleil de l’Ordre.',
+      'Vétéran aguerri encadrant la troupe ou assurant la garde rapprochée des commandants.',
     pouvoirs: [
       {
         n: 'Discipline d’Acier (Passif)',
-        t: 'Immunisé à la Peur mineure et avantage contre les illusions.',
+        t: 'Immunisé à la Peur mineure et bénéficie de l’Avantage contre les illusions.',
       },
       {
         n: 'Coup de Bouclier (Réaction)',
-        t: 'Tente de renverser l’assaillant (Test de Force opposé).',
+        t: 'Tente de renverser l’assaillant au corps à corps (Test de Force SR 14).',
       },
       {
         n: 'Cri de Commandement',
-        t: 'Les soldats alliés (#54) à 9m gagnent +5 PV temporaires et +1 attaque.',
+        t: 'Tous les alliés Soldats (#54) à moins de 9 m gagnent +5 PV temporaires et +1 aux jets d’attaque.',
       },
     ],
     tactique:
-      'Chef de terrain. Isole les cibles prioritaires et forme des murs de fer.',
-    butin: 'Bourse d’officier (2 Argent, 10 Airain), Insigne de commandement (+2 Persuasion militaire).',
+      'Chef de terrain. Isole les cibles prioritaires (comme Merline ou Amon) et forme des murs de fer pour briser les charges ennemies.',
+    butin: '2 Argent et 10 Airain, Épée Longue de Maître, Insigne de commandement (+2 Persuasion militaire).',
   },
   {
     num: 56,
@@ -1538,25 +1676,27 @@ export const THARNEA_MONSTERS: Monster[] = [
     caracs: { FOR: 5, DEX: 2, CON: 5, INT: 3, SAG: 4, CHA: 5 },
     att: 'Épée de Commandement 1d12+4',
     fam: 'Humain / Officier Général',
+    descPhysique:
+      "Un officier rayonnant d'une autorité naturelle, drapé dans une cape épaisse aux couleurs d'Eldenar ou d'Aldrion, portant une armure d'apparat finement gravée de scènes de victoires anciennes.",
     traits:
-      'Officier d’autorité naturelle en plaques d’apparat gravées et cape aux couleurs d’Eldenar ou Aldrion.',
+      'Officier supérieur stratège commandant des armées entières sur le front.',
     pouvoirs: [
       {
         n: 'Aura de Discipline (Passif)',
-        t: 'Tous ses alliés à 15 m sont immunisés à la Peur et ont +2 en attaque.',
+        t: 'Tous ses alliés dans un rayon de 15 m sont immunisés à la Peur et gagnent +2 en attaque.',
       },
       {
-        n: 'Appel de la Bannière',
-        t: 'Invoque une escouade de renforts (2 soldats) arrivant en 1 tour.',
+        n: 'Appel de la Bannière (1/combat)',
+        t: 'Invoque une escouade de renforts (2 Soldats #54 ou 1 Soldat d’Élite #55) qui arrive en 1 tour.',
       },
       {
         n: 'Tactique de Tenaille',
-        t: 'Désigne une cible : tous ses subordonnés bénéficient de l’Avantage contre elle.',
+        t: 'Désigne une cible prioritaire : tous ses subordonnés bénéficient de l’Avantage pour la toucher.',
       },
     ],
     tactique:
-      'Boss de terrain. Reste au cœur de ses troupes, protégé par un mur de boucliers.',
-    butin: 'Épée de Commandement (Artéfact rare, +2 Intimidation), Sceau du Connétable, Bourse de Maréchal.',
+      'Boss de terrain / Rencontre majeure. Reste au cœur de ses troupes protégé par ses gardes d’élite. Peut être retourné par la diplomatie ou la révélation des secrets de l’Ordre (Hachlys).',
+    butin: '5 Argent et 20 Airain, Épée de Commandement (+2 Intimidation), Sceau du Connétable.',
   },
   {
     num: 57,
@@ -1572,25 +1712,27 @@ export const THARNEA_MONSTERS: Monster[] = [
     caracs: { FOR: 2, DEX: 2, CON: 2, INT: 1, SAG: 1, CHA: 1 },
     att: 'Outil agricole ou couteau 1d4',
     fam: 'Civil de Tharnéa',
+    descPhysique:
+      "Un habitant ordinaire en tenue modeste de laine épaisse ou de cuir usé. Son visage est marqué par le labeur et une inquiétude sourde liée au crépuscule éternel qui envahit l'horizon.",
     traits:
-      'Visage marqué par le labeur et l’inquiétude du crépuscule éternel. Incarne la résilience face à l’effacement du monde.',
+      'Incarne la résilience simple de Tharnéa face à l’effacement du monde et aux ravages de la Faille.',
     pouvoirs: [
       {
-        n: 'Solidarité du Labeur',
-        t: 'Avantage contre la Peur quand entouré d’au moins deux autres villageois.',
+        n: 'Solidarité du Labeur (Passif)',
+        t: 'Gagne l’Avantage contre la Peur lorsqu’il est entouré d’au moins deux autres villageois.',
       },
       {
         n: 'Cri d’Alerte',
-        t: 'Alerte la Milice ou les PJ dans un rayon de 100 m.',
+        t: 'Pousse un cri strident qui alerte la Milice ou les PJ dans un rayon de 100 m.',
       },
       {
         n: 'Appel de la Terre',
-        t: '+1 dégât supplémentaire s’il défend son propre village.',
+        t: 'Inflige +1 dégât supplémentaire s’il défend son propre village ou sa famille.',
       },
     ],
     tactique:
-      'Enjeu narratif. Cherche à fuir ou à se cacher. Sert à tester la moralité des PJ.',
-    butin: 'Bourse de paysan (2 à 8 Airain), objet du quotidien, porte-bonheur.',
+      'Enjeu narratif. Cherche avant tout à fuir ou se cacher. Sert au MJ pour tester la moralité des PJ ou récompenser un secours sincère par des rumeurs précieuses sur Elden ou Nareth.',
+    butin: '2 à 8 Airain, objet du quotidien, porte-bonheur ou information locale précieuse.',
   },
   {
     num: 58,
@@ -1606,25 +1748,27 @@ export const THARNEA_MONSTERS: Monster[] = [
     caracs: { FOR: 3, DEX: 3, CON: 2, INT: 1, SAG: 1, CHA: 1 },
     att: 'Épée courte 1d6 ou Arbalète 1d8',
     fam: 'Humain / Brigand',
+    descPhysique:
+      "Un survivant endurci portant des cuirs rapiécés et des morceaux d'armures volés sur les décombres des batailles passées. Un foulard sombre cache le bas de son visage.",
     traits:
-      'Survivant endurci portant des cuirs rapiécés et morceaux d’armures récupérés sur les décombres de guerre.',
+      'Pillard pragmatique profitant du chaos laissé par la Faille le long des routes marchandes.',
     pouvoirs: [
       {
         n: 'Coup Bas (Passif)',
-        t: 'Avantage sur ses jets d’attaque si la cible est déjà engagée par un allié.',
+        t: 'Avantage sur ses jets d’attaque si la cible est déjà engagée au corps à corps par un allié.',
       },
       {
         n: 'Loyauté Variable',
-        t: 'Si ses PV tombent sous la moitié ou si son chef meurt, test de SAG pour ne pas fuir.',
+        t: 'Si ses PV tombent sous la moitié ou si son chef (#59) est abattu, test de SAG pour ne pas fuir immédiatement.',
       },
       {
         n: 'Instinct de Survie',
-        t: 'Ignore les malus de terrain dans les ruines et sous-bois denses.',
+        t: 'Ignore les malus de déplacement liés au terrain difficile dans les ruines et sous-bois denses.',
       },
     ],
     tactique:
-      'Harcèle à distance à l’arbalète avant de charger les blessés. Cible les porteurs de sacs ou d’alchimie.',
-    butin: 'Bourse de pillard (10 à 20 Airain), babiole volée.',
+      'Harcèle à distance à l’arbalète avant de charger les héros blessés. Cible en priorité les porteurs de sacs visibles ou les alchimistes comme Sashou.',
+    butin: '10 à 20 Airain, outil de crochetage ou babiole volée à des voyageurs.',
   },
   {
     num: 59,
@@ -1640,12 +1784,14 @@ export const THARNEA_MONSTERS: Monster[] = [
     caracs: { FOR: 4, DEX: 3, CON: 3, INT: 2, SAG: 2, CHA: 3 },
     att: 'Épée longue 1d10+2 ou Arbalète lourde 2d6',
     fam: 'Humain / Vétéran déserteur',
+    descPhysique:
+      "Un vétéran balafré d'une ancienne guerre de faction, portant un cuir clouté renforcé d'épaulières en acier dépareillées. Il ne parle que pour donner des ordres brefs et brutaux.",
     traits:
-      'Vétéran balafré, cuir clouté renforcé de spalières dépareillées. Ne parle que pour donner des ordres brefs et brutaux.',
+      'Ancien officier déserteur tenant sa bande de pillards par la peur et le butin.',
     pouvoirs: [
       {
         n: 'Commandement Brutal (Aura)',
-        t: 'Les alliés bandits à 10 m gagnent +1 à leurs jets d’attaque.',
+        t: 'Les alliés bandits (#58) dans un rayon de 10 m gagnent +1 à leurs jets d’attaque.',
       },
       {
         n: 'Parade de Vétéran (Réaction)',
@@ -1653,12 +1799,12 @@ export const THARNEA_MONSTERS: Monster[] = [
       },
       {
         n: 'Coup Bas Amélioré',
-        t: 'Inflige +1d6 dégâts supplémentaires sur cible déjà engagée.',
+        t: 'Inflige +1d6 dégâts supplémentaires sur une cible déjà engagée par un autre brigand.',
       },
     ],
     tactique:
-      'Tacticien opportuniste. Sacrifie ses hommes sans hésiter si le combat tourne en sa défaveur.',
-    butin: 'Bourse (3 Argent, 15 Airain), Clé des Terres Dévastées (coffre caché), Épée militaire.',
+      'Tacticien opportuniste. Sacrifie ses hommes sans hésiter si le combat tourne mal pour négocier sa fuite avec le trésor (ou des renseignements sur Vharok / Tirwald).',
+    butin: '3 Argent et 15 Airain, Clé des Terres Dévastées (ouvre un coffre caché), Épée militaire.',
   },
   {
     num: 60,
@@ -1674,8 +1820,10 @@ export const THARNEA_MONSTERS: Monster[] = [
     caracs: { FOR: 5, DEX: 1, CON: 5, INT: 1, SAG: 3, CHA: 1 },
     att: 'Hache de Fer Froid 1d12+3',
     fam: 'Colosse d’Élite de Norvhal',
+    descPhysique:
+      "Un colosse engoncé dans une armure de plaques complète d'un vert profond et d'argent poli. Son heaume est sculpté en forme de tête d'ours rugissant, et son bouclier colossal porte l'emblème de l'ours blanc de Norvhal. Il a prêté serment de ne jamais montrer son visage.",
     traits:
-      'Plaques vert profond et argent poli, heaume en tête d’ours, bouclier à l’ours blanc de Norvhal. Serment de ne jamais montrer son visage.',
+      'Garde d’élite assermenté de Norvhal armé pour traquer toute trace de l’Obscure.',
     pouvoirs: [
       {
         n: 'Discipline de Fer (Passif)',
@@ -1683,16 +1831,16 @@ export const THARNEA_MONSTERS: Monster[] = [
       },
       {
         n: 'Mur de Fer',
-        t: 'Avec son bouclier, annule totalement les dégâts d’une attaque de PJ sur test de FOR réussi (DD 14).',
+        t: 'Avec son bouclier colossal, peut annuler totalement les dégâts d’une attaque de PJ sur un test de FOR réussi (SR 14).',
       },
       {
         n: 'Frappe de Fer Froid',
-        t: '+1d6 dégâts supplémentaires contre toute créature ou adepte de l’Obscure ou de la Faille.',
+        t: 'Sa hache inflige +1d6 dégâts supplémentaires contre toute créature ou adepte de l’Obscure ou de la Faille.',
       },
     ],
     tactique:
-      'Forteresse ambulante. Cible les PJ qu’il juge impurs. Sensible aux attaques d’acide ou alchimie corrosive.',
-    butin: 'Languette de Fer Froid, Insigne de l’Unité de l’Ours (+2 relations avec Norvhal).',
+      'Forteresse ambulante. Cible en priorité les PJ qui manipulent la magie de l’ombre (Amon) ou l’alchimie étrange (Sashou). Sensible aux attaques d’acide ou d’alchimie corrosive.',
+    butin: 'Languette de Fer Froid, Insigne de l’Unité de l’Ours (+2 relations avec la cité de Norvhal).',
   },
   {
     num: 61,
@@ -1708,25 +1856,27 @@ export const THARNEA_MONSTERS: Monster[] = [
     caracs: { FOR: 5, DEX: 1, CON: 5, INT: 1, SAG: 2, CHA: 2 },
     att: 'Hache de Fer Noir 2d6',
     fam: 'Guerrier déchu corrompu',
+    descPhysique:
+      "Un ancien garde d'élite de Norvhal déchu. Son armure, autrefois vert éclatant, est désormais maculée de sang séché et gravée de runes de trahison. Son heaume d'ours semble hurler en permanence, figé par le souffle corrompu de la Faille.",
     traits:
-      'Ancien garde d’élite de Norvhal déchu, armure maculée de sang séché et gravée de trahison. Heaume d’ours qui hurle en permanence.',
+      'Colosse corrompu par la Faille, rongé par une rage inextinguible et une force chaotique.',
     pouvoirs: [
       {
         n: 'Cri de Chute (1/combat)',
-        t: 'Rugissement de désespoir : PJ à 6 m font un test de SAG (DD 13) ou subissent -2 DEF pour le combat.',
+        t: 'Pousse un rugissement de désespoir : les PJ à moins de 6 m doivent réussir un test de SAG (SR 13) ou subir -2 DEF pour tout le combat.',
       },
       {
         n: 'Force du Chaos',
-        t: 'Sous 20 PV, gagne l’Avantage sur toutes ses attaques mais perd 2 points de DEF.',
+        t: 'Si ses PV tombent sous 20, gagne l’Avantage sur toutes ses attaques mais perd 2 points de DEF.',
       },
       {
         n: 'Armure du Néant',
-        t: 'Réduit de 3 tous les dégâts physiques (sauf fer froid ou argent pur).',
+        t: 'Réduit de 3 tous les dégâts physiques subis (sauf Fer Froid ou Argent pur).',
       },
     ],
     tactique:
-      'Guerrier brutal frontal. Cherche le PJ à la FOR la plus haute. Vulnérable aux sorts de Lumière pure.',
-    butin: 'Heaume de l’Ours Sanglant (Artéfact rare : résistance à la peur mais +1 Corruption permanente tant qu’il est porté).',
+      'Guerrier brutal attaquant de front sans repli. Cherche systématiquement le combattant le plus fort physiquement. Vulnérable aux sorts de Lumière pure (Hachlys).',
+    butin: 'Heaume de l’Ours Sanglant (Artéfact rare : confère immunité à la Peur mais impose +1 Corruption permanente tant qu’il est porté).',
   },
 ];
 
@@ -1863,7 +2013,7 @@ export const THARNEA_ARTIFACTS: Equipment[] = [
     source: 'tharnea',
     cat: 'Artéfact légendaire',
     type: 'Artéfact de vérité',
-    activation: 'Incantation : « Vitra orbo, veron montru; mensoge mallumiĝu »',
+    activation: 'Incantation : « Vitra orbo, veron montru; mensoge mallumiĝu » (« Orbe de verre, montre la vérité ; au mensonge, obscurcis-toi. »)',
     prix: '650 pa',
     desc: 'Révèle le mensonge d’une cible située à 3 mètres ou moins. Si la cible ment sciemment, l’orbe noircit et émet une sourde vibration (sans la forcer à parler).',
   },
@@ -1925,7 +2075,7 @@ export const THARNEA_ARTIFACTS: Equipment[] = [
     desc: 'Allège le porteur : sauts doublés en distance et hauteur, dégâts de chute divisés par deux.',
   },
   {
-    n: 'Lame d’Effroi Visuel',
+    n: 'Lame d’Effroi Visuel (Lame infligeant peur à sa vision)',
     source: 'tharnea',
     cat: 'Arme',
     type: 'Arme runique',

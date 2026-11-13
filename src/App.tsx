@@ -502,9 +502,9 @@ export default function App() {
           return;
         }
 
-        alert('Format JSON non reconnu pour un personnage Chroniques Oubliées.');
+        showToast('❌ Format JSON non reconnu pour un personnage Chroniques Oubliées.');
       } catch (err: any) {
-        alert('Erreur lors de la lecture du fichier : ' + err.message);
+        showToast('❌ Erreur lors de la lecture du fichier : ' + err.message);
       }
     };
     reader.readAsText(file);
@@ -1030,7 +1030,7 @@ export default function App() {
       a.click();
       showToast('📥 Application Meneur de Jeu autonome téléchargée !');
     } catch (err: any) {
-      alert('Erreur lors du téléchargement : ' + (err?.message || String(err)));
+      showToast('❌ Erreur lors du téléchargement : ' + (err?.message || String(err)));
     }
   };
 

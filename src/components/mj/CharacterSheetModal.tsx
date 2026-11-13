@@ -62,33 +62,43 @@ export const CharacterSheetModal: React.FC<CharacterSheetModalProps> = ({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-xs p-3 sm:p-4 animate-fadeIn">
       <div className="bg-[#181410] border-2 border-[#d4a84a] rounded-xl w-full max-w-4xl shadow-2xl p-5 space-y-4 max-h-[92vh] overflow-y-auto">
         {/* Header avec Identité */}
-        <div className="flex items-start justify-between border-b border-[#3d3023] pb-3 gap-2">
-          <div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <span
-                className={`text-[10px] px-2 py-0.5 rounded font-bold uppercase tracking-wider ${
-                  pj.isPnj
-                    ? 'bg-[#18283a] text-[#7db5ff] border border-[#2b4c6f]'
-                    : 'bg-[#291e13] text-[#f3d48d] border border-[#d4a84a]/50'
-                }`}
-              >
-                {pj.isPnj ? pj.rolePnj || 'PNJ Allié' : 'Personnage Joueur (PJ)'}
-              </span>
-              <h3 className="font-serif-co text-2xl font-bold text-[#f3d48d]">
-                {pj.name}
-              </h3>
-              <span className="text-xs font-mono font-bold px-2 py-0.5 rounded bg-[#231c15] text-[#ede3d1] border border-[#3d3023]">
-                Niveau {pj.level}
-              </span>
+        <div className="flex items-start justify-between border-b border-[#3d3023] pb-3 gap-3">
+          <div className="flex items-start gap-3">
+            {pj.portrait && (
+              <img
+                src={pj.portrait}
+                alt={pj.name}
+                referrerPolicy="no-referrer"
+                className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl object-cover border-2 border-[#d4a84a]/70 shrink-0 shadow-md"
+              />
+            )}
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span
+                  className={`text-[10px] px-2 py-0.5 rounded font-bold uppercase tracking-wider ${
+                    pj.isPnj
+                      ? 'bg-[#18283a] text-[#7db5ff] border border-[#2b4c6f]'
+                      : 'bg-[#291e13] text-[#f3d48d] border border-[#d4a84a]/50'
+                  }`}
+                >
+                  {pj.isPnj ? pj.rolePnj || 'PNJ Allié' : 'Personnage Joueur (PJ)'}
+                </span>
+                <h3 className="font-serif-co text-2xl font-bold text-[#f3d48d]">
+                  {pj.name}
+                </h3>
+                <span className="text-xs font-mono font-bold px-2 py-0.5 rounded bg-[#231c15] text-[#ede3d1] border border-[#3d3023]">
+                  Niveau {pj.level}
+                </span>
+              </div>
+              <p className="text-xs text-[#9e907d] mt-1">
+                <b>{rc.n}</b> · <b>{pr.n}</b> (Dé de Vie d{pr.dv}) {pj.player && <span>• Joueur : {pj.player}</span>}
+              </p>
             </div>
-            <p className="text-xs text-[#9e907d] mt-1">
-              <b>{rc.n}</b> · <b>{pr.n}</b> (Dé de Vie d{pr.dv}) {pj.player && <span>• Joueur : {pj.player}</span>}
-            </p>
           </div>
 
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-[#9e907d] hover:text-[#ede3d1] hover:bg-[#231c15] transition-colors"
+            className="p-1.5 rounded-lg text-[#9e907d] hover:text-[#ede3d1] hover:bg-[#231c15] transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>

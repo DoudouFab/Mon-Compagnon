@@ -5,8 +5,10 @@
 
 import React, { useState } from 'react';
 import { X, UserPlus, Shield, Swords, Heart, Sparkles, Dices } from 'lucide-react';
-import { Character, Combatant, CaracName } from '../../types/chroniques';
+import { CaracName, Character, Combatant } from '../../types/chroniques';
 import { CARAC_LIST, PROFILS, RACES, getMod } from '../../data/coDatabase';
+import { useToast } from '../common/ToastContext';
+import { PortraitPicker } from '../common/PortraitPicker';
 
 interface PnjCreatorModalProps {
   isOpen: boolean;
@@ -19,6 +21,8 @@ export const PnjCreatorModal: React.FC<PnjCreatorModalProps> = ({
   onClose,
   onSave,
 }) => {
+  const { warning } = useToast();
+  const [portrait, setPortrait] = useState<string | undefined>(undefined);
   if (!isOpen) return null;
 
   const [name, setName] = useState('');
@@ -70,7 +74,7 @@ export const PnjCreatorModal: React.FC<PnjCreatorModalProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) {
-      alert('Veuillez entrer un nom pour le PNJ.');
+      warning('Veuillez entrer un nom pour le PNJ.');
       return;
     }
 
@@ -119,6 +123,7 @@ export const PnjCreatorModal: React.FC<PnjCreatorModalProps> = ({
         etats: [],
         isPnj: true,
         rolePnj: role,
+        portrait: portrait || undefined,
       };
     }
 
@@ -378,6 +383,19 @@ export const PnjCreatorModal: React.FC<PnjCreatorModalProps> = ({
               className="w-full px-3 py-2 bg-[#231c15] border border-[#3d3023] rounded-lg text-[#ede3d1] text-xs outline-none focus:border-[#d4a84a]"
             />
           </div>
+
+          <PortraitPicker
+            value={portrait}
+            onChange={setPortrait}
+            characterDraft={{
+              name: name || 'PNJ',
+              race,
+              profil,
+              persoTraits: notes,
+            }}
+            compact
+            label="Visuel / Portrait du PNJ (Optionnel)"
+          />
 
           {/* Insertion Options */}
           <div className="p-3 bg-[#231c15] border border-[#3d3023] rounded-xl space-y-2">
