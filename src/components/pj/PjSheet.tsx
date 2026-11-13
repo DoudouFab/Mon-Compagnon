@@ -424,6 +424,29 @@ export const PjSheet: React.FC<PjSheetProps> = ({
     );
   };
 
+  const CANDIES_12 = React.useMemo(
+    () => THARNEA_ARTIFACTS.filter((a) => a.cat === 'Bonbon Alchimique'),
+    []
+  );
+
+  const getAnonymousCandyName = (fullName: string): string =>
+    fullName.split(' ').slice(0, 2).join(' ');
+
+  const CANDY_COLOR_SWATCH: Record<string, string> = {
+    'Bonbon Bleu des Profondeurs': 'bg-[#1e6091]',
+    'Bonbon Orange Ampoule': 'bg-[#ea580c]',
+    'Bonbon Vert Caméléon': 'bg-[#166534]',
+    'Bonbon Blanc Souffle-Tempête': 'bg-[#e2e8f0]',
+    'Bonbon Pourpre des Bêtes': 'bg-[#7e22ce]',
+    'Bonbon Noir de l’Abysse': 'bg-[#18181b]',
+    'Bonbon Vert-Pomme Fringant': 'bg-[#65a30d]',
+    'Bonbon Turquoise Centaure': 'bg-[#0d9488]',
+    'Bonbon Jaune Métamorphe-Garde-Robe': 'bg-[#ca8a04]',
+    'Bonbon Rouge Piment-Glaire': 'bg-[#dc2626]',
+    'Bonbon Marron Coupe-Faim de Fer': 'bg-[#78350f]',
+    'Bonbon Rose Crépusculaire': 'bg-[#db2777]',
+  };
+
   const isItemOwnedByPj = (itemName: string): boolean => {
     const key = itemName.trim().toLowerCase();
     if (!key) return false;
@@ -2119,6 +2142,206 @@ export const PjSheet: React.FC<PjSheetProps> = ({
             </div>
           </div>
 
+          {/* BOÎTE À BONBONS DE L'OBSCURE (4x12 = 48 BONBONS) */}
+          {(pj.candyBox ||
+            isItemOwnedByPj("Boîte à Bonbons de l'Obscure") ||
+            isItemOwnedByPj("Boite a Bonbons de l'Obscure")) && (() => {
+            const defaultCounts: Record<string, number> = {};
+            CANDIES_12.forEach((c) => {
+              defaultCounts[c.n] = 4;
+            });
+            const rawBox = pj.candyBox || {
+              unlocked: false,
+              counts: defaultCounts,
+              tasted: [],
+            };
+            const boxCounts = rawBox.counts && typeof rawBox.counts === 'object' ? rawBox.counts : defaultCounts;
+            const boxTasted = Array.isArray(rawBox.tasted) ? rawBox.tasted : [];
+            const box = {
+              unlocked: Boolean(rawBox.unlocked),
+              counts: boxCounts,
+              tasted: boxTasted,
+            };
+            const totalLeft = CANDIES_12.reduce(
+              (acc, c) => acc + (box.counts[c.n] ?? 4),
+              0
+            );
+            const tastedCount = CANDIES_12.filter((c) =>
+              box.tasted.includes(c.n)
+            ).length;
+
+            const handleTasteOrTakeCandy = (candyName: string) => {
+              const currentCount = box.counts[candyName] ?? 4;
+              if (currentCount <= 0) {
+                warning(`Il ne reste plus aucun ${getAnonymousCandyName(candyName)} dans votre boîte.`);
+                return;
+              }
+              const wasTasted = box.tasted.includes(candyName);
+              const nextCounts: Record<string, number> = {
+                ...defaultCounts,
+                ...box.counts,
+                [candyName]: currentCount - 1,
+              };
+              const nextTasted = wasTasted ? box.tasted : [...box.tasted, candyName];
+              onUpdatePj({
+                ...pj,
+                candyBox: {
+                  unlocked: box.unlocked,
+                  counts: nextCounts,
+                  tasted: nextTasted,
+                },
+              });
+              const candyObj = CANDIES_12.find((c) => c.n === candyName);
+              if (!wasTasted) {
+                success(
+                  `🍬 Dégustation ! Le ${getAnonymousCandyName(candyName)} révèle son secret : « ${candyName} » ! ${candyObj?.desc || ''}`
+                );
+              } else {
+                success(
+                  `🍬 1 × ${candyName} consommé (reste ${currentCount - 1}/4 dans la boîte).`
+                );
+              }
+            };
+
+            return (
+              <div className="bg-gradient-to-br from-[#280c3d] via-[#1c092b] to-[#14071f] border-2 border-[#d4a84a] rounded-xl p-4 space-y-3 shadow-lg">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#7e22ce]/50 pb-2.5">
+                  <div>
+                    <h4 className="font-serif-co text-base font-bold text-[#fde047] flex items-center gap-2">
+                      <span>🎁</span>
+                      <span>Boîte à Bonbons de l&apos;Obscure</span>
+                    </h4>
+                    <p className="text-[11px] text-[#e9d5ff]">
+                      {box.unlocked
+                        ? `${totalLeft}/48 bonbons restants • ${tastedCount}/12 couleurs identifiées (1er test pour découvrir l'effet + 3 pour le jeu)`
+                        : "Coffret d'ébène scellé — Réussissez à l'ouvrir en jeu et attendez le déblocage du MJ."}
+                    </p>
+                  </div>
+                  {!box.unlocked ? (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        info(
+                          "🔒 Le coffret est encore scellé ! Réussissez à l'ouvrir en partie : votre MJ le débloquera ensuite pour vous."
+                        )
+                      }
+                      className="px-3 py-1.5 rounded-lg bg-[#3b1259] hover:bg-[#4e1875] border border-[#d4a84a] text-[#fde047] font-bold text-xs flex items-center gap-1.5 cursor-pointer shrink-0"
+                    >
+                      <Lock className="w-3.5 h-3.5" /> Ouvrir la boîte
+                    </button>
+                  ) : (
+                    <span className="text-[10px] font-bold px-2.5 py-1 rounded bg-[#18301c] text-[#86efac] border border-[#2d5e37] shrink-0">
+                      ✓ Coffret ouvert
+                    </span>
+                  )}
+                </div>
+
+                {!box.unlocked ? (
+                  <div className="p-3 rounded-lg bg-[#140620] border border-[#581c87]/60 text-xs text-[#d8b4fe] flex items-center gap-2">
+                    <Lock className="w-4 h-4 text-[#fde047] shrink-0" />
+                    <span>
+                      Les 48 bonbons (12 couleurs × 4 exemplaires) et leurs effets restent cachés tant que le coffret n&apos;est pas ouvert avec l&apos;accord du MJ.
+                    </span>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+                    {CANDIES_12.map((candy) => {
+                      const count = box.counts[candy.n] ?? 4;
+                      const revealed = box.tasted.includes(candy.n) || isItemOwnedByPj(candy.n);
+                      const anonName = getAnonymousCandyName(candy.n);
+                      const swatchClass = CANDY_COLOR_SWATCH[candy.n] || 'bg-[#9333ea]';
+                      return (
+                        <div
+                          key={candy.n}
+                          className={`p-3 rounded-lg border flex flex-col justify-between gap-2 ${
+                            count <= 0
+                              ? 'bg-[#120b17]/60 border-[#2d1e38] opacity-60'
+                              : revealed
+                              ? 'bg-[#221030] border-[#a855f7]/70'
+                              : 'bg-[#170c21] border-[#4c1d95]'
+                          }`}
+                        >
+                          <div className="space-y-1.5">
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="flex items-center gap-2 min-w-0">
+                                <span
+                                  className={`w-3.5 h-3.5 rounded-full border border-white/40 shrink-0 ${swatchClass}`}
+                                  aria-hidden="true"
+                                />
+                                {revealed ? (
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      setDetailItem({ type: 'equipment', data: candy })
+                                    }
+                                    className="font-serif-co text-xs font-bold text-[#f5d0fe] hover:text-white hover:underline text-left truncate cursor-pointer flex items-center gap-1"
+                                  >
+                                    <span className="truncate">{candy.n}</span>
+                                    <Info className="w-3 h-3 text-[#d4a84a] shrink-0" />
+                                  </button>
+                                ) : (
+                                  <span className="font-serif-co text-xs font-bold text-[#e9d5ff] truncate">
+                                    {anonName}
+                                  </span>
+                                )}
+                              </div>
+                              <span
+                                className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded shrink-0 ${
+                                  count > 0
+                                    ? 'bg-[#2e1047] text-[#fde047] border border-[#7e22ce]'
+                                    : 'bg-[#1f1726] text-[#8c7a99]'
+                                }`}
+                              >
+                                {count}/4
+                              </span>
+                            </div>
+
+                            {revealed ? (
+                              <div className="space-y-1">
+                                <p className="text-[11px] text-[#ede3d1] leading-snug">
+                                  {candy.desc}
+                                </p>
+                                {candy.effetSecondaire && (
+                                  <p className="text-[10px] text-[#f5b7ff] italic leading-snug">
+                                    {candy.effetSecondaire}
+                                  </p>
+                                )}
+                              </div>
+                            ) : (
+                              <p className="text-[11px] text-[#a78bfa] italic flex items-center gap-1">
+                                <Lock className="w-3 h-3 shrink-0" />
+                                Effet secret : goûtez 1 bonbon pour le découvrir.
+                              </p>
+                            )}
+                          </div>
+
+                          <button
+                            type="button"
+                            disabled={count <= 0}
+                            onClick={() => handleTasteOrTakeCandy(candy.n)}
+                            className={`w-full py-1.5 px-2.5 rounded-lg text-[11px] font-bold flex items-center justify-center gap-1 transition-colors ${
+                              count <= 0
+                                ? 'bg-[#1c1424] text-[#6d5c7a] cursor-not-allowed'
+                                : revealed
+                                ? 'bg-[#3b1c54] hover:bg-[#4c246e] text-[#f5d0fe] border border-[#a855f7]/60 cursor-pointer'
+                                : 'bg-gradient-to-r from-[#d4a84a] to-[#ab8230] hover:brightness-110 text-[#1a1208] cursor-pointer'
+                            }`}
+                          >
+                            {count <= 0
+                              ? 'Épuisé (0/4)'
+                              : revealed
+                              ? '🍬 Prendre 1 bonbon'
+                              : '👅 Goûter (1er test)'}
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+
           {/* CONSOMMABLES & MUNITIONS AVEC SAISIE NUMÉRIQUE DIRECTE */}
           <div className="bg-[#181410] border border-[#3d3023] rounded-xl p-4 space-y-3">
             <h4 className="font-serif-co text-sm font-bold text-[#f3d48d]">
@@ -2401,22 +2624,28 @@ export const PjSheet: React.FC<PjSheetProps> = ({
                   const q = catalogQuery.trim().toLowerCase();
                   if (!q) return true;
                   const owned = isItemOwnedByPj(it.n);
-                  if (owned) {
+                  const isCandy = it.cat === 'Bonbon Alchimique';
+                  const revealed = owned || (isCandy && !!pj.candyBox?.tasted?.includes(it.n));
+                  if (revealed) {
                     return (it.n + (it.desc || '') + (it.cat || '')).toLowerCase().includes(q);
                   }
-                  return it.n.toLowerCase().includes(q);
+                  const blindName = isCandy ? getAnonymousCandyName(it.n) : it.n;
+                  return blindName.toLowerCase().includes(q);
                 }).map((it, idx) => {
                   const owned = isItemOwnedByPj(it.n);
+                  const isCandy = it.cat === 'Bonbon Alchimique';
+                  const revealed = owned || (isCandy && !!pj.candyBox?.tasted?.includes(it.n));
+                  const displayName = !isCandy || revealed ? it.n : getAnonymousCandyName(it.n);
                   return (
                     <div
                       key={idx}
                       className={`p-3 rounded-lg border flex items-center justify-between gap-2 ${
-                        owned
+                        revealed
                           ? 'bg-[#241320] border-[#a855f7]/60'
                           : 'bg-[#171217] border-[#302330]'
                       }`}
                     >
-                      {owned ? (
+                      {revealed ? (
                         <button
                           type="button"
                           onClick={() =>
@@ -2428,21 +2657,21 @@ export const PjSheet: React.FC<PjSheetProps> = ({
                           className="flex-1 text-left group cursor-pointer flex items-center gap-2"
                         >
                           <b className="text-[#f7cbf2] text-sm group-hover:text-white group-hover:underline">
-                            {it.n}
+                            {displayName}
                           </b>
                           <Info className="w-3.5 h-3.5 text-[#ff8fed] shrink-0" />
                         </button>
                       ) : (
-                        <span className="text-sm font-medium text-[#cbb8cb]">{it.n}</span>
+                        <span className="text-sm font-medium text-[#cbb8cb]">{displayName}</span>
                       )}
 
-                      {owned ? (
+                      {revealed ? (
                         <span className="text-[10px] px-2 py-0.5 rounded bg-[#18301c] text-[#86efac] border border-[#2d5e37] font-bold shrink-0">
-                          ✓ Acquis
+                          ✓ {owned ? 'Acquis' : 'Goûté'}
                         </span>
                       ) : (
                         <span className="text-[10px] px-2 py-0.5 rounded bg-[#1f1821] text-[#9a869c] border border-[#3a2a3d] font-semibold flex items-center gap-1 shrink-0">
-                          <Lock className="w-3 h-3" /> MJ seul
+                          <Lock className="w-3 h-3" /> {isCandy ? 'Goûter / MJ' : 'MJ seul'}
                         </span>
                       )}
                     </div>

@@ -174,28 +174,39 @@ export default function App() {
   };
 
   const handleCopyLink = (type: 'pj' | 'mj') => {
+    const origin = window.location.origin;
+    const pathname = window.location.pathname;
+    const url = type === 'pj' ? `${origin}${pathname}#pj` : `${origin}${pathname}#mj001`;
+    const notifyOk = () =>
+      showToast(
+        type === 'pj'
+          ? '📋 Lien Joueurs copié ! (Interface MJ totalement invisible pour eux)'
+          : '🔐 Lien privé MJ copié ! (#mj001)'
+      );
+    const fallbackCopy = () => {
+      try {
+        const el = document.createElement('textarea');
+        el.value = url;
+        el.style.position = 'fixed';
+        el.style.opacity = '0';
+        document.body.appendChild(el);
+        el.select();
+        const ok = document.execCommand('copy');
+        document.body.removeChild(el);
+        if (ok) notifyOk();
+        else showToast(`Lien ${type.toUpperCase()} : ${url}`);
+      } catch {
+        showToast(`Lien ${type.toUpperCase()} : ${url}`);
+      }
+    };
     try {
-      const origin = window.location.origin;
-      const pathname = window.location.pathname;
-      const url = type === 'pj' ? `${origin}${pathname}#pj` : `${origin}${pathname}#mj001`;
       if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(url).then(
-          () => {
-            showToast(
-              type === 'pj'
-                ? '📋 Lien Joueurs copié ! (Interface MJ totalement invisible pour eux)'
-                : '🔐 Lien privé MJ copié ! (#mj001)'
-            );
-          },
-          () => {
-            prompt('Copiez ce lien :', url);
-          }
-        );
+        navigator.clipboard.writeText(url).then(notifyOk, fallbackCopy);
       } else {
-        prompt('Copiez ce lien :', url);
+        fallbackCopy();
       }
     } catch {
-      showToast('Action impossible sur ce navigateur.');
+      fallbackCopy();
     }
   };
 
@@ -723,8 +734,12 @@ export default function App() {
                 ptsCap: remote.ptsCap,
                 ptsCapCadeaux: remote.ptsCapCadeaux,
                 bourse: remote.bourse || curPj.bourse || { po: 0, pa: 0, pc: 0 },
+                arm: remote.arm ?? curPj.arm,
+                bou: remote.bou ?? curPj.bou,
+                armes: remote.armes || curPj.armes || [],
                 etats: remote.etats || [],
                 inventaire: remote.inventaire || [],
+                ...(remote.candyBox !== undefined ? { candyBox: remote.candyBox } : {}),
                 dmPatchAt: remote.dmPatchAt,
               },
               false

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   X,
   Swords,
@@ -14,11 +14,6 @@ import {
   Heart,
   Skull,
   Plus,
-  RefreshCw,
-  Upload,
-  Link2,
-  Trash2,
-  Image as ImageIcon,
 } from 'lucide-react';
 import {
   Equipment,
@@ -30,17 +25,6 @@ import {
   SpellItem,
   WayRank,
 } from '../types/chroniques';
-import {
-  buildMonsterVisualSvg,
-  inspectMonsterCriteria,
-} from '../utils/fantasyPortraitGenerator';
-import {
-  CachedCreatureVisual,
-  getCreatureVisual,
-  removeCreatureVisual,
-  setCreatureVisual,
-} from '../utils/creatureVisualCache';
-import { compressImageFile, isSafeImageUrl, svgToCompressedDataUrl } from '../utils/imageUtils';
 import { useToast } from './common/ToastContext';
 
 export type DetailItem =
@@ -94,109 +78,29 @@ interface DetailModalProps {
   onChangeSelectedPjIds?: (pjIds: string[]) => void;
 }
 
+const EMPTY_PJ_IDS: string[] = [];
+
 export const DetailModal: React.FC<DetailModalProps> = ({
   item,
   onClose,
   onAction,
   hidePrice = false,
   pjRecipients,
-  selectedPjIds = [],
+  selectedPjIds = EMPTY_PJ_IDS,
   onChangeSelectedPjIds,
 }) => {
-  const { success, warning, error } = useToast();
-  const monsterFileRef = useRef<HTMLInputElement>(null);
-  const [monsterVisual, setMonsterVisual] = useState<CachedCreatureVisual | null>(null);
-  const [visualSeed, setVisualSeed] = useState<number>(0);
-  const [visualBusy, setVisualBusy] = useState<boolean>(false);
-  const [showVisualUrlInput, setShowVisualUrlInput] = useState<boolean>(false);
-  const [visualUrlDraft, setVisualUrlDraft] = useState<string>('');
+  const { warning } = useToast();
   const [localSelectedIds, setLocalSelectedIds] = useState<string[]>(selectedPjIds);
+  const selectedPjIdsKey = selectedPjIds.join('|');
 
   useEffect(() => {
-    setLocalSelectedIds(selectedPjIds);
-  }, [selectedPjIds, item]);
-
-  const isMonster = item && (item.type === 'monster' || item.type === 'monstre');
-  const currentMonster = isMonster ? (item.data as Monster) : null;
-
-  useEffect(() => {
-    if (currentMonster) {
-      const cached = getCreatureVisual(currentMonster);
-      setMonsterVisual(cached);
-      setVisualSeed(cached?.variantSeed || 0);
-      setShowVisualUrlInput(false);
-      setVisualUrlDraft('');
-    } else {
-      setMonsterVisual(null);
-    }
-  }, [currentMonster?.n, currentMonster?.source]);
+    setLocalSelectedIds((prev) =>
+      prev.join('|') === selectedPjIdsKey ? prev : [...selectedPjIds]
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedPjIdsKey, item]);
 
   if (!item) return null;
-
-  const handleGenerateMonsterVisual = async (nextSeed: number) => {
-    if (!currentMonster) return;
-    setVisualBusy(true);
-    try {
-      const svg = buildMonsterVisualSvg(currentMonster, nextSeed);
-      const dataUrl = await svgToCompressedDataUrl(svg, 384, 0.85);
-      const saved = setCreatureVisual(currentMonster, {
-        url: dataUrl,
-        mode: 'generated',
-        variantSeed: nextSeed,
-      });
-      setVisualSeed(nextSeed);
-      setMonsterVisual({
-        url: dataUrl,
-        mode: 'generated',
-        variantSeed: nextSeed,
-        updatedAt: Date.now(),
-      });
-      if (!saved) {
-        warning('Visuel généré, mais le cache local du navigateur est plein.');
-      }
-    } catch (err: any) {
-      error('Erreur de génération : ' + (err?.message || 'Erreur inconnue'));
-    } finally {
-      setVisualBusy(false);
-    }
-  };
-
-  const handleUploadMonsterVisual = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    e.target.value = '';
-    if (!file || !currentMonster) return;
-    setVisualBusy(true);
-    try {
-      const compressed = await compressImageFile(file, 384, 0.8);
-      setCreatureVisual(currentMonster, { url: compressed, mode: 'uploaded' });
-      setMonsterVisual({ url: compressed, mode: 'uploaded', updatedAt: Date.now() });
-      success(`Visuel de "${currentMonster.n}" importé et mis en cache !`);
-    } catch (err: any) {
-      error(err?.message || "Impossible d'importer l'image.");
-    } finally {
-      setVisualBusy(false);
-    }
-  };
-
-  const handleApplyMonsterUrl = () => {
-    if (!currentMonster) return;
-    if (!visualUrlDraft.trim() || !isSafeImageUrl(visualUrlDraft)) {
-      warning("Veuillez saisir une URL d'image valide (https://... ou /...).");
-      return;
-    }
-    const cleanUrl = visualUrlDraft.trim();
-    setCreatureVisual(currentMonster, { url: cleanUrl, mode: 'url' });
-    setMonsterVisual({ url: cleanUrl, mode: 'url', updatedAt: Date.now() });
-    setShowVisualUrlInput(false);
-    setVisualUrlDraft('');
-    success(`Visuel lié à "${currentMonster.n}" !`);
-  };
-
-  const handleClearMonsterVisual = () => {
-    if (!currentMonster) return;
-    removeCreatureVisual(currentMonster);
-    setMonsterVisual(currentMonster.imageUrl ? { url: currentMonster.imageUrl, mode: 'url', updatedAt: 0 } : null);
-  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-xs p-3 sm:p-5 animate-fadeIn">
@@ -283,132 +187,6 @@ export const DetailModal: React.FC<DetailModalProps> = ({
                   </span>
                 </div>
               )}
-
-              {/* Visuel de la créature (aperçu immédiat gratuit / variante / importé / cache) */}
-              {(() => {
-                const crit = inspectMonsterCriteria(item.data);
-                const liveSvgPreview = !monsterVisual?.url
-                  ? `data:image/svg+xml;utf8,${encodeURIComponent(buildMonsterVisualSvg(item.data, visualSeed))}`
-                  : null;
-                const displayUrl = monsterVisual?.url || liveSvgPreview;
-                return (
-                  <div className="bg-[#14100c] border border-[#3d3023] rounded-xl p-3 flex flex-col sm:flex-row items-center gap-3.5">
-                    <div className="w-32 h-32 rounded-xl overflow-hidden border-2 border-[#d4a84a]/60 bg-[#0d0a08] shrink-0 flex items-center justify-center shadow-inner relative">
-                      {displayUrl ? (
-                        <img
-                          src={displayUrl}
-                          alt={item.data.n}
-                          referrerPolicy="no-referrer"
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="text-center p-2 text-[#7a6b59]">
-                          <ImageIcon className="w-8 h-8 mx-auto opacity-50 mb-1" />
-                          <span className="text-[10px] block leading-tight">
-                            Aucun visuel en cache
-                          </span>
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="flex-1 w-full space-y-2">
-                      <div className="flex flex-wrap items-center gap-1.5 text-[10px]">
-                        <span className="px-2 py-0.5 rounded bg-[#231c15] border border-[#3d3023] text-[#f3d48d] font-semibold">
-                          {crit.archetypeLabel}
-                        </span>
-                        <span className="px-2 py-0.5 rounded bg-[#231c15] border border-[#3d3023] text-[#cbb8a7]">
-                          📍 {crit.environmentLabel}
-                        </span>
-                        <span className="px-2 py-0.5 rounded bg-[#231c15] border border-[#3d3023] text-[#cbb8a7]">
-                          📏 {crit.scaleLabel}
-                        </span>
-                        <span className="px-2 py-0.5 rounded bg-[#231c15] border border-[#3d3023] text-[#ff9d9d] font-bold">
-                          {crit.dangerLabel}
-                        </span>
-                      </div>
-
-                      <div className="flex flex-wrap items-center gap-1.5">
-                        <button
-                          type="button"
-                          disabled={visualBusy}
-                          onClick={() => handleGenerateMonsterVisual(monsterVisual?.mode === 'generated' ? visualSeed + 1 : 0)}
-                          className="px-2.5 py-1.5 rounded-lg bg-[#2a1d12] hover:bg-[#3b2919] border border-[#d4a84a]/60 text-[#f3d48d] text-xs font-bold flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-                          title="Générer un visuel gratuit fidèle aux critères de la créature (ou rafraîchir une variante)"
-                        >
-                          {monsterVisual?.mode === 'generated' ? (
-                            <RefreshCw className="w-3.5 h-3.5" />
-                          ) : (
-                            <Sparkles className="w-3.5 h-3.5" />
-                          )}
-                          <span>
-                            {monsterVisual?.mode === 'generated'
-                              ? 'Variante (Refresh)'
-                              : 'Générer visuel (critères)'}
-                          </span>
-                        </button>
-
-                        <button
-                          type="button"
-                          disabled={visualBusy}
-                          onClick={() => monsterFileRef.current?.click()}
-                          className="px-2.5 py-1.5 rounded-lg bg-[#231c15] hover:bg-[#32271d] border border-[#3d3023] text-[#ede3d1] text-xs font-semibold flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-                          title="Importer votre propre illustration pour cette créature"
-                        >
-                          <Upload className="w-3.5 h-3.5 text-[#86efac]" />
-                          <span>Importer visuel</span>
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => setShowVisualUrlInput((s) => !s)}
-                          className="px-2.5 py-1.5 rounded-lg bg-[#231c15] hover:bg-[#32271d] border border-[#3d3023] text-[#cbb8a7] text-xs font-semibold flex items-center gap-1 cursor-pointer"
-                        >
-                          <Link2 className="w-3.5 h-3.5 text-[#93c5fd]" />
-                          <span>URL</span>
-                        </button>
-
-                        {monsterVisual && (
-                          <button
-                            type="button"
-                            onClick={handleClearMonsterVisual}
-                            className="px-2 py-1.5 rounded-lg bg-[#301616] hover:bg-[#471f1f] border border-[#6b2525] text-[#fca5a5] text-xs font-semibold flex items-center gap-1 cursor-pointer"
-                            title="Retirer le visuel en cache"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        )}
-                      </div>
-
-                      <input
-                        ref={monsterFileRef}
-                        type="file"
-                        accept="image/*"
-                        onChange={handleUploadMonsterVisual}
-                        className="hidden"
-                      />
-
-                      {showVisualUrlInput && (
-                        <div className="flex items-center gap-1.5">
-                          <input
-                            type="url"
-                            value={visualUrlDraft}
-                            onChange={(e) => setVisualUrlDraft(e.target.value)}
-                            placeholder="https://exemple.com/creature.jpg"
-                            className="flex-1 bg-[#1e1711] border border-[#3d3023] focus:border-[#d4a84a] rounded-lg px-2.5 py-1 text-xs text-[#ede3d1] outline-none"
-                          />
-                          <button
-                            type="button"
-                            onClick={handleApplyMonsterUrl}
-                            className="px-2.5 py-1 rounded-lg bg-[#d4a84a] text-black font-bold text-xs cursor-pointer"
-                          >
-                            OK
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                );
-              })()}
 
               {/* Stat badges */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">

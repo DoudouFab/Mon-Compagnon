@@ -40,13 +40,37 @@ export const ShareModal: React.FC<ShareModalProps> = ({
     const targetUrl = type === 'pj' ? pjUrl : mjUrl;
     if (!targetUrl) return;
 
+    const markCopied = () => {
+      setCopiedType(type);
+      setTimeout(() => setCopiedType(null), 2500);
+    };
+
     if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(targetUrl).then(() => {
-        setCopiedType(type);
-        setTimeout(() => setCopiedType(null), 2500);
+      navigator.clipboard.writeText(targetUrl).then(markCopied).catch(() => {
+        try {
+          const el = document.createElement('textarea');
+          el.value = targetUrl;
+          el.style.position = 'fixed';
+          el.style.opacity = '0';
+          document.body.appendChild(el);
+          el.select();
+          document.execCommand('copy');
+          document.body.removeChild(el);
+          markCopied();
+        } catch {}
       });
     } else {
-      prompt('Copiez ce lien :', targetUrl);
+      try {
+        const el = document.createElement('textarea');
+        el.value = targetUrl;
+        el.style.position = 'fixed';
+        el.style.opacity = '0';
+        document.body.appendChild(el);
+        el.select();
+        document.execCommand('copy');
+        document.body.removeChild(el);
+        markCopied();
+      } catch {}
     }
   };
 

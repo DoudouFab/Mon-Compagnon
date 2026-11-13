@@ -55,10 +55,12 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenFeed,
   unreadFeedCount = 0,
 }) => {
-  const openOtherInNewTab = () => {
-    const targetHash = appMode === 'pj' ? '#mj001' : '#pj';
-    window.open(window.location.origin + window.location.pathname + targetHash, '_blank');
-  };
+  const secondTabHref =
+    typeof window !== 'undefined'
+      ? `${window.location.pathname}${appMode === 'pj' ? '#mj001' : '#pj'}`
+      : appMode === 'pj'
+      ? '#mj001'
+      : '#pj';
 
   return (
     <header className="no-print sticky top-0 z-40 bg-gradient-to-b from-[#26140f] via-[#17110c] to-[#110e0b] border-b border-[#3d3023] shadow-lg">
@@ -280,15 +282,16 @@ export const Header: React.FC<HeaderProps> = ({
                 <span>Lien MJ</span>
               </button>
 
-              <button
-                type="button"
-                onClick={openOtherInNewTab}
+              <a
+                href={secondTabHref}
+                target="_blank"
+                rel="noopener noreferrer"
                 title={appMode === 'pj' ? 'Ouvrir la Console MJ dans un 2e onglet' : 'Ouvrir la Fiche PJ dans un 2e onglet'}
                 className="px-2 py-0.5 rounded bg-[#1b1510] hover:bg-[#292018] border border-[#3d3023] text-[#cbb8a7] hover:text-[#ede3d1] font-medium flex items-center gap-1 transition-colors cursor-pointer whitespace-nowrap"
               >
                 <ExternalLink className="w-3 h-3" />
                 <span>{appMode === 'pj' ? '2e onglet MJ' : '2e onglet PJ'}</span>
-              </button>
+              </a>
 
               <button
                 type="button"

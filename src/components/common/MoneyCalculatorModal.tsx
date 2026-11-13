@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   X,
   Coins,
@@ -19,6 +19,12 @@ import {
 import { CurrencyBourse } from '../../types/chroniques';
 import { useToast } from './ToastContext';
 
+export interface MoneyRecipientOption {
+  id: string;
+  name: string;
+  isPnj?: boolean;
+}
+
 interface MoneyCalculatorModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -27,7 +33,8 @@ interface MoneyCalculatorModalProps {
   characterName?: string;
   partyCount?: number;
   isMj?: boolean;
-  onDistributeToAllPjs?: (share: CurrencyBourse) => void;
+  recipients?: MoneyRecipientOption[];
+  onDistributeToAllPjs?: (share: CurrencyBourse, recipientIds?: string[]) => void;
 }
 
 export const MoneyCalculatorModal: React.FC<MoneyCalculatorModalProps> = ({
@@ -38,6 +45,7 @@ export const MoneyCalculatorModal: React.FC<MoneyCalculatorModalProps> = ({
   characterName,
   partyCount = 4,
   isMj = false,
+  recipients,
   onDistributeToAllPjs,
 }) => {
   const { error, warning, success } = useToast();
@@ -54,6 +62,33 @@ export const MoneyCalculatorModal: React.FC<MoneyCalculatorModalProps> = ({
   const [lootPa, setLootPa] = useState<number>(0);
   const [lootPc, setLootPc] = useState<number>(0);
   const [splitCount, setSplitCount] = useState<number>(partyCount > 0 ? partyCount : 4);
+  const [selectedRecipientIds, setSelectedRecipientIds] = useState<string[]>(() => {
+    if (!recipients || recipients.length === 0) return [];
+    const pjsOnly = recipients.filter((r) => !r.isPnj).map((r) => r.id);
+    return pjsOnly.length > 0 ? pjsOnly : recipients.map((r) => r.id);
+  });
+
+  const recipientsKey = (recipients || [])
+    .map((r) => `${r.id}:${r.isPnj ? 1 : 0}`)
+    .join('|');
+
+  useEffect(() => {
+    if (!isOpen || !recipients || recipients.length === 0) return;
+    const validIds = new Set(recipients.map((r) => r.id));
+    const kept = selectedRecipientIds.filter((id) => validIds.has(id));
+    if (kept.length > 0) {
+      if (kept.length !== selectedRecipientIds.length) {
+        setSelectedRecipientIds(kept);
+        setSplitCount(Math.max(1, kept.length));
+      }
+      return;
+    }
+    const pjsOnly = recipients.filter((r) => !r.isPnj).map((r) => r.id);
+    const defaults = pjsOnly.length > 0 ? pjsOnly : recipients.map((r) => r.id);
+    setSelectedRecipientIds(defaults);
+    setSplitCount(Math.max(1, defaults.length));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, recipientsKey]);
 
   // Mini calculatrice arithmétique
   const [calcDisplay, setCalcDisplay] = useState<string>('0');
@@ -557,6 +592,84 @@ export const MoneyCalculatorModal: React.FC<MoneyCalculatorModalProps> = ({
                   </div>
                 </div>
 
+                {/* Sélection multi-destinataires PJ & PNJ pour le MJ */}
+                {isMj && onDistributeToAllPjs && recipients && recipients.length > 0 && (
+                  <div className="bg-[#120d09] border border-[#3d2b1c] rounded-xl p-2.5 space-y-2">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <span className="text-[11px] font-bold text-[#f3d48d]">
+                        Bénéficiaires cochés ({selectedRecipientIds.length}/{recipients.length}) :
+                      </span>
+                      <div className="flex flex-wrap items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const pjsOnly = recipients.filter((r) => !r.isPnj).map((r) => r.id);
+                            setSelectedRecipientIds(pjsOnly);
+                            if (pjsOnly.length > 0) setSplitCount(pjsOnly.length);
+                          }}
+                          className="px-2 py-0.5 rounded bg-[#2a1d11] hover:bg-[#3a2817] border border-[#5c3e20] text-[10px] font-bold text-[#f3d48d] cursor-pointer"
+                        >
+                          PJ seuls
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const all = recipients.map((r) => r.id);
+                            setSelectedRecipientIds(all);
+                            if (all.length > 0) setSplitCount(all.length);
+                          }}
+                          className="px-2 py-0.5 rounded bg-[#231c15] hover:bg-[#32271d] border border-[#3d3023] text-[10px] font-bold text-[#f3d48d] cursor-pointer"
+                        >
+                          Tout sélectionner
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedRecipientIds([])}
+                          className="px-2 py-0.5 rounded bg-[#231c15] hover:bg-[#32271d] border border-[#3d3023] text-[10px] font-semibold text-[#9e907d] cursor-pointer"
+                        >
+                          Tout désélectionner
+                        </button>
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {recipients.map((r) => {
+                        const checked = selectedRecipientIds.includes(r.id);
+                        return (
+                          <label
+                            key={r.id}
+                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs cursor-pointer transition-colors ${
+                              checked
+                                ? 'bg-[#1c2e16] border-[#6fa85b] text-[#ede3d1]'
+                                : 'bg-[#1a140f] border-[#30251a] text-[#a0907d] hover:border-[#4d3b29]'
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={() => {
+                                const next = checked
+                                  ? selectedRecipientIds.filter((id) => id !== r.id)
+                                  : [...selectedRecipientIds, r.id];
+                                setSelectedRecipientIds(next);
+                                if (next.length > 0) setSplitCount(next.length);
+                              }}
+                              className="w-3.5 h-3.5 accent-[#6fa85b] cursor-pointer"
+                            />
+                            <span className="font-semibold">{r.name}</span>
+                            <span
+                              className={`text-[9px] px-1 rounded font-bold ${
+                                r.isPnj ? 'bg-[#1e3a5f] text-[#93c5fd]' : 'bg-[#3b2a14] text-[#f3d48d]'
+                              }`}
+                            >
+                              {r.isPnj ? 'PNJ' : 'PJ'}
+                            </span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
                 {/* Résultat du partage */}
                 <div className="p-3 bg-[#131d14] border border-[#27592e] rounded-xl text-center space-y-1">
                   <span className="text-[11px] font-bold text-[#86efac] uppercase tracking-wide block">
@@ -574,7 +687,7 @@ export const MoneyCalculatorModal: React.FC<MoneyCalculatorModalProps> = ({
                   )}
                 </div>
 
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                   <button
                     type="button"
                     onClick={() => {
@@ -594,12 +707,22 @@ export const MoneyCalculatorModal: React.FC<MoneyCalculatorModalProps> = ({
                     <button
                       type="button"
                       onClick={() => {
-                        onDistributeToAllPjs({ po: sharePo, pa: sharePa, pc: sharePc });
+                        if (recipients && recipients.length > 0 && selectedRecipientIds.length === 0) {
+                          warning('Cochez au moins un PJ ou PNJ destinataire.');
+                          return;
+                        }
+                        onDistributeToAllPjs(
+                          { po: sharePo, pa: sharePa, pc: sharePc },
+                          recipients && recipients.length > 0 ? selectedRecipientIds : undefined
+                        );
                       }}
                       className="py-2.5 px-3 rounded-xl bg-[#291712] border border-[#d4a84a] text-[#f3d48d] font-bold text-xs shadow-md hover:bg-[#3d2319] flex items-center justify-center gap-1.5 cursor-pointer"
-                      title="Distribuer immédiatement cette part à tous les PJ de la table"
+                      title="Distribuer immédiatement cette part aux PJ/PNJ cochés"
                     >
-                      <Sparkles className="w-4 h-4 text-[#d4a84a]" /> Distribuer à tous les PJ
+                      <Sparkles className="w-4 h-4 text-[#d4a84a]" />{' '}
+                      {recipients && recipients.length > 0
+                        ? `Distribuer aux cochés (${selectedRecipientIds.length})`
+                        : 'Distribuer aux PJ'}
                     </button>
                   )}
                 </div>

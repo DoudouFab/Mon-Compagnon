@@ -34,6 +34,8 @@ import {
   Eraser,
   Copy,
   CheckCircle2,
+  Lock,
+  Unlock,
 } from 'lucide-react';
 import {
   OSGILD_GEOGRAPHY_ASCII,
@@ -151,6 +153,7 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
   const [rolledLoot, setRolledLoot] = useState<{ item: Equipment; rollNumber: number; date: string } | null>(null);
   const [lootHistory, setLootHistory] = useState<{ item: Equipment; rollNumber: number; date: string }[]>([]);
   const [targetPjIdsForLoot, setTargetPjIdsForLoot] = useState<string[]>([]);
+  const [revealCandyBoxOnGrant, setRevealCandyBoxOnGrant] = useState<boolean>(false);
   const [pendingGiftItem, setPendingGiftItem] = useState<Equipment | null>(null);
   const [modalRecipientIds, setModalRecipientIds] = useState<string[]>([]);
 
@@ -209,8 +212,12 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
     };
   };
 
-  // Finances cumulées du groupe d'aventuriers
-  const groupFinances: CurrencyBourse = tableData.pjs.reduce(
+  // Finances cumulées du groupe des PJ uniquement (les PNJ sont comptés à part)
+  const groupPjsOnly = React.useMemo(
+    () => tableData.pjs.filter((p) => !p.isPnj),
+    [tableData.pjs]
+  );
+  const groupFinances: CurrencyBourse = groupPjsOnly.reduce(
     (acc, p) => {
       const b = p.bourse || { po: 0, pa: 0, pc: 0 };
       acc.po += b.po || 0;
@@ -222,7 +229,7 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
   );
   const groupTotalCopper = (groupFinances.po || 0) * 100 + (groupFinances.pa || 0) * 10 + (groupFinances.pc || 0);
   const groupTotalGold = (groupTotalCopper / 100).toFixed(2);
-  const avgGoldPerPj = tableData.pjs.length > 0 ? (groupTotalCopper / (tableData.pjs.length * 100)).toFixed(2) : '0.00';
+  const avgGoldPerPj = groupPjsOnly.length > 0 ? (groupTotalCopper / (groupPjsOnly.length * 100)).toFixed(2) : '0.00';
 
   const handleUpdatePjBourse = (idx: number, newBourse: CurrencyBourse) => {
     const list = [...tableData.pjs];
@@ -230,12 +237,21 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
     onUpdateTableData({ ...tableData, pjs: list });
   };
 
-  const handleDistributeLootToAll = (share: CurrencyBourse) => {
+  const handleDistributeLootToAll = (share: CurrencyBourse, recipientIds?: string[]) => {
     if (tableData.pjs.length === 0) {
       warning("Aucun aventurier dans le groupe.");
       return;
     }
+    if (recipientIds && recipientIds.length === 0) {
+      warning("Sélectionnez au moins un PJ ou PNJ destinataire.");
+      return;
+    }
+    let distributedCount = 0;
     const updatedPjs = tableData.pjs.map((p) => {
+      const key = p.id || p.name;
+      const shouldReceive = recipientIds ? recipientIds.includes(key) : !p.isPnj;
+      if (!shouldReceive) return p;
+      distributedCount += 1;
       const cur = p.bourse || { po: 0, pa: 0, pc: 0 };
       return {
         ...p,
@@ -246,8 +262,12 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
         },
       };
     });
+    if (distributedCount === 0) {
+      warning("Aucun destinataire correspondant sélectionné.");
+      return;
+    }
     onUpdateTableData({ ...tableData, pjs: updatedPjs });
-    success(`Butin distribué à tous les ${updatedPjs.length} aventuriers : +${share.po} PO, ${share.pa} PA, ${share.pc} PC chacun !`);
+    success(`Butin distribué à ${distributedCount} destinataire(s) : +${share.po} PO, ${share.pa} PA, ${share.pc} PC chacun !`);
   };
 
   // Add custom combatant state
@@ -570,7 +590,53 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
         }
       }
 
-      return { ...targetPj, inventaire: inv, armes: updatedArmes };
+      // Auto-équipement complet pour les PNJ (le MJ garde le contrôle rationnel ensuite)
+      let nextArm = targetPj.arm;
+      let nextBou = targetPj.bou;
+      if (targetPj.isPnj) {
+        const catLower = (item.cat || '').toLowerCase();
+        const nameLower = (item.n || '').toLowerCase();
+        if (catLower.includes('bouclier') || nameLower.includes('bouclier')) {
+          nextBou = item.n;
+        } else if (item.def !== undefined || catLower.includes('armure')) {
+          nextArm = item.n;
+        }
+      }
+
+      // Gestion dédiée de la Boîte à Bonbons de l'Obscure (4x12 = 48 bonbons)
+      let nextCandyBox = targetPj.candyBox;
+      const isCandyBox =
+        item.n.includes('Boîte à Bonbons') || item.n.includes('Boite a Bonbons');
+      if (isCandyBox) {
+        const allCandies = THARNEA_ARTIFACTS.filter((a) => a.cat === 'Bonbon Alchimique').map(
+          (c) => c.n
+        );
+        const counts: Record<string, number> = {};
+        allCandies.forEach((cn) => {
+          counts[cn] = 4;
+        });
+        nextCandyBox = {
+          unlocked: revealCandyBoxOnGrant,
+          counts,
+          tasted: revealCandyBoxOnGrant ? allCandies : [],
+        };
+      } else if (item.cat === 'Bonbon Alchimique' && nextCandyBox) {
+        if (!nextCandyBox.tasted.includes(item.n)) {
+          nextCandyBox = {
+            ...nextCandyBox,
+            tasted: [...nextCandyBox.tasted, item.n],
+          };
+        }
+      }
+
+      return {
+        ...targetPj,
+        arm: nextArm,
+        bou: nextBou,
+        inventaire: inv,
+        armes: updatedArmes,
+        ...(nextCandyBox ? { candyBox: nextCandyBox } : {}),
+      };
     });
 
     if (grantedNames.length === 0) {
@@ -583,7 +649,17 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
       grantedNames.length <= 3
         ? grantedNames.join(', ')
         : `${grantedNames.length} personnages (${grantedNames.slice(0, 2).join(', ')}...)`;
-    success(`🎁 "${item.n}" octroyé à ${summaryNames} !`);
+    const isCandyBoxItem =
+      item.n.includes('Boîte à Bonbons') || item.n.includes('Boite a Bonbons');
+    if (isCandyBoxItem) {
+      success(
+        `🎁 "${item.n}" (48 bonbons) octroyée à ${summaryNames} (${
+          revealCandyBoxOnGrant ? 'ouverte & 12 effets révélés' : 'coffret scellé, effets masqués'
+        }) !`
+      );
+    } else {
+      success(`🎁 "${item.n}" octroyé à ${summaryNames} !`);
+    }
   };
 
   const requestGiveEquipmentToPj = (item: Equipment) => {
@@ -1943,11 +2019,14 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                       Finances du Groupe (Cumul en direct)
                     </span>
                     <span className="text-[10px] bg-[#140e0a] border border-[#4d3623] px-2 py-0.5 rounded text-[#cbd5e1] font-mono">
-                      {tableData.pjs.length} PJ à la table
+                      {groupPjsOnly.length} PJ à la table
+                      {tableData.pjs.length > groupPjsOnly.length
+                        ? ` (+${tableData.pjs.length - groupPjsOnly.length} PNJ exclus)`
+                        : ''}
                     </span>
                   </div>
                   <p className="text-[11px] text-[#a0907d]">
-                    Règle officielle COF : <b>1 PO = 10 PA</b> • <b>1 PA = 10 PC</b> (1 PO = 100 PC) • ~{avgGoldPerPj} PO / aventurier
+                    Règle officielle COF : <b>1 PO = 10 PA</b> • <b>1 PA = 10 PC</b> (1 PO = 100 PC) • ~{avgGoldPerPj} PO / PJ
                   </p>
                 </div>
               </div>
@@ -2485,6 +2564,87 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                           compact={true}
                         />
                       </div>
+
+                      {/* CONTRÔLE MJ : BOÎTE À BONBONS DE L'OBSCURE */}
+                      {p.candyBox && (() => {
+                        const candyTotalLeft = Object.values(p.candyBox.counts || {}).reduce(
+                          (acc, val) => acc + (Number(val) || 0),
+                          0
+                        );
+                        const candyTastedCount = (p.candyBox.tasted || []).length;
+                        return (
+                          <div className="mt-2 bg-[#1c0c29] border border-[#7e22ce]/70 rounded-lg p-2 text-xs space-y-1.5">
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="font-bold text-[#f5d0fe] text-[11px] flex items-center gap-1">
+                                <span>🍬</span> Boîte à Bonbons ({candyTotalLeft}/48)
+                              </span>
+                              <span className="text-[10px] font-mono text-[#d8b4fe]">
+                                {candyTastedCount}/12 révélés
+                              </span>
+                            </div>
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              {!p.candyBox.unlocked ? (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (pjIdx < 0) return;
+                                    const list = [...tableData.pjs];
+                                    const cb = list[pjIdx].candyBox;
+                                    if (!cb) return;
+                                    list[pjIdx] = { ...list[pjIdx], candyBox: { ...cb, unlocked: true } };
+                                    onUpdateTableData({ ...tableData, pjs: list });
+                                    success(`🔓 Boîte à Bonbons débloquée pour ${p.name} !`);
+                                  }}
+                                  className="px-2 py-0.5 rounded bg-[#6fa85b] hover:bg-[#7ebd67] text-black font-bold text-[10px] flex items-center gap-1 cursor-pointer"
+                                >
+                                  <Unlock className="w-3 h-3" /> Débloquer ouverture
+                                </button>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (pjIdx < 0) return;
+                                    const list = [...tableData.pjs];
+                                    const cb = list[pjIdx].candyBox;
+                                    if (!cb) return;
+                                    list[pjIdx] = { ...list[pjIdx], candyBox: { ...cb, unlocked: false } };
+                                    onUpdateTableData({ ...tableData, pjs: list });
+                                    info(`🔒 Boîte à Bonbons reverrouillée pour ${p.name}.`);
+                                  }}
+                                  className="px-2 py-0.5 rounded bg-[#2a153d] hover:bg-[#3a1d54] text-[#d8b4fe] border border-[#7e22ce]/60 font-semibold text-[10px] flex items-center gap-1 cursor-pointer"
+                                  title="Reverrouiller le coffret"
+                                >
+                                  <Lock className="w-3 h-3" /> Ouverte (Verrouiller)
+                                </button>
+                              )}
+
+                              {candyTastedCount < 12 && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (pjIdx < 0) return;
+                                    const list = [...tableData.pjs];
+                                    const cb = list[pjIdx].candyBox;
+                                    if (!cb) return;
+                                    const all12 = THARNEA_ARTIFACTS.filter(
+                                      (a) => a.cat === 'Bonbon Alchimique'
+                                    ).map((c) => c.n);
+                                    list[pjIdx] = {
+                                      ...list[pjIdx],
+                                      candyBox: { ...cb, unlocked: true, tasted: all12 },
+                                    };
+                                    onUpdateTableData({ ...tableData, pjs: list });
+                                    success(`✨ Tous les 12 effets de la Boîte révélés à ${p.name} !`);
+                                  }}
+                                  className="px-2 py-0.5 rounded bg-[#d4a84a] hover:brightness-110 text-black font-bold text-[10px] flex items-center gap-1 cursor-pointer"
+                                >
+                                  <Sparkles className="w-3 h-3" /> Tout révéler (12/12)
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })()}
 
                       {p.persoTraits && (
                         <p className="text-[11px] text-[#9e907d] mt-2 italic line-clamp-2">
@@ -3151,7 +3311,7 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                               <ExternalLink className="w-3.5 h-3.5 text-[#fde047]" />
                             </h4>
                             <span className="text-[10px] uppercase font-bold tracking-widest text-[#d8b4fe]">
-                              Coffret d&apos;Ébène Inédit • 36 Bonbons (3x chacun des 12 types)
+                              Coffret d&apos;Ébène Inédit • 48 Bonbons (4x chacun des 12 types : 1 dégustation + 3 jeu)
                             </span>
                           </div>
                         </div>
@@ -3187,8 +3347,22 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                         {boite.desc}
                       </p>
                       <div className="text-[11px] text-[#fde047] italic bg-[#1e072c] p-2 rounded-lg border border-[#7e22ce]/40">
-                        ✨ <b>Contenu exact :</b> 3x Bleu, 3x Orange, 3x Vert, 3x Rouge, 3x Violet, 3x Jaune, 3x Noir, 3x Rose, 3x Marron, 3x Doré, 3x Argent, 3x Arc-en-ciel.
+                        ✨ <b>Contenu exact (48 bonbons) :</b> 4x Bleu, 4x Orange, 4x Vert, 4x Blanc, 4x Pourpre, 4x Noir, 4x Vert-Pomme, 4x Turquoise, 4x Jaune, 4x Rouge, 4x Marron, 4x Rose (1 pour goûter/découvrir l&apos;effet + 3 pour le jeu).
                       </div>
+                      <label
+                        onClick={(e) => e.stopPropagation()}
+                        className="flex items-center gap-2 text-xs text-[#f5d0fe] bg-[#1e072c] p-2 rounded-lg border border-[#a855f7]/50 cursor-pointer select-none"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={revealCandyBoxOnGrant}
+                          onChange={(e) => setRevealCandyBoxOnGrant(e.target.checked)}
+                          className="w-4 h-4 accent-[#d4a84a] cursor-pointer"
+                        />
+                        <span>
+                          <b>Tout révéler directement à l&apos;attribution</b> (sinon le coffret arrive scellé et le PJ ne voit les effets d&apos;une couleur qu&apos;après l&apos;avoir goûtée)
+                        </span>
+                      </label>
                     </div>
                   );
                 })()}
@@ -3656,7 +3830,7 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                   <option value="">Toutes les catégories</option>
                   {isTharneaActive && (
                     <>
-                      <option value="Boîte à Bonbons">🎁 Boîte à Bonbons de l'Obscure (36 bonbons)</option>
+                      <option value="Boîte à Bonbons">🎁 Boîte à Bonbons de l'Obscure (48 bonbons)</option>
                       <option value="Bonbon Alchimique">🍬 Bonbons Alchimiques</option>
                       <option value="Artéfact Majeur">🔮 Artéfacts Majeurs</option>
                       <option value="Talisman & Relique">Talismans &amp; Reliques</option>
@@ -4529,8 +4703,13 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
               ? 'Caisse Commune du Groupe'
               : tableData.pjs[moneyCalcTarget.pjIndex]?.name
           }
-          partyCount={tableData.pjs.length}
+          partyCount={groupPjsOnly.length || 1}
           isMj={true}
+          recipients={tableData.pjs.map((p) => ({
+            id: getRecipientKey(p),
+            name: p.name,
+            isPnj: p.isPnj,
+          }))}
           onDistributeToAllPjs={handleDistributeLootToAll}
         />
       )}

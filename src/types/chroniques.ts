@@ -113,6 +113,11 @@ export interface Character {
   dmPatchAt?: number;
   bourse?: { po: number; pa: number; pc: number };
   portrait?: string;
+  candyBox?: {
+    unlocked: boolean;
+    counts: Record<string, number>;
+    tasted: string[];
+  };
 }
 
 export interface CurrencyBourse {

@@ -61,6 +61,18 @@ export const normalizeHero = (h: any): Character => {
     armes: Array.isArray(h.armes) ? h.armes : h.armes ? Object.values(h.armes) : [],
     customSorts: Array.isArray(h.customSorts) ? h.customSorts : h.customSorts ? Object.values(h.customSorts) : [],
     caps: Array.isArray(h.caps) ? h.caps : h.caps ? Object.values(h.caps) : [],
+    ...(h.candyBox && typeof h.candyBox === 'object'
+      ? {
+          candyBox: {
+            unlocked: Boolean(h.candyBox.unlocked),
+            counts:
+              h.candyBox.counts && typeof h.candyBox.counts === 'object'
+                ? h.candyBox.counts
+                : {},
+            tasted: normalizeEtats(h.candyBox.tasted),
+          },
+        }
+      : {}),
   };
 };
 

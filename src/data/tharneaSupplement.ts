@@ -2202,13 +2202,13 @@ export const THARNEA_ARTIFACTS: Equipment[] = [
     n: "Boîte à Bonbons de l'Obscure",
     source: 'tharnea',
     cat: 'Bonbon Alchimique & Artéfact Majeur',
-    type: 'Coffret Alchimique Magique (36 bonbons)',
+    type: 'Coffret Alchimique Magique (48 bonbons)',
     couleur: '#9333ea',
     prix: '500 pa',
     isConsumable: false,
-    desc: "Un somptueux coffret d'ébène orné de velours violet contenant l'intégralité des 12 Bonbons Alchimiques du Codex de l'Obscure en 3 exemplaires chacun (soit 36 bonbons au total : 3x Bleu, 3x Orange, 3x Vert, 3x Rouge, 3x Violet, 3x Jaune, 3x Noir, 3x Rose, 3x Marron, 3x Doré, 3x Argent, 3x Arc-en-ciel). Chaque bonbon confère un effet unique !",
+    desc: "Un somptueux coffret d'ébène orné de velours violet contenant l'intégralité des 12 Bonbons Alchimiques du Codex de l'Obscure en 4 exemplaires chacun (1 pour goûter/découvrir l'effet + 3 pour le jeu, soit 48 bonbons au total : 4x Bleu, 4x Orange, 4x Vert, 4x Blanc, 4x Pourpre, 4x Noir, 4x Vert-Pomme, 4x Turquoise, 4x Jaune, 4x Rouge, 4x Marron, 4x Rose). Chaque couleur possède un effet unique !",
     effetSecondaire:
-      'Chaque bonbon peut être tiré ou consommé individuellement. Ne s\'épuise que lorsque les 36 bonbons ont été avalés.',
+      'Les effets restent secrets tant qu’aucun bonbon de cette couleur n’a été goûté (ou révélé par le MJ). Ne s\'épuise que lorsque les 48 bonbons ont été consommés.',
   },
   {
     n: 'Bonbon Bleu des Profondeurs',
