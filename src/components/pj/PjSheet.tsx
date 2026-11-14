@@ -32,7 +32,6 @@ import {
   Calculator,
   RefreshCw,
   Camera,
-  Link2,
   Edit3,
 } from 'lucide-react';
 import { OSGILD_REGIONS, OSGILD_DEITIES, OSGILD_ACADEMIES } from '../../data/osgildLore';
@@ -46,16 +45,13 @@ import { THARNEA_ARTIFACTS } from '../../data/tharneaSupplement';
 import { MoneyCalculatorModal } from '../common/MoneyCalculatorModal';
 import { useToast } from '../common/ToastContext';
 import { PortraitPicker } from '../common/PortraitPicker';
-import { FamilierCreatorModal } from '../common/FamilierCreatorModal';
 import { CharacterSheetModal } from '../mj/CharacterSheetModal';
-import { FAMILIERS_PRESETS, createFamilierFromPreset } from '../../data/familiersCatalog';
 import { normalizeFamilierForMaster } from '../../utils/familierSync';
 import { resolveActionRule } from '../../data/actionRules';
 import {
   ARMES_CATALOG,
   ARMURES_CATALOG,
   BIENS_CATALOG,
-  ALL_PJ_EQUIPMENT,
   CARAC_LIST,
   EQUIPEMENTS,
   ETATS,
@@ -99,7 +95,7 @@ export const PjSheet: React.FC<PjSheetProps> = ({
   onDeletePj,
 }) => {
   const { success, error, warning, info } = useToast();
-  const [activeTab, setActiveTab] = useState<'fiche' | 'voies' | 'sorts' | 'sac' | 'lore'>('fiche');
+  const [activeTab, setActiveTab] = useState<'fiche' | 'voies' | 'sorts' | 'sac' | 'familier' | 'lore'>('fiche');
   const [isPtsCapInfoOpen, setIsPtsCapInfoOpen] = useState<boolean>(false);
   const [isTransferModalOpen, setIsTransferModalOpen] = useState<boolean>(false);
   const [isMoneyCalcOpen, setIsMoneyCalcOpen] = useState<boolean>(false);
@@ -109,6 +105,7 @@ export const PjSheet: React.FC<PjSheetProps> = ({
   // Drawer & Modals state
   const [catalogDrawer, setCatalogDrawer] = useState<'armes' | 'armures' | 'biens' | 'sorts' | 'tharnea' | null>(null);
   const [catalogQuery, setCatalogQuery] = useState<string>('');
+  const [catalogBiensCat, setCatalogBiensCat] = useState<string>('all');
   const [detailItem, setDetailItem] = useState<DetailItem | null>(null);
   const [isLevelUpOpen, setIsLevelUpOpen] = useState<boolean>(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState<boolean>(false);
@@ -130,11 +127,11 @@ export const PjSheet: React.FC<PjSheetProps> = ({
   const [customSpellRange, setCustomSpellRange] = useState('30 m');
   const [customSpellDesc, setCustomSpellDesc] = useState('');
 
-  // Familiers liés state
-  const [isFamilierModalOpen, setIsFamilierModalOpen] = useState<boolean>(false);
-  const [editingFamilier, setEditingFamilier] = useState<Character | null>(null);
+  // Familiers & Compagnons liés state
   const [selectedFamilierSheet, setSelectedFamilierSheet] = useState<Character | null>(null);
-  const [confirmRemoveFamilierId, setConfirmRemoveFamilierId] = useState<string | null>(null);
+  const [familierRequestNote, setFamilierRequestNote] = useState<string>('');
+  const [renamingFamilierKey, setRenamingFamilierKey] = useState<string | null>(null);
+  const [renamingFamilierValue, setRenamingFamilierValue] = useState<string>('');
 
   if (!pj) {
     return (
@@ -826,6 +823,30 @@ export const PjSheet: React.FC<PjSheetProps> = ({
           {pj.inventaire && (
             <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-black/40 font-mono">
               {pj.inventaire.length}
+            </span>
+          )}
+        </button>
+
+        <button
+          onClick={() => setActiveTab('familier')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all shrink-0 cursor-pointer ${
+            activeTab === 'familier'
+              ? 'bg-gradient-to-r from-[#235430] to-[#16381f] text-[#d5fce0] border border-[#6fa85b] shadow-sm'
+              : 'text-[#9e907d] hover:text-[#ede3d1] hover:bg-[#231c15]'
+          }`}
+        >
+          {pj.familierAccess?.unlocked ? (
+            <span>🐾</span>
+          ) : (
+            <Lock className="w-3.5 h-3.5 text-[#d4a84a]" />
+          )}
+          <span>Mon Compagnon / Familier</span>
+          {pj.familierAccess?.pendingRequest && !pj.familierAccess?.unlocked && (
+            <span className="w-2 h-2 rounded-full bg-[#f59e0b] animate-pulse" title="Demande en attente" />
+          )}
+          {pj.familiers && pj.familiers.length > 0 && (
+            <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-black/40 font-mono">
+              {pj.familiers.length}
             </span>
           )}
         </button>
@@ -1723,316 +1744,53 @@ export const PjSheet: React.FC<PjSheetProps> = ({
             </div>
           </div>
 
-          {/* FAMILIERS & COMPAGNONS LIÉS */}
+          {/* RACCOURCI COMPAGNON & FAMILIER LIÉ (Fiche détaillée dans l'onglet dédié) */}
           {(() => {
             const familiers = pj.familiers || [];
-            const updateFamiliersList = (nextFamiliers: Character[]) => {
-              onUpdatePj({
-                ...pj,
-                familiers: nextFamiliers.map((f) =>
-                  normalizeFamilierForMaster(f, { id: pj.id, name: pj.name })
-                ),
-              });
-            };
-
+            const isFamUnlocked = Boolean(pj.familierAccess?.unlocked);
+            const hasPending = Boolean(pj.familierAccess?.pendingRequest);
             return (
-              <div className="print-card bg-[#111b14] border border-[#3a6b45] rounded-xl p-4 space-y-3">
-                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#25452c] pb-2.5">
-                  <div>
-                    <h3 className="font-serif-co text-base font-bold text-[#9ff0b2] flex items-center gap-2">
-                      <span>🐾</span>
-                      <span>Familiers &amp; Compagnons Liés</span>
-                      <span className="text-xs px-2 py-0.5 rounded bg-[#183320] border border-[#3a7048] text-[#d5fce0] font-mono">
-                        {familiers.length}
-                      </span>
-                    </h3>
-                    <p className="text-[11px] text-[#8db898]">
-                      Liez un familier (ou choisissez parmi les fiches pré-remplies), suivez ses PV/PM/États et consultez sa fiche complète comme un PNJ.
-                    </p>
+              <div className="print-card bg-[#111b14] border border-[#3a6b45] rounded-xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-10 h-10 rounded-xl bg-[#183320] border border-[#3a7048] flex items-center justify-center text-lg shrink-0">
+                    {isFamUnlocked ? '🐾' : <Lock className="w-5 h-5 text-[#d4a84a]" />}
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setEditingFamilier(null);
-                      setIsFamilierModalOpen(true);
-                    }}
-                    className="no-print px-3 py-1.5 rounded-lg bg-gradient-to-r from-[#235430] to-[#16381f] hover:brightness-110 border border-[#4a8556] text-[#d5fce0] text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs"
-                  >
-                    <Plus className="w-3.5 h-3.5" /> Lier / Créer un familier
-                  </button>
-                </div>
-
-                {familiers.length === 0 ? (
-                  <div className="p-3 bg-[#0c140e] border border-[#223d28] rounded-xl space-y-2.5">
-                    <p className="text-xs text-[#9eb5a3]">
-                      Aucun familier n&apos;est encore lié à <b>{pj.name}</b>. Cliquez sur un modèle pré-rempli pour le lier immédiatement ou créez le vôtre :
-                    </p>
-                    <div className="flex flex-wrap gap-1.5">
-                      {FAMILIERS_PRESETS.slice(0, 5).map((preset) => (
-                        <button
-                          key={preset.id}
-                          type="button"
-                          onClick={() => {
-                            const created = normalizeFamilierForMaster(
-                              createFamilierFromPreset(preset, { id: pj.id, name: pj.name }),
-                              { id: pj.id, name: pj.name }
-                            );
-                            updateFamiliersList([...familiers, created]);
-                            success(`🐾 Familier « ${created.name} » lié à ${pj.name} !`);
-                          }}
-                          className="px-2.5 py-1 rounded-lg bg-[#16291c] hover:bg-[#1f3b27] border border-[#356642] text-[11px] font-bold text-[#d5fce0] flex items-center gap-1 cursor-pointer"
-                        >
-                          <Plus className="w-3 h-3 text-[#86efac]" /> {preset.name}
-                        </button>
-                      ))}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setEditingFamilier(null);
-                          setIsFamilierModalOpen(true);
-                        }}
-                        className="px-2.5 py-1 rounded-lg bg-[#1c2820] hover:bg-[#27382d] border border-[#4a8556] text-[11px] font-bold text-[#f3d48d] cursor-pointer"
-                      >
-                        Voir les 10 modèles &amp; créer...
-                      </button>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className="font-serif-co text-sm sm:text-base font-bold text-[#9ff0b2]">
+                        Mon Compagnon / Familier
+                      </h3>
+                      {isFamUnlocked ? (
+                        <span className="text-[10px] px-2 py-0.5 rounded bg-[#183320] border border-[#4a8556] text-[#86efac] font-bold">
+                          🔓 Accès ouvert · {familiers.length} lié(s)
+                        </span>
+                      ) : hasPending ? (
+                        <span className="text-[10px] px-2 py-0.5 rounded bg-[#3b2809] border border-[#f59e0b] text-[#fde047] font-bold animate-pulse">
+                          ⏳ Demande envoyée au MJ
+                        </span>
+                      ) : (
+                        <span className="text-[10px] px-2 py-0.5 rounded bg-[#211912] border border-[#6b4f2b] text-[#f3d48d] font-bold">
+                          🔒 Cadenassé par le MJ
+                        </span>
+                      )}
                     </div>
+                    <p className="text-[11px] text-[#8db898] truncate">
+                      {familiers.length > 0
+                        ? familiers.map((f) => `${f.name} (${f.hp}/${f.hpMaxManual || f.hpBase || f.hp} PV)`).join(' · ')
+                        : isFamUnlocked
+                        ? 'Aucun compagnon ou familier encore lié. Ouvrez l’onglet dédié pour en choisir un.'
+                        : 'Ouvrez l’onglet Compagnon / Familier pour demander accès au MJ.'}
+                    </p>
                   </div>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {familiers.map((fam, fIdx) => {
-                      const famStats = calcStats(fam);
-                      const famHpMax = fam.hpMaxManual || fam.hpMaxAuto || fam.hpBase || 8;
-                      const famDef = famStats ? famStats.def : fam.defManual ?? 12;
-                      const famPmMax =
-                        fam.pmMaxManual !== null && fam.pmMaxManual !== undefined
-                          ? fam.pmMaxManual
-                          : famStats?.pmMax || 0;
-                      const famPmCur = fam.pm !== undefined && fam.pm !== null ? fam.pm : famPmMax;
-                      const isConfirmingRemove = confirmRemoveFamilierId === (fam.id || fam.name);
-
-                      return (
-                        <div
-                          key={fam.id || fIdx}
-                          className="p-3 bg-[#152118] border border-[#386944] rounded-xl space-y-2.5 flex flex-col justify-between"
-                        >
-                          <div className="space-y-2">
-                            <div className="flex items-start justify-between gap-2">
-                              <div className="flex items-center gap-2.5 min-w-0">
-                                {fam.portrait && (
-                                  <button
-                                    type="button"
-                                    onClick={() => setSelectedFamilierSheet(fam)}
-                                    className="w-11 h-11 rounded-lg overflow-hidden border border-[#4a8556] hover:border-[#9ff0b2] shrink-0 cursor-pointer"
-                                    title="Ouvrir la fiche du familier"
-                                  >
-                                    <img
-                                      src={fam.portrait}
-                                      alt={fam.name}
-                                      className="w-full h-full object-cover"
-                                    />
-                                  </button>
-                                )}
-                                <div className="min-w-0">
-                                  <div className="flex items-center gap-1.5 flex-wrap">
-                                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#0e1911] text-[#9ff0b2] border border-[#2d5e37] font-bold uppercase">
-                                      🐾 {fam.familierEspece || 'Familier'}
-                                    </span>
-                                    {fam.familierCategorie && (
-                                      <span className="text-[10px] text-[#8db898]">
-                                        {fam.familierCategorie}
-                                      </span>
-                                    )}
-                                  </div>
-                                  <button
-                                    type="button"
-                                    onClick={() => setSelectedFamilierSheet(fam)}
-                                    className="font-serif-co text-sm font-bold text-[#e6ffec] hover:underline flex items-center gap-1 cursor-pointer truncate mt-0.5"
-                                  >
-                                    <span className="truncate">{fam.name}</span>
-                                    <ExternalLink className="w-3 h-3 shrink-0 opacity-80" />
-                                  </button>
-                                  <div className="text-[11px] text-[#9eb5a3]">
-                                    Niv. {fam.level}
-                                    {fam.vitesse ? ` • ${fam.vitesse}` : ''}
-                                  </div>
-                                </div>
-                              </div>
-
-                              <div className="no-print flex items-center gap-1 shrink-0">
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setEditingFamilier(fam);
-                                    setIsFamilierModalOpen(true);
-                                  }}
-                                  className="p-1.5 rounded bg-[#1a3321] hover:bg-[#234d2d] text-[#9ff0b2] border border-[#356642] cursor-pointer"
-                                  title="Modifier la fiche du familier"
-                                >
-                                  <Edit3 className="w-3.5 h-3.5" />
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    setConfirmRemoveFamilierId(
-                                      isConfirmingRemove ? null : fam.id || fam.name
-                                    )
-                                  }
-                                  className="p-1.5 rounded bg-[#211414] hover:bg-[#381b1b] text-[#fca5a5] border border-[#5e2929] cursor-pointer"
-                                  title="Délier / retirer ce familier"
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </button>
-                              </div>
-                            </div>
-
-                            {isConfirmingRemove && (
-                              <div className="no-print p-2 rounded-lg bg-[#2b1414] border border-[#9c2a2b] text-xs flex items-center justify-between gap-2">
-                                <span className="text-[#ffd4d4]">Retirer {fam.name} ?</span>
-                                <div className="flex items-center gap-1.5">
-                                  <button
-                                    type="button"
-                                    onClick={() => setConfirmRemoveFamilierId(null)}
-                                    className="px-2 py-0.5 rounded bg-[#231c15] text-[#ede3d1] text-[11px] cursor-pointer"
-                                  >
-                                    Annuler
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      const next = familiers.filter((_, idx) => idx !== fIdx);
-                                      updateFamiliersList(next);
-                                      setConfirmRemoveFamilierId(null);
-                                      info(`🐾 « ${fam.name} » retiré de vos familiers.`);
-                                    }}
-                                    className="px-2 py-0.5 rounded bg-[#9c2a2b] text-white font-bold text-[11px] cursor-pointer"
-                                  >
-                                    Confirmer
-                                  </button>
-                                </div>
-                              </div>
-                            )}
-
-                            {/* PV / DEF / PM */}
-                            <div className="flex flex-wrap items-center justify-between gap-2 bg-[#0d1610] p-2 rounded-lg border border-[#23422a] text-xs">
-                              <div className="flex items-center gap-1.5">
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    const next = [...familiers];
-                                    next[fIdx] = { ...fam, hp: Math.max(0, fam.hp - 1) };
-                                    updateFamiliersList(next);
-                                  }}
-                                  className="no-print w-5 h-5 rounded bg-[#2b1416] hover:bg-[#3d1a1e] text-[#ff8080] font-bold flex items-center justify-center border border-[#6d252b] cursor-pointer"
-                                >
-                                  -
-                                </button>
-                                <span>PV :</span>
-                                <b className={fam.hp <= 0 ? 'text-[#ff5555]' : 'text-[#86efac]'}>
-                                  {fam.hp}
-                                </b>
-                                <span className="text-[#8db898]">/ {famHpMax}</span>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    const next = [...familiers];
-                                    next[fIdx] = { ...fam, hp: Math.min(famHpMax, fam.hp + 1) };
-                                    updateFamiliersList(next);
-                                  }}
-                                  className="no-print w-5 h-5 rounded bg-[#172b1a] hover:bg-[#203d24] text-[#86efac] font-bold flex items-center justify-center border border-[#276e43] cursor-pointer"
-                                >
-                                  +
-                                </button>
-                              </div>
-
-                              <div className="flex items-center gap-1 font-bold text-[#7db5ff]">
-                                <Shield className="w-3.5 h-3.5" />
-                                <span>DEF {famDef}</span>
-                              </div>
-
-                              {famPmMax > 0 && (
-                                <div className="flex items-center gap-1">
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      const next = [...familiers];
-                                      next[fIdx] = { ...fam, pm: Math.max(0, famPmCur - 1) };
-                                      updateFamiliersList(next);
-                                    }}
-                                    className="no-print w-5 h-5 rounded bg-[#162538] text-[#8dbbff] font-bold flex items-center justify-center border border-[#2e5077] cursor-pointer"
-                                  >
-                                    -
-                                  </button>
-                                  <span className="text-[#8dbbff] font-bold">
-                                    {famPmCur}/{famPmMax} PM
-                                  </span>
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      const next = [...familiers];
-                                      next[fIdx] = {
-                                        ...fam,
-                                        pm: Math.min(famPmMax, famPmCur + 1),
-                                      };
-                                      updateFamiliersList(next);
-                                    }}
-                                    className="no-print w-5 h-5 rounded bg-[#162538] text-[#8dbbff] font-bold flex items-center justify-center border border-[#2e5077] cursor-pointer"
-                                  >
-                                    +
-                                  </button>
-                                </div>
-                              )}
-                            </div>
-
-                            {fam.armes && fam.armes.length > 0 && (
-                              <div className="text-[11px] text-[#ede3d1] bg-[#0e1811] px-2.5 py-1.5 rounded border border-[#23422a]">
-                                <b className="text-[#86efac]">⚔️ Attaques :</b>{' '}
-                                {fam.armes.map((w) => `${w.n} (${w.dm})`).join(' · ')}
-                              </div>
-                            )}
-
-                            {fam.capacitesSpeciales && fam.capacitesSpeciales.length > 0 && (
-                              <div className="flex flex-wrap gap-1">
-                                {fam.capacitesSpeciales.map((cap, ci) => (
-                                  <span
-                                    key={ci}
-                                    title={cap.t}
-                                    className="px-1.5 py-0.5 rounded bg-[#102116] border border-[#2d5e37] text-[10px] text-[#b7f7c7] font-semibold"
-                                  >
-                                    ✦ {cap.n}
-                                  </span>
-                                ))}
-                              </div>
-                            )}
-
-                            <StateBadgeList
-                              activeStates={fam.etats || []}
-                              onToggleState={(stName) => {
-                                const cur = fam.etats || [];
-                                const updatedStates = cur.includes(stName)
-                                  ? cur.filter((s) => s !== stName)
-                                  : [...cur, stName];
-                                const next = [...familiers];
-                                next[fIdx] = { ...fam, etats: updatedStates };
-                                updateFamiliersList(next);
-                              }}
-                              onSelectDetail={(state) => setDetailItem({ type: 'etat', data: state })}
-                              allowEdit={true}
-                              compact={true}
-                            />
-                          </div>
-
-                          <button
-                            type="button"
-                            onClick={() => setSelectedFamilierSheet(fam)}
-                            className="no-print w-full py-1.5 rounded-lg bg-[#1a3321] hover:bg-[#234d2d] border border-[#4a8556] text-[#d5fce0] text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer"
-                          >
-                            <ExternalLink className="w-3.5 h-3.5" /> Fiche complète du familier
-                          </button>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('familier')}
+                  className="no-print px-3.5 py-2 rounded-lg bg-gradient-to-r from-[#235430] to-[#16381f] hover:brightness-110 border border-[#4a8556] text-[#d5fce0] text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer shrink-0 shadow-xs"
+                >
+                  {!isFamUnlocked && <Lock className="w-3.5 h-3.5 text-[#f3d48d]" />}
+                  <span>Ouvrir Mon Compagnon / Familier</span>
+                </button>
               </div>
             );
           })()}
@@ -2996,7 +2754,494 @@ export const PjSheet: React.FC<PjSheetProps> = ({
         </div>
       )}
 
-      {/* ==================== TAB 5 : LES TERRES D'OSGILD (LORE DU JOUEUR - ONGLET UNIQUE) ==================== */}
+      {/* ==================== TAB 5 : MON COMPAGNON / FAMILIER (CADENASSÉ PAR DÉFAUT) ==================== */}
+      {activeTab === 'familier' && (() => {
+        const familiers = pj.familiers || [];
+        const access = pj.familierAccess || { unlocked: false, pendingRequest: null, rejectedAt: null };
+        const isFamUnlocked = Boolean(access.unlocked);
+        const pendingReq = access.pendingRequest;
+
+        const updateFamiliersList = (nextFamiliers: Character[]) => {
+          if (!isFamUnlocked) return;
+          onUpdatePj({
+            ...pj,
+            familiers: nextFamiliers.map((f) =>
+              normalizeFamilierForMaster(f, { id: pj.id, name: pj.name })
+            ),
+          });
+        };
+
+        const handleRequestMjAccess = () => {
+          onUpdatePj({
+            ...pj,
+            familierAccess: {
+              unlocked: false,
+              pendingRequest: {
+                requestedAt: Date.now(),
+                ...(familierRequestNote.trim() ? { note: familierRequestNote.trim() } : {}),
+              },
+              rejectedAt: null,
+            },
+          });
+          info('📩 Demande envoyée au Meneur de Jeu pour votre Compagnon / Familier.');
+        };
+
+        const handleCancelMjRequest = () => {
+          onUpdatePj({
+            ...pj,
+            familierAccess: {
+              unlocked: false,
+              pendingRequest: null,
+              rejectedAt: access.rejectedAt || null,
+            },
+          });
+          info('Demande d’accès annulée.');
+        };
+
+        return (
+          <div className="space-y-4">
+            {/* BANDEAU D'ÉTAT CADENASSÉ OU DÉVERROUILLÉ */}
+            {!isFamUnlocked ? (
+              <div className="bg-gradient-to-br from-[#1f1710] via-[#17120d] to-[#110d09] border-2 border-[#d4a84a]/70 rounded-2xl p-5 shadow-xl space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#3d3023] pb-3.5">
+                  <div className="flex items-start gap-3">
+                    <div className="w-12 h-12 rounded-2xl bg-[#2c2013] border-2 border-[#d4a84a]/80 flex items-center justify-center shrink-0 shadow-md">
+                      <Lock className="w-6 h-6 text-[#f3d48d]" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h3 className="font-serif-co text-lg font-bold text-[#f3d48d]">
+                          Fiche Compagnon / Familier — Cadenassée par le MJ
+                        </h3>
+                        <span className="text-[10px] px-2 py-0.5 rounded bg-[#2d1e10] border border-[#d4a84a]/50 text-[#fde047] font-bold uppercase">
+                          🔒 Accès Protégé
+                        </span>
+                      </div>
+                      <p className="text-xs text-[#cbb8a7] mt-1 leading-relaxed">
+                        En Chroniques Oubliées, l&apos;attribution d&apos;un <b>familier</b> ou d&apos;un <b>compagnon</b> relève exclusivement du Meneur de Jeu. Vous pouvez lui envoyer un message RP et demander l&apos;accès ci-dessous.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Demande d'accès au MJ (avec Message RP uniquement, aucun choix par le PJ) */}
+                {pendingReq ? (
+                  <div className="p-4 rounded-xl bg-[#2b1e0a] border border-[#f59e0b]/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2 text-sm font-bold text-[#fde047]">
+                        <span className="w-2.5 h-2.5 rounded-full bg-[#f59e0b] animate-ping" />
+                        <span>⏳ Demande d&apos;accès en attente de validation du MJ...</span>
+                      </div>
+                      <p className="text-xs text-[#f3d48d]">
+                        {pendingReq.note
+                          ? `Message envoyé au MJ : « ${pendingReq.note} »`
+                          : 'Demande de déverrouillage / attribution envoyée au Meneur de Jeu.'}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleCancelMjRequest}
+                      className="px-3 py-1.5 rounded-lg bg-[#231c15] hover:bg-[#32271d] border border-[#5c4833] text-xs font-semibold text-[#ede3d1] cursor-pointer shrink-0"
+                    >
+                      Annuler la demande
+                    </button>
+                  </div>
+                ) : (
+                  <div className="p-4 rounded-xl bg-[#14100c] border border-[#3d3023] space-y-3">
+                    {access.rejectedAt && (
+                      <div className="p-2.5 rounded-lg bg-[#2a1212] border border-[#8c2d2d] text-xs text-[#ffb3b3]">
+                        🔒 Votre dernière demande a été refusée par le MJ pour le moment. Vous pouvez préciser votre besoin RP et renvoyer une demande.
+                      </div>
+                    )}
+
+                    <div>
+                      <label className="text-[11px] font-bold uppercase text-[#9e907d] block mb-1">
+                        Message RP / Justification pour le MJ (facultatif)
+                      </label>
+                      <textarea
+                        rows={2}
+                        value={familierRequestNote}
+                        onChange={(e) => setFamilierRequestNote(e.target.value)}
+                        placeholder="Ex: J'ai pris la voie du Familier au rang 1, ou j'ai recruté un écuyer à la taverne..."
+                        className="w-full px-3 py-2 bg-[#231c15] border border-[#3d3023] focus:border-[#d4a84a] rounded-lg text-xs text-[#ede3d1] outline-none"
+                      />
+                    </div>
+
+                    <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+                      <span className="text-[11px] text-[#9e907d]">
+                        Le MJ recevra votre message instantanément sur sa console pour déverrouiller et attribuer votre compagnon ou familier.
+                      </span>
+                      <button
+                        type="button"
+                        onClick={handleRequestMjAccess}
+                        className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#d4a84a] to-[#ab8230] hover:brightness-110 text-[#1a1208] font-extrabold text-xs sm:text-sm flex items-center gap-2 shadow-lg cursor-pointer"
+                      >
+                        <Send className="w-4 h-4" />
+                        <span>Demander accès au MJ</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Aperçu CADENASSÉ si le MJ a déjà lié un familier/compagnon tout en gardant la fiche verrouillée */}
+                {familiers.length > 0 && (
+                  <div className="space-y-2.5 pt-2 border-t border-[#30251a]">
+                    <div className="flex items-center gap-2 text-xs font-bold text-[#9ff0b2]">
+                      <Lock className="w-3.5 h-3.5 text-[#d4a84a]" />
+                      <span>Compagnon(s) / Familier(s) actuellement assigné(s) (Lecture seule — Cadenassé)</span>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {familiers.map((fam, fIdx) => {
+                        const famHpMax = fam.hpMaxManual || fam.hpMaxAuto || fam.hpBase || 8;
+                        const famDef = fam.defManual ?? 12;
+                        return (
+                          <div
+                            key={fam.id || fIdx}
+                            className="relative p-3.5 bg-[#111913] border border-[#2f4d36] rounded-xl space-y-2 opacity-90"
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                {fam.portrait && (
+                                  <img
+                                    src={fam.portrait}
+                                    alt={fam.name}
+                                    className="w-11 h-11 rounded-lg object-cover border border-[#3d6346] grayscale-[30%]"
+                                  />
+                                )}
+                                <div className="min-w-0">
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#0e1911] text-[#9ff0b2] border border-[#2d5e37] font-bold uppercase">
+                                      {fam.rolePnj === 'Compagnon' ? '🤝' : '🐾'} {fam.familierEspece || fam.rolePnj || 'Familier'}
+                                    </span>
+                                    <span className="text-[10px] text-[#f3d48d] font-bold flex items-center gap-1">
+                                      <Lock className="w-3 h-3" /> Cadenassé
+                                    </span>
+                                  </div>
+                                  <b className="font-serif-co text-sm text-[#e6ffec] block truncate mt-0.5">
+                                    {fam.name}
+                                  </b>
+                                  <span className="text-[11px] text-[#8db898]">
+                                    PV {fam.hp}/{famHpMax} · DEF {famDef}
+                                    {fam.vitesse ? ` · ${fam.vitesse}` : ''}
+                                  </span>
+                                </div>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => setSelectedFamilierSheet(fam)}
+                                className="px-2.5 py-1.5 rounded-lg bg-[#19281d] hover:bg-[#223828] border border-[#3a6b45] text-[#cbb8a7] text-[11px] font-bold cursor-pointer shrink-0"
+                              >
+                                Consulter
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              /* ÉTAT DÉVERROUILLÉ PAR LE MJ : SUIVI DES COMPAGNONS / FAMILIERS ATTRIBUÉS PAR LE MJ */
+              <div className="print-card bg-[#111b14] border-2 border-[#4a8556] rounded-2xl p-4 space-y-4 shadow-lg">
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#25452c] pb-3">
+                  <div>
+                    <h3 className="font-serif-co text-lg font-bold text-[#9ff0b2] flex items-center gap-2">
+                      <span>🐾</span>
+                      <span>Mon Compagnon / Familier</span>
+                      <span className="text-xs px-2 py-0.5 rounded bg-[#183320] border border-[#3a7048] text-[#d5fce0] font-mono">
+                        {familiers.length} lié(s)
+                      </span>
+                      <span className="text-[10px] px-2 py-0.5 rounded bg-[#15331d] border border-[#6fa85b] text-[#86efac] font-bold uppercase">
+                        🔓 Déverrouillé par le MJ
+                      </span>
+                    </h3>
+                    <p className="text-[11px] text-[#8db898]">
+                      Suivez en direct les PV, PM, états et capacités du compagnon ou familier attribué par votre Meneur de Jeu.
+                    </p>
+                  </div>
+                </div>
+
+                {familiers.length === 0 ? (
+                  <div className="p-4 bg-[#0c140e] border border-[#223d28] rounded-xl text-center space-y-1.5">
+                    <p className="text-xs font-semibold text-[#b7f7c7]">
+                      🔓 Votre accès est ouvert par le MJ, mais aucun compagnon ni familier n&apos;est encore attribué à votre fiche.
+                    </p>
+                    <p className="text-[11px] text-[#8db898]">
+                      Le Meneur de Jeu crée et lie directement votre compagnon ou familier depuis sa console.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {familiers.map((fam, fIdx) => {
+                      const famKey = fam.id || String(fIdx);
+                      const isRenaming = renamingFamilierKey === famKey;
+                      const famStats = calcStats(fam);
+                      const famHpMax = fam.hpMaxManual || fam.hpMaxAuto || fam.hpBase || 8;
+                      const famDef = famStats ? famStats.def : fam.defManual ?? 12;
+                      const famPmMax =
+                        fam.pmMaxManual !== null && fam.pmMaxManual !== undefined
+                          ? fam.pmMaxManual
+                          : famStats?.pmMax || 0;
+                      const famPmCur = fam.pm !== undefined && fam.pm !== null ? fam.pm : famPmMax;
+
+                      const commitRename = () => {
+                        const trimmed = renamingFamilierValue.trim();
+                        if (!trimmed) {
+                          warning('Le nom du compagnon / familier ne peut pas être vide.');
+                          return;
+                        }
+                        const oldName = fam.name;
+                        const next = [...familiers];
+                        const updatedFam = { ...fam, name: trimmed };
+                        next[fIdx] = updatedFam;
+                        updateFamiliersList(next);
+                        if (
+                          selectedFamilierSheet &&
+                          ((selectedFamilierSheet.id && selectedFamilierSheet.id === fam.id) ||
+                            selectedFamilierSheet.name === oldName)
+                        ) {
+                          setSelectedFamilierSheet(updatedFam);
+                        }
+                        setRenamingFamilierKey(null);
+                        setRenamingFamilierValue('');
+                        if (trimmed !== oldName) {
+                          success(`✨ « ${oldName} » a été rebaptisé « ${trimmed} » !`);
+                        }
+                      };
+
+                      return (
+                        <div
+                          key={famKey}
+                          className="p-3 bg-[#152118] border border-[#386944] rounded-xl space-y-2.5 flex flex-col justify-between"
+                        >
+                          <div className="space-y-2">
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                                {fam.portrait && (
+                                  <button
+                                    type="button"
+                                    onClick={() => setSelectedFamilierSheet(fam)}
+                                    className="w-11 h-11 rounded-lg overflow-hidden border border-[#4a8556] hover:border-[#9ff0b2] shrink-0 cursor-pointer"
+                                    title="Ouvrir la fiche complète"
+                                  >
+                                    <img
+                                      src={fam.portrait}
+                                      alt={fam.name}
+                                      className="w-full h-full object-cover"
+                                    />
+                                  </button>
+                                )}
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#0e1911] text-[#9ff0b2] border border-[#2d5e37] font-bold uppercase">
+                                      {fam.rolePnj === 'Compagnon' ? '🤝' : '🐾'} {fam.familierEspece || fam.rolePnj || 'Familier'}
+                                    </span>
+                                    {fam.familierCategorie && (
+                                      <span className="text-[10px] text-[#8db898]">
+                                        {fam.familierCategorie}
+                                      </span>
+                                    )}
+                                  </div>
+                                  {isRenaming ? (
+                                    <div className="no-print flex items-center gap-1 mt-1">
+                                      <input
+                                        type="text"
+                                        autoFocus
+                                        value={renamingFamilierValue}
+                                        onChange={(e) => setRenamingFamilierValue(e.target.value)}
+                                        onKeyDown={(e) => {
+                                          if (e.key === 'Enter') {
+                                            e.preventDefault();
+                                            commitRename();
+                                          } else if (e.key === 'Escape') {
+                                            setRenamingFamilierKey(null);
+                                            setRenamingFamilierValue('');
+                                          }
+                                        }}
+                                        placeholder="Nouveau nom..."
+                                        className="flex-1 min-w-0 px-2 py-1 rounded bg-[#0c140e] border border-[#6fa85b] text-xs font-bold text-[#e6ffec] outline-none"
+                                      />
+                                      <button
+                                        type="button"
+                                        onClick={commitRename}
+                                        className="p-1 rounded bg-[#1f4d2a] hover:bg-[#2a6939] border border-[#6fa85b] text-[#9ff0b2] cursor-pointer"
+                                        title="Valider le nouveau nom"
+                                      >
+                                        <Check className="w-3.5 h-3.5" />
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setRenamingFamilierKey(null);
+                                          setRenamingFamilierValue('');
+                                        }}
+                                        className="p-1 rounded bg-[#2b1416] hover:bg-[#3d1c1e] border border-[#7a242a] text-[#ff9999] cursor-pointer"
+                                        title="Annuler"
+                                      >
+                                        <X className="w-3.5 h-3.5" />
+                                      </button>
+                                    </div>
+                                  ) : (
+                                    <div className="flex items-center gap-1.5 mt-0.5">
+                                      <button
+                                        type="button"
+                                        onClick={() => setSelectedFamilierSheet(fam)}
+                                        className="font-serif-co text-sm font-bold text-[#e6ffec] hover:underline flex items-center gap-1 cursor-pointer truncate"
+                                      >
+                                        <span className="truncate">{fam.name}</span>
+                                        <ExternalLink className="w-3 h-3 shrink-0 opacity-80" />
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setRenamingFamilierKey(famKey);
+                                          setRenamingFamilierValue(fam.name);
+                                        }}
+                                        className="no-print px-1.5 py-0.5 rounded bg-[#102415] hover:bg-[#193821] border border-[#3a7048] text-[#9ff0b2] text-[10px] font-bold flex items-center gap-1 cursor-pointer shrink-0"
+                                        title="Rebaptiser votre compagnon ou familier"
+                                      >
+                                        <Edit3 className="w-2.5 h-2.5" />
+                                        <span>Rebaptiser</span>
+                                      </button>
+                                    </div>
+                                  )}
+                                  <div className="text-[11px] text-[#9eb5a3]">
+                                    Niv. {fam.level}
+                                    {fam.vitesse ? ` • ${fam.vitesse}` : ''}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* PV / DEF / PM */}
+                            <div className="flex flex-wrap items-center justify-between gap-2 bg-[#0d1610] p-2 rounded-lg border border-[#23422a] text-xs">
+                              <div className="flex items-center gap-1.5">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const next = [...familiers];
+                                    next[fIdx] = { ...fam, hp: Math.max(0, fam.hp - 1) };
+                                    updateFamiliersList(next);
+                                  }}
+                                  className="no-print w-5 h-5 rounded bg-[#2b1416] hover:bg-[#3d1a1e] text-[#ff8080] font-bold flex items-center justify-center border border-[#6d252b] cursor-pointer"
+                                >
+                                  -
+                                </button>
+                                <span>PV :</span>
+                                <b className={fam.hp <= 0 ? 'text-[#ff5555]' : 'text-[#86efac]'}>
+                                  {fam.hp}
+                                </b>
+                                <span className="text-[#8db898]">/ {famHpMax}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const next = [...familiers];
+                                    next[fIdx] = { ...fam, hp: Math.min(famHpMax, fam.hp + 1) };
+                                    updateFamiliersList(next);
+                                  }}
+                                  className="no-print w-5 h-5 rounded bg-[#172b1a] hover:bg-[#203d24] text-[#86efac] font-bold flex items-center justify-center border border-[#276e43] cursor-pointer"
+                                >
+                                  +
+                                </button>
+                              </div>
+
+                              <div className="flex items-center gap-1 font-bold text-[#7db5ff]">
+                                <Shield className="w-3.5 h-3.5" />
+                                <span>DEF {famDef}</span>
+                              </div>
+
+                              {famPmMax > 0 && (
+                                <div className="flex items-center gap-1">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const next = [...familiers];
+                                      next[fIdx] = { ...fam, pm: Math.max(0, famPmCur - 1) };
+                                      updateFamiliersList(next);
+                                    }}
+                                    className="no-print w-5 h-5 rounded bg-[#162538] text-[#8dbbff] font-bold flex items-center justify-center border border-[#2e5077] cursor-pointer"
+                                  >
+                                    -
+                                  </button>
+                                  <span className="text-[#8dbbff] font-bold">
+                                    {famPmCur}/{famPmMax} PM
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const next = [...familiers];
+                                      next[fIdx] = {
+                                        ...fam,
+                                        pm: Math.min(famPmMax, famPmCur + 1),
+                                      };
+                                      updateFamiliersList(next);
+                                    }}
+                                    className="no-print w-5 h-5 rounded bg-[#162538] text-[#8dbbff] font-bold flex items-center justify-center border border-[#2e5077] cursor-pointer"
+                                  >
+                                    +
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+
+                            {fam.armes && fam.armes.length > 0 && (
+                              <div className="text-[11px] text-[#ede3d1] bg-[#0e1811] px-2.5 py-1.5 rounded border border-[#23422a]">
+                                <b className="text-[#86efac]">⚔️ Attaques :</b>{' '}
+                                {fam.armes.map((w) => `${w.n} (${w.dm})`).join(' · ')}
+                              </div>
+                            )}
+
+                            {fam.capacitesSpeciales && fam.capacitesSpeciales.length > 0 && (
+                              <div className="flex flex-wrap gap-1">
+                                {fam.capacitesSpeciales.map((cap, ci) => (
+                                  <span
+                                    key={ci}
+                                    title={cap.t}
+                                    className="px-1.5 py-0.5 rounded bg-[#102116] border border-[#2d5e37] text-[10px] text-[#b7f7c7] font-semibold"
+                                  >
+                                    ✦ {cap.n}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+
+                            <StateBadgeList
+                              activeStates={fam.etats || []}
+                              onToggleState={(stName) => {
+                                const cur = fam.etats || [];
+                                const updatedStates = cur.includes(stName)
+                                  ? cur.filter((s) => s !== stName)
+                                  : [...cur, stName];
+                                const next = [...familiers];
+                                next[fIdx] = { ...fam, etats: updatedStates };
+                                updateFamiliersList(next);
+                              }}
+                              onSelectDetail={(state) => setDetailItem({ type: 'etat', data: state })}
+                              allowEdit={true}
+                              compact={true}
+                            />
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => setSelectedFamilierSheet(fam)}
+                            className="no-print w-full py-1.5 rounded-lg bg-[#1a3321] hover:bg-[#234d2d] border border-[#4a8556] text-[#d5fce0] text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer"
+                          >
+                            <ExternalLink className="w-3.5 h-3.5" /> Fiche complète
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        );
+      })()}
+
+      {/* ==================== TAB 6 : LES TERRES D'OSGILD (LORE DU JOUEUR - ONGLET UNIQUE) ==================== */}
       {activeTab === 'lore' && <OsgildLorePj />}
 
       {/* ==================== DRAWER CATALOGUE ==================== */}
@@ -3164,23 +3409,62 @@ export const PjSheet: React.FC<PjSheetProps> = ({
                 })}
 
               {catalogDrawer !== 'sorts' &&
-                catalogDrawer !== 'tharnea' &&
-                (catalogDrawer === 'armes'
-                  ? ARMES_CATALOG
-                  : catalogDrawer === 'armures'
-                  ? ARMURES_CATALOG
-                  : BIENS_CATALOG
-                )
-                  .filter((it) => {
-                    const q = catalogQuery.trim().toLowerCase();
-                    if (!q) return true;
-                    const owned = isItemOwnedByPj(it.n);
-                    if (owned) {
-                      return (it.n + (it.desc || '') + (it.props || '')).toLowerCase().includes(q);
-                    }
-                    return it.n.toLowerCase().includes(q);
-                  })
-                  .map((it, idx) => {
+                catalogDrawer !== 'tharnea' && (() => {
+                  const baseList =
+                    catalogDrawer === 'armes'
+                      ? ARMES_CATALOG
+                      : catalogDrawer === 'armures'
+                      ? ARMURES_CATALOG
+                      : BIENS_CATALOG;
+                  const biensCats =
+                    catalogDrawer === 'biens'
+                      ? Array.from(new Set(baseList.map((i) => i.cat).filter((c): c is string => Boolean(c))))
+                      : [];
+                  return (
+                    <>
+                      {catalogDrawer === 'biens' && biensCats.length > 0 && (
+                        <div className="flex flex-wrap gap-1 pb-2">
+                          <button
+                            type="button"
+                            onClick={() => setCatalogBiensCat('all')}
+                            className={`px-2 py-0.5 rounded text-[10px] font-bold cursor-pointer ${
+                              catalogBiensCat === 'all'
+                                ? 'bg-[#d4a84a] text-black'
+                                : 'bg-[#231c15] text-[#cbb8a7] hover:text-white'
+                            }`}
+                          >
+                            Tous ({baseList.length})
+                          </button>
+                          {biensCats.map((catName) => (
+                            <button
+                              key={catName}
+                              type="button"
+                              onClick={() => setCatalogBiensCat(catName)}
+                              className={`px-2 py-0.5 rounded text-[10px] font-bold cursor-pointer ${
+                                catalogBiensCat === catName
+                                  ? 'bg-[#d4a84a] text-black'
+                                  : 'bg-[#231c15] text-[#cbb8a7] hover:text-white'
+                              }`}
+                            >
+                              {catName}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                      {baseList
+                        .filter((it) => {
+                          if (catalogDrawer === 'biens' && catalogBiensCat !== 'all' && it.cat !== catalogBiensCat) {
+                            return false;
+                          }
+                          const q = catalogQuery.trim().toLowerCase();
+                          if (!q) return true;
+                          const owned = isItemOwnedByPj(it.n);
+                          if (owned) {
+                            return (it.n + (it.desc || '') + (it.props || '') + (it.cat || '')).toLowerCase().includes(q);
+                          }
+                          return (it.n + (it.cat || '')).toLowerCase().includes(q);
+                        })
+                        .map((it, idx) => {
                     const owned = isItemOwnedByPj(it.n);
                     return (
                       <div
@@ -3234,6 +3518,9 @@ export const PjSheet: React.FC<PjSheetProps> = ({
                       </div>
                     );
                   })}
+                    </>
+                  );
+                })()}
             </div>
           </div>
         </div>
@@ -4145,39 +4432,7 @@ export const PjSheet: React.FC<PjSheetProps> = ({
         </div>
       )}
 
-      {/* ==================== MODAL CRÉATION / ÉDITION FAMILIER (PJ) ==================== */}
-      <FamilierCreatorModal
-        isOpen={isFamilierModalOpen}
-        onClose={() => {
-          setIsFamilierModalOpen(false);
-          setEditingFamilier(null);
-        }}
-        onSave={(famChar, _combatant, isEdit) => {
-          const normalized = normalizeFamilierForMaster(famChar, {
-            id: pj.id,
-            name: pj.name,
-          });
-          const curList = pj.familiers || [];
-          const existingIdx = curList.findIndex((f) => f.id === normalized.id);
-          const nextList =
-            existingIdx >= 0
-              ? curList.map((f, idx) => (idx === existingIdx ? normalized : f))
-              : [...curList, normalized];
-          onUpdatePj({ ...pj, familiers: nextList });
-          setEditingFamilier(null);
-          success(
-            isEdit
-              ? `🐾 Familier « ${normalized.name} » mis à jour !`
-              : `🐾 Familier « ${normalized.name} » lié à ${pj.name} !`
-          );
-        }}
-        mastersList={[pj]}
-        defaultMaster={{ id: pj.id, name: pj.name }}
-        editingFamilier={editingFamilier}
-        isMj={false}
-      />
-
-      {/* ==================== FICHE COMPLÈTE DU FAMILIER (POP-UP) ==================== */}
+      {/* ==================== FICHE COMPLÈTE DU FAMILIER / COMPAGNON (POP-UP) ==================== */}
       <CharacterSheetModal
         pj={selectedFamilierSheet}
         isOpen={!!selectedFamilierSheet}
@@ -4190,30 +4445,28 @@ export const PjSheet: React.FC<PjSheetProps> = ({
             setSelectedFamilierSheet(null);
           }
         }}
-        onEditCharacter={(char) => {
-          if (char.isFamilier) {
-            setSelectedFamilierSheet(null);
-            setEditingFamilier(char);
-            setIsFamilierModalOpen(true);
-          }
-        }}
-        onToggleState={(stName) => {
-          if (!selectedFamilierSheet) return;
-          const curList = pj.familiers || [];
-          const nextList = curList.map((f) => {
-            if (f.id === selectedFamilierSheet.id || f.name === selectedFamilierSheet.name) {
-              const states = f.etats || [];
-              const updatedStates = states.includes(stName)
-                ? states.filter((s) => s !== stName)
-                : [...states, stName];
-              const nextFam = { ...f, etats: updatedStates };
-              setSelectedFamilierSheet(nextFam);
-              return nextFam;
-            }
-            return f;
-          });
-          onUpdatePj({ ...pj, familiers: nextList });
-        }}
+        onEditCharacter={undefined}
+        onToggleState={
+          pj.familierAccess?.unlocked
+            ? (stName) => {
+                if (!selectedFamilierSheet) return;
+                const curList = pj.familiers || [];
+                const nextList = curList.map((f) => {
+                  if (f.id === selectedFamilierSheet.id || f.name === selectedFamilierSheet.name) {
+                    const states = f.etats || [];
+                    const updatedStates = states.includes(stName)
+                      ? states.filter((s) => s !== stName)
+                      : [...states, stName];
+                    const nextFam = { ...f, etats: updatedStates };
+                    setSelectedFamilierSheet(nextFam);
+                    return nextFam;
+                  }
+                  return f;
+                });
+                onUpdatePj({ ...pj, familiers: nextList });
+              }
+            : undefined
+        }
       />
 
       {/* Discreet Signature */}

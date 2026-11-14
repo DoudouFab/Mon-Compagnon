@@ -61,6 +61,40 @@ export const normalizeHero = (h: any): Character => {
     armes: Array.isArray(h.armes) ? h.armes : h.armes ? Object.values(h.armes) : [],
     customSorts: Array.isArray(h.customSorts) ? h.customSorts : h.customSorts ? Object.values(h.customSorts) : [],
     caps: Array.isArray(h.caps) ? h.caps : h.caps ? Object.values(h.caps) : [],
+    ...(h.familiers !== undefined
+      ? {
+          familiers: Array.isArray(h.familiers)
+            ? h.familiers.map((f: any) => normalizeHero(f))
+            : h.familiers && typeof h.familiers === 'object'
+            ? Object.values(h.familiers).map((f: any) => normalizeHero(f))
+            : [],
+        }
+      : {}),
+    ...(h.familierAccess && typeof h.familierAccess === 'object'
+      ? {
+          familierAccess: {
+            unlocked: Boolean(h.familierAccess.unlocked),
+            pendingRequest:
+              h.familierAccess.pendingRequest &&
+              typeof h.familierAccess.pendingRequest === 'object' &&
+              h.familierAccess.pendingRequest.requestedAt
+                ? {
+                    requestedAt: Number(h.familierAccess.pendingRequest.requestedAt) || Date.now(),
+                    ...(h.familierAccess.pendingRequest.presetId
+                      ? { presetId: String(h.familierAccess.pendingRequest.presetId) }
+                      : {}),
+                    ...(h.familierAccess.pendingRequest.presetName
+                      ? { presetName: String(h.familierAccess.pendingRequest.presetName) }
+                      : {}),
+                    ...(h.familierAccess.pendingRequest.note
+                      ? { note: String(h.familierAccess.pendingRequest.note) }
+                      : {}),
+                  }
+                : null,
+            rejectedAt: h.familierAccess.rejectedAt ? Number(h.familierAccess.rejectedAt) : null,
+          },
+        }
+      : {}),
     ...(h.candyBox && typeof h.candyBox === 'object'
       ? {
           candyBox: {

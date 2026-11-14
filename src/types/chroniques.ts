@@ -147,6 +147,16 @@ export interface Character {
     pendingTaste?: { candyName: string; requestedAt: number } | null;
     rejectedTaste?: { candyName: string; rejectedAt: number } | null;
   };
+  familierAccess?: {
+    unlocked: boolean;
+    pendingRequest?: {
+      requestedAt: number;
+      presetId?: string;
+      presetName?: string;
+      note?: string;
+    } | null;
+    rejectedAt?: number | null;
+  };
 }
 
 export interface CurrencyBourse {

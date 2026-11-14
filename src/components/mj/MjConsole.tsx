@@ -57,6 +57,13 @@ import { OsgildLoreMj } from './OsgildLoreMj';
 import { MoneyCalculatorModal } from '../common/MoneyCalculatorModal';
 import { FamilierCreatorModal } from '../common/FamilierCreatorModal';
 import { FAMILIERS_PRESETS, createFamilierFromPreset } from '../../data/familiersCatalog';
+import {
+  PNJ_PRESETS,
+  PNJ_PRESET_CATEGORIES,
+  PnjPresetCategorie,
+  createPnjFromPreset,
+} from '../../data/pnjPresetsCatalog';
+import { buildCharacterPortraitDataUrl } from '../../utils/fantasyPortraitGenerator';
 import { getLinkedFamiliersForMaster } from '../../utils/familierSync';
 import { useToast } from '../common/ToastContext';
 import {
@@ -159,6 +166,11 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
   const [editingFamilier, setEditingFamilier] = useState<Character | null>(null);
   const [familierDefaultMaster, setFamilierDefaultMaster] = useState<{ id?: string; name: string } | null>(null);
   const [showPresetFamiliersBar, setShowPresetFamiliersBar] = useState(false);
+  const [presetShelfFilter, setPresetShelfFilter] = useState<
+    'all' | 'familiers' | 'rodeur' | 'felin' | 'canide' | 'rapace' | 'montures'
+  >('all');
+  const [showPresetPnjsBar, setShowPresetPnjsBar] = useState(false);
+  const [pnjShelfCatFilter, setPnjShelfCatFilter] = useState<'all' | PnjPresetCategorie>('all');
 
   // Random Loot Table states
   const [lootSearch, setLootSearch] = useState('');
@@ -495,6 +507,111 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
       dmPatchAt: Date.now(),
     };
     onUpdateTableData({ ...tableData, pjs: list });
+  };
+
+  // File d'attente des demandes d'accès Compagnon / Familier envoyées par les PJ
+  const pendingFamilierRequests = React.useMemo(() => {
+    return tableData.pjs
+      .map((pj, pjIdx) => {
+        if (pj.isFamilier) return null;
+        const req = pj.familierAccess?.pendingRequest;
+        if (!req || !req.requestedAt) return null;
+        const presetObj = req.presetId
+          ? FAMILIERS_PRESETS.find((pr) => pr.id === req.presetId) || null
+          : null;
+        return {
+          pj,
+          pjIdx,
+          requestedAt: req.requestedAt,
+          presetObj,
+          presetName: req.presetName || presetObj?.name || null,
+          note: req.note || '',
+        };
+      })
+      .filter((x): x is NonNullable<typeof x> => x !== null)
+      .sort((a, b) => a.requestedAt - b.requestedAt);
+  }, [tableData.pjs]);
+
+  const handleResolveFamilierRequest = (
+    pjIdx: number,
+    approve: boolean,
+    autoLinkPreset: boolean = false
+  ) => {
+    if (pjIdx < 0 || pjIdx >= tableData.pjs.length) return;
+    const target = tableData.pjs[pjIdx];
+    const req = target.familierAccess?.pendingRequest;
+    const now = Date.now();
+
+    let nextPjs = [...tableData.pjs];
+
+    if (approve) {
+      let createdFam: Character | null = null;
+      if (autoLinkPreset && req?.presetId) {
+        const preset = FAMILIERS_PRESETS.find((p) => p.id === req.presetId);
+        if (preset) {
+          createdFam = createFamilierFromPreset(preset, {
+            id: target.id,
+            name: target.name,
+          });
+        }
+      }
+
+      nextPjs[pjIdx] = {
+        ...target,
+        ...(createdFam ? { familiers: [...(target.familiers || []), createdFam] } : {}),
+        familierAccess: {
+          unlocked: true,
+          pendingRequest: null,
+          rejectedAt: null,
+        },
+        dmPatchAt: now,
+      };
+      if (createdFam) {
+        nextPjs.push(createdFam);
+      }
+
+      success(
+        createdFam
+          ? `🔓 Accès Compagnon / Familier accordé à ${target.name} et « ${createdFam.name} » lié à sa fiche !`
+          : `🔓 Onglet Compagnon / Familier déverrouillé pour ${target.name} !`
+      );
+    } else {
+      nextPjs[pjIdx] = {
+        ...target,
+        familierAccess: {
+          unlocked: Boolean(target.familierAccess?.unlocked),
+          pendingRequest: null,
+          rejectedAt: now,
+        },
+        dmPatchAt: now,
+      };
+      info(`🔒 Demande de Compagnon / Familier refusée pour ${target.name}.`);
+    }
+
+    onUpdateTableData({ ...tableData, pjs: nextPjs });
+  };
+
+  const handleTogglePjFamilierLock = (pjIdx: number) => {
+    if (pjIdx < 0 || pjIdx >= tableData.pjs.length) return;
+    const target = tableData.pjs[pjIdx];
+    const currentlyUnlocked = Boolean(target.familierAccess?.unlocked);
+    const nextUnlocked = !currentlyUnlocked;
+    const list = [...tableData.pjs];
+    list[pjIdx] = {
+      ...target,
+      familierAccess: {
+        unlocked: nextUnlocked,
+        pendingRequest: null,
+        rejectedAt: null,
+      },
+      dmPatchAt: Date.now(),
+    };
+    onUpdateTableData({ ...tableData, pjs: list });
+    info(
+      nextUnlocked
+        ? `🔓 Accès Compagnon / Familier ouvert pour ${target.name}.`
+        : `🔒 Fiche Compagnon / Familier recadenassée pour ${target.name}.`
+    );
   };
 
   const handleRollRandomLoot = () => {
@@ -1097,7 +1214,18 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
 
   const handleSaveFamilier = (famChar: Character, combatant: Combatant | null, isEdit: boolean) => {
     const existingIdx = tableData.pjs.findIndex((p) => p.id === famChar.id);
-    const nextPjs = [...tableData.pjs];
+    const now = Date.now();
+    const nextPjs = [...tableData.pjs].map((p) => {
+      if (
+        !p.isFamilier &&
+        ((famChar.masterId && p.id === famChar.masterId) ||
+          (famChar.masterName &&
+            p.name.trim().toLowerCase() === famChar.masterName.trim().toLowerCase()))
+      ) {
+        return { ...p, dmPatchAt: now };
+      }
+      return p;
+    });
     if (existingIdx >= 0) {
       nextPjs[existingIdx] = famChar;
     } else {
@@ -1124,7 +1252,7 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
         isPnj: true,
         isFamilier: true,
         masterName: famChar.masterName,
-        notes: `${famChar.familierEspece || 'Familier'} Niv. ${famChar.level}${
+        notes: `${famChar.familierEspece || 'Compagnon'} Niv. ${famChar.level}${
           famChar.masterName ? ` • Maître : ${famChar.masterName}` : ''
         }`,
       };
@@ -1137,8 +1265,8 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
     setFamilierDefaultMaster(null);
     success(
       isEdit
-        ? `🐾 Familier « ${famChar.name} » mis à jour !`
-        : `🐾 Familier « ${famChar.name} » créé${famChar.masterName ? ` et lié à ${famChar.masterName}` : ''} !`
+        ? `🐾 « ${famChar.name} » mis à jour !`
+        : `🐾 « ${famChar.name} » créé${famChar.masterName ? ` et lié à ${famChar.masterName}` : ''} !`
     );
   };
 
@@ -1146,15 +1274,27 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
     const master = masterKey
       ? tableData.pjs.find((m) => !m.isFamilier && (m.id === masterKey || m.name === masterKey))
       : undefined;
+    const fam = tableData.pjs.find((p) => p.id === famId || p.name === famId);
+    const now = Date.now();
 
     const nextPjs = tableData.pjs.map((p) => {
-      if (p.id !== famId) return p;
-      return {
-        ...p,
-        masterId: master ? master.id : undefined,
-        masterName: master ? master.name : undefined,
-        player: master ? `Familier de ${master.name}` : 'Familier (Disponible)',
-      };
+      if (p.id === famId || p.name === famId) {
+        const roleLabel = p.rolePnj === 'Compagnon' ? 'Compagnon' : 'Familier';
+        return {
+          ...p,
+          masterId: master ? master.id : undefined,
+          masterName: master ? master.name : undefined,
+          player: master ? `${roleLabel} de ${master.name}` : `${roleLabel} (Disponible)`,
+        };
+      }
+      if (
+        !p.isFamilier &&
+        ((master && (p.id === master.id || p.name === master.name)) ||
+          (fam && ((fam.masterId && p.id === fam.masterId) || (fam.masterName && p.name === fam.masterName))))
+      ) {
+        return { ...p, dmPatchAt: now };
+      }
+      return p;
     });
 
     const nextCombatants = tableData.combatants.map((c) => {
@@ -1166,7 +1306,6 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
     });
 
     onUpdateTableData({ ...tableData, pjs: nextPjs, combatants: nextCombatants });
-    const fam = tableData.pjs.find((p) => p.id === famId);
     if (fam) {
       info(
         master
@@ -1183,7 +1322,18 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
     const preset = FAMILIERS_PRESETS[presetIndex];
     if (!preset) return;
     const newFam = createFamilierFromPreset(preset, master || null);
-    onUpdateTableData({ ...tableData, pjs: [...tableData.pjs, newFam] });
+    const now = Date.now();
+    const nextPjs = tableData.pjs.map((p) => {
+      if (
+        master &&
+        !p.isFamilier &&
+        ((master.id && p.id === master.id) || (master.name && p.name === master.name))
+      ) {
+        return { ...p, dmPatchAt: now };
+      }
+      return p;
+    });
+    onUpdateTableData({ ...tableData, pjs: [...nextPjs, newFam] });
     success(
       `🐾 « ${newFam.name} » ajouté au groupe${master?.name ? ` et lié à ${master.name}` : ''} !`
     );
@@ -2220,15 +2370,28 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
 
                 <button
                   type="button"
+                  onClick={() => setShowPresetPnjsBar((v) => !v)}
+                  className={`px-2.5 py-1.5 border text-xs font-bold rounded-lg flex items-center gap-1.5 cursor-pointer transition-colors ${
+                    showPresetPnjsBar
+                      ? 'bg-[#1c2d42] border-[#60a5fa] text-[#dbeafe]'
+                      : 'bg-[#141c27] hover:bg-[#1a2636] border-[#364d68] text-[#93c5fd]'
+                  }`}
+                  title="Afficher la base pré-établie des PNJ pré-tirés (écuyer, mercenaires, guides, érudits, brigands...)"
+                >
+                  <BookOpen className="w-3.5 h-3.5 text-[#60a5fa]" /> Base PNJ Pré-tirés ({PNJ_PRESETS.length})
+                </button>
+
+                <button
+                  type="button"
                   onClick={() => {
                     setEditingFamilier(null);
                     setFamilierDefaultMaster(null);
                     setIsFamilierCreatorOpen(true);
                   }}
                   className="px-2.5 py-1.5 bg-gradient-to-r from-[#1d3f27] to-[#122618] hover:brightness-110 border border-[#4a8556] text-[#b7f7c7] text-xs font-bold rounded-lg flex items-center gap-1.5 shadow-sm cursor-pointer"
-                  title="Créer ou choisir un familier pré-rempli et le lier à un PJ ou PNJ"
+                  title="Ouvrir le Créateur de Familier & Compagnon et lier à un PJ ou PNJ"
                 >
-                  <span>🐾</span> + Familier
+                  <span>🐾</span> + Familier / Compagnon
                 </button>
 
                 <button
@@ -2239,9 +2402,9 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                       ? 'bg-[#1f3b26] border-[#6fa85b] text-[#d5fce0]'
                       : 'bg-[#17211a] hover:bg-[#1e2d22] border-[#35543c] text-[#9ff0b2]'
                   }`}
-                  title="Afficher les 10 fiches de familiers pré-remplies prêtes à ajouter en 1 clic"
+                  title="Afficher la base pré-établie des familiers courants, compagnons Rôdeur et montures"
                 >
-                  <Sparkles className="w-3.5 h-3.5 text-[#6fa85b]" /> Modèles pré-remplis ({FAMILIERS_PRESETS.length})
+                  <Sparkles className="w-3.5 h-3.5 text-[#6fa85b]" /> Base Familiers &amp; Compagnons ({FAMILIERS_PRESETS.length})
                 </button>
 
                 {currentActivePj && (
@@ -2379,51 +2542,295 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
               )}
             </div>
 
-            {/* Étagère rapide : 10 familiers pré-remplis */}
+            {/* Étagère rapide : Base pré-établie PNJ Pré-tirés */}
+            {showPresetPnjsBar && (
+              <div className="p-3 bg-[#10161e] border border-[#4d7ca8]/70 rounded-xl space-y-2.5">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <h4 className="font-serif-co text-sm font-bold text-[#bfdbfe] flex items-center gap-1.5">
+                      <BookOpen className="w-4 h-4 text-[#60a5fa]" /> Base Pré-établie : PNJ Pré-tirés (1 clic)
+                    </h4>
+                    <p className="text-[11px] text-[#93adc9]">
+                      Humanoïdes prêts à jouer avec race, profil, voies, armure, armes et bourse (écuyers, mercenaires, guides, érudits, brigands).
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setPnjShelfCatFilter('all')}
+                      className={`px-2 py-1 rounded text-[10px] font-bold cursor-pointer ${
+                        pnjShelfCatFilter === 'all'
+                          ? 'bg-[#60a5fa] text-black'
+                          : 'bg-[#172230] text-[#a5bedb] hover:text-white'
+                      }`}
+                    >
+                      Tous ({PNJ_PRESETS.length})
+                    </button>
+                    {PNJ_PRESET_CATEGORIES.map((cat) => (
+                      <button
+                        key={cat}
+                        type="button"
+                        onClick={() => setPnjShelfCatFilter(cat)}
+                        className={`px-2 py-1 rounded text-[10px] font-bold cursor-pointer ${
+                          pnjShelfCatFilter === cat
+                            ? 'bg-[#60a5fa] text-black'
+                            : 'bg-[#172230] text-[#a5bedb] hover:text-white'
+                        }`}
+                      >
+                        {cat}
+                      </button>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() => setShowPresetPnjsBar(false)}
+                      className="p-1 rounded text-[#93adc9] hover:text-white cursor-pointer"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 max-h-72 overflow-y-auto pr-1">
+                  {PNJ_PRESETS.filter(
+                    (preset) => pnjShelfCatFilter === 'all' || preset.categorie === pnjShelfCatFilter
+                  ).map((preset) => {
+                    const fullName = preset.titre ? `${preset.name}, ${preset.titre}` : preset.name;
+                    const raceLabel = RACES.find((r) => r.id === preset.race)?.n || preset.race;
+                    const profLabel = PROFILS.find((pr) => pr.id === preset.profil)?.n || preset.profil;
+                    const thumb = buildCharacterPortraitDataUrl(
+                      { name: fullName, race: preset.race, profil: preset.profil, persoTraits: preset.notes },
+                      0
+                    );
+                    return (
+                      <div
+                        key={preset.id}
+                        className="p-2.5 bg-[#151e29] border border-[#2c435e] rounded-lg flex flex-col justify-between gap-2"
+                      >
+                        <div className="space-y-1">
+                          <div className="flex items-center justify-between gap-1">
+                            <span
+                              className={`text-[9px] uppercase font-bold px-1.5 py-0.5 rounded border ${
+                                preset.role === 'Ennemi'
+                                  ? 'bg-[#2a1215] text-[#fca5a5] border-[#7f1d1d]'
+                                  : 'bg-[#0f1924] text-[#93c5fd] border-[#2c4b6e]'
+                              }`}
+                            >
+                              {preset.role} · Niv {preset.level}
+                            </span>
+                            <span className="text-[10px] font-mono text-[#a3b8cc]">
+                              {preset.hp} PV · DEF {preset.def}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <img
+                              src={thumb}
+                              alt={preset.name}
+                              className="w-9 h-9 rounded-lg object-cover border border-[#364d68] shrink-0"
+                            />
+                            <div className="min-w-0">
+                              <b className="font-serif-co text-xs text-[#e2efff] block truncate">
+                                {preset.name}
+                              </b>
+                              <span className="text-[10px] text-[#93c5fd] block truncate">
+                                {preset.titre} ({raceLabel} · {profLabel})
+                              </span>
+                            </div>
+                          </div>
+                          <p className="text-[10px] text-[#9fb3c8] line-clamp-2">{preset.notes}</p>
+                        </div>
+                        <div className="grid grid-cols-2 gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const { pnjChar, combatant } = createPnjFromPreset(preset, {
+                                addToGroup: true,
+                                addToCombat: false,
+                              });
+                              handleSavePnj(pnjChar, combatant);
+                            }}
+                            className="py-1 px-1.5 rounded bg-[#1d344e] hover:bg-[#274669] border border-[#3f6894] text-[#dbeafe] text-[10px] font-bold flex items-center justify-center gap-1 cursor-pointer"
+                            title="Ajouter ce PNJ au groupe"
+                          >
+                            <Plus className="w-3 h-3" /> Groupe
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const { pnjChar, combatant } = createPnjFromPreset(preset, {
+                                addToGroup: true,
+                                addToCombat: true,
+                              });
+                              handleSavePnj(pnjChar, combatant);
+                            }}
+                            className="py-1 px-1.5 rounded bg-[#2c4058] hover:bg-[#385270] border border-[#60a5fa]/60 text-[#f0f7ff] text-[10px] font-bold flex items-center justify-center gap-1 cursor-pointer"
+                            title="Ajouter ce PNJ au groupe et à la piste d'initiative"
+                          >
+                            <Swords className="w-3 h-3" /> + Combat
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Étagère rapide : Base pré-établie Familiers courants & Compagnons courants */}
             {showPresetFamiliersBar && (
               <div className="p-3 bg-[#101c13] border border-[#4a8556]/70 rounded-xl space-y-2.5">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div>
                     <h4 className="font-serif-co text-sm font-bold text-[#9ff0b2] flex items-center gap-1.5">
-                      <span>🐾</span> Catalogue de Familiers Pré-remplis (Ajout en 1 clic)
+                      <span>🐾</span> Base Pré-établie : Familiers Courants &amp; Compagnons / Montures (1 clic)
                     </h4>
                     <p className="text-[11px] text-[#8db898]">
-                      Ajoutez directement un familier avec ses stats, attaques, portrait et capacités spéciales, puis liez-le au maître de votre choix.
+                      Ajoutez directement un familier, compagnon animal (Rôdeur) ou monture avec ses stats, attaques, portrait et capacités spéciales, puis liez-le au maître de votre choix.
                     </p>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => setShowPresetFamiliersBar(false)}
-                    className="p-1 rounded text-[#8db898] hover:text-white cursor-pointer"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2">
-                  {FAMILIERS_PRESETS.map((preset, pIdx) => (
-                    <div
-                      key={preset.id}
-                      className="p-2.5 bg-[#152419] border border-[#2d5236] rounded-lg flex flex-col justify-between gap-2"
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {[
+                      { key: 'all', label: `Tous (${FAMILIERS_PRESETS.length})` },
+                      { key: 'familiers', label: '🐾 Familiers' },
+                      { key: 'rodeur', label: '🏹 Compagnons Rôdeur' },
+                      { key: 'felin', label: '🐆 Félins' },
+                      { key: 'canide', label: '🐺 Canidés' },
+                      { key: 'rapace', label: '🦅 Rapaces' },
+                      { key: 'montures', label: '🐎 Montures' },
+                    ].map((tab) => (
+                      <button
+                        key={tab.key}
+                        type="button"
+                        onClick={() => setPresetShelfFilter(tab.key as any)}
+                        className={`px-2 py-1 rounded text-[10px] font-bold cursor-pointer ${
+                          presetShelfFilter === tab.key
+                            ? 'bg-[#6fa85b] text-black'
+                            : 'bg-[#16291c] text-[#a3c2aa] hover:text-white'
+                        }`}
+                      >
+                        {tab.label}
+                      </button>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() => setShowPresetFamiliersBar(false)}
+                      className="p-1 rounded text-[#8db898] hover:text-white cursor-pointer"
                     >
-                      <div className="space-y-1">
-                        <div className="flex items-center justify-between gap-1">
-                          <span className="text-[9px] uppercase font-bold px-1.5 py-0.5 rounded bg-[#0e1911] text-[#86efac] border border-[#2d5e37]">
-                            {preset.categorie}
-                          </span>
-                          <span className="text-[10px] font-mono text-[#a3b8a8]">
-                            {preset.hp} PV · DEF {preset.def}
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 max-h-72 overflow-y-auto pr-1">
+                  {FAMILIERS_PRESETS.map((preset, pIdx) => ({ preset, pIdx }))
+                    .filter(({ preset }) => {
+                      if (presetShelfFilter === 'rodeur') {
+                        return preset.categorie === 'Compagnon Rôdeur';
+                      }
+                      if (presetShelfFilter === 'felin') {
+                        return preset.sousFamille === 'Félin';
+                      }
+                      if (presetShelfFilter === 'canide') {
+                        return preset.sousFamille === 'Canidé';
+                      }
+                      if (presetShelfFilter === 'rapace') {
+                        return preset.sousFamille === 'Rapace';
+                      }
+                      if (presetShelfFilter === 'montures') {
+                        return preset.categorie === 'Monture';
+                      }
+                      if (presetShelfFilter === 'familiers') {
+                        return (
+                          preset.categorie !== 'Monture' &&
+                          preset.categorie !== 'Compagnon Rôdeur'
+                        );
+                      }
+                      return true;
+                    })
+                    .map(({ preset, pIdx }) => (
+                      <div
+                        key={preset.id}
+                        className="p-2.5 bg-[#152419] border border-[#2d5236] rounded-lg flex flex-col justify-between gap-2"
+                      >
+                        <div className="space-y-1">
+                          <div className="flex items-center justify-between gap-1">
+                            <span className="text-[9px] uppercase font-bold px-1.5 py-0.5 rounded bg-[#0e1911] text-[#86efac] border border-[#2d5e37]">
+                              {preset.typeCompagnon === 'Compagnon' ? '🤝' : '🐾'} {preset.categorie}
+                              {preset.sousFamille ? ` · ${preset.sousFamille}` : ''}
+                            </span>
+                            <span className="text-[10px] font-mono text-[#a3b8a8]">
+                              {preset.hp} PV · DEF {preset.def}
+                            </span>
+                          </div>
+                          <b className="font-serif-co text-xs text-[#e6ffec] block truncate">{preset.name}</b>
+                          <p className="text-[10px] text-[#9eb5a3] line-clamp-2">{preset.persoTraits}</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleQuickSpawnPresetFamilier(pIdx, null)}
+                          className="w-full py-1 px-2 rounded bg-[#234d2d] hover:bg-[#2d633a] border border-[#4a8556] text-[#d5fce0] text-[11px] font-bold flex items-center justify-center gap-1 cursor-pointer"
+                        >
+                          <Plus className="w-3 h-3" /> Ajouter au groupe
+                        </button>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            )}
+
+            {/* Bannière demandes d'accès Compagnon / Familier en attente */}
+            {pendingFamilierRequests.length > 0 && (
+              <div className="p-3 bg-gradient-to-r from-[#2e200a] via-[#211708] to-[#171108] border border-[#f59e0b]/80 rounded-xl space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs font-bold text-[#fde047] flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-[#f59e0b] animate-ping" />
+                    <span>📩 {pendingFamilierRequests.length} demande(s) d&apos;accès Compagnon / Familier en attente</span>
+                  </span>
+                </div>
+                <div className="space-y-1.5">
+                  {pendingFamilierRequests.map((req) => (
+                    <div
+                      key={req.pj.id || req.pj.name}
+                      className="p-2.5 rounded-lg bg-[#140e06] border border-[#614417] flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs"
+                    >
+                      <div className="min-w-0 space-y-0.5">
+                        <div>
+                          <b className="text-[#f3d48d]">{req.pj.name}</b>{' '}
+                          <span className="text-[#cbb8a7]">
+                            demande l&apos;accès à son onglet <b>Mon Compagnon / Familier</b>.
                           </span>
                         </div>
-                        <b className="font-serif-co text-xs text-[#e6ffec] block truncate">{preset.name}</b>
-                        <p className="text-[10px] text-[#9eb5a3] line-clamp-2">{preset.persoTraits}</p>
+                        {req.note && (
+                          <div className="text-[11px] text-[#fde68a] bg-[#1e1508] border border-[#4f3915] rounded px-2 py-1">
+                            💬 <b>Message du joueur :</b> « {req.note} »
+                          </div>
+                        )}
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => handleQuickSpawnPresetFamilier(pIdx, null)}
-                        className="w-full py-1 px-2 rounded bg-[#234d2d] hover:bg-[#2d633a] border border-[#4a8556] text-[#d5fce0] text-[11px] font-bold flex items-center justify-center gap-1 cursor-pointer"
-                      >
-                        <Plus className="w-3 h-3" /> Ajouter au groupe
-                      </button>
+                      <div className="flex flex-wrap items-center gap-1.5 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            handleResolveFamilierRequest(req.pjIdx, true, false);
+                            setEditingFamilier(null);
+                            setFamilierDefaultMaster({ id: req.pj.id, name: req.pj.name });
+                            setIsFamilierCreatorOpen(true);
+                          }}
+                          className="px-2.5 py-1 rounded bg-[#6fa85b] hover:bg-[#82c06c] text-black font-bold text-[11px] cursor-pointer"
+                        >
+                          🛠️ Déverrouiller &amp; Créer / Choisir
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleResolveFamilierRequest(req.pjIdx, true, false)}
+                          className="px-2.5 py-1 rounded bg-[#234d2d] hover:bg-[#2d633a] border border-[#4a8556] text-[#d5fce0] font-bold text-[11px] cursor-pointer"
+                        >
+                          🔓 Déverrouiller seul
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleResolveFamilierRequest(req.pjIdx, false)}
+                          className="px-2.5 py-1 rounded bg-[#4a1818] hover:bg-[#612020] border border-[#a33939] text-[#ffd4d4] font-bold text-[11px] cursor-pointer"
+                        >
+                          🚫 Refuser
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -2446,7 +2853,7 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                   },
                   {
                     key: 'familier',
-                    label: `🐾 Familiers (${tableData.pjs.filter((p) => p.isFamilier).length})`,
+                    label: `🐾 Familiers & Comp. (${tableData.pjs.filter((p) => p.isFamilier).length})`,
                   },
                 ] as const).map((tab) => (
                   <button
@@ -2634,7 +3041,7 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                             }`}
                           >
                             {isFam
-                              ? `🐾 Familier${p.familierEspece ? ` · ${p.familierEspece}` : ''}`
+                              ? `${p.rolePnj === 'Compagnon' ? '🤝 Compagnon' : '🐾 Familier'}${p.familierEspece ? ` · ${p.familierEspece}` : ''}`
                               : p.isPnj
                               ? p.rolePnj || 'PNJ Allié'
                               : 'PJ'}
@@ -3063,24 +3470,52 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                         </div>
                       )}
 
-                      {/* Familiers liés sur les fiches PJ / PNJ */}
+                      {/* Compagnons & Familiers liés sur les fiches PJ / PNJ + Cadenas MJ */}
                       {!isFam && (
                         <div className="mt-2 p-2 rounded-lg bg-[#0f1912] border border-[#274c30]/80 space-y-1.5">
-                          <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center justify-between gap-1.5 flex-wrap">
                             <span className="text-[10px] uppercase font-bold text-[#9ff0b2] flex items-center gap-1">
-                              <span>🐾</span> Familiers liés ({ownedFamiliers.length})
+                              <span>🐾</span> Compagnons &amp; Familiers ({ownedFamiliers.length})
                             </span>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setEditingFamilier(null);
-                                setFamilierDefaultMaster({ id: p.id, name: p.name });
-                                setIsFamilierCreatorOpen(true);
-                              }}
-                              className="px-2 py-0.5 rounded bg-[#1a3822] hover:bg-[#234d2d] border border-[#4a8556] text-[10px] font-bold text-[#d5fce0] flex items-center gap-1 cursor-pointer"
-                            >
-                              <Plus className="w-3 h-3" /> Familier
-                            </button>
+                            <div className="flex items-center gap-1">
+                              {!p.isPnj && pjIdx >= 0 && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleTogglePjFamilierLock(pjIdx)}
+                                  className={`px-2 py-0.5 rounded border text-[10px] font-bold flex items-center gap-1 cursor-pointer ${
+                                    p.familierAccess?.unlocked
+                                      ? 'bg-[#173620] hover:bg-[#1f472b] border-[#4a8556] text-[#86efac]'
+                                      : 'bg-[#2b1d10] hover:bg-[#3d2916] border-[#a8743d] text-[#fde047]'
+                                  }`}
+                                  title={
+                                    p.familierAccess?.unlocked
+                                      ? 'Cliquer pour recadenasser l’onglet Compagnon / Familier du joueur'
+                                      : 'Cliquer pour déverrouiller l’onglet Compagnon / Familier pour ce joueur'
+                                  }
+                                >
+                                  {p.familierAccess?.unlocked ? (
+                                    <>
+                                      <Unlock className="w-2.5 h-2.5" /> Ouvert
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Lock className="w-2.5 h-2.5" /> Cadenassé
+                                    </>
+                                  )}
+                                </button>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setEditingFamilier(null);
+                                  setFamilierDefaultMaster({ id: p.id, name: p.name });
+                                  setIsFamilierCreatorOpen(true);
+                                }}
+                                className="px-2 py-0.5 rounded bg-[#1a3822] hover:bg-[#234d2d] border border-[#4a8556] text-[10px] font-bold text-[#d5fce0] flex items-center gap-1 cursor-pointer"
+                              >
+                                <Plus className="w-3 h-3" /> Lier
+                              </button>
+                            </div>
                           </div>
                           {ownedFamiliers.length > 0 ? (
                             <div className="flex flex-wrap gap-1.5">
@@ -5799,6 +6234,85 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                 >
                   ✅ Valider la dégustation (Révéler)
                 </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* POP-UP VALIDATION MJ : DEMANDE D'ACCÈS COMPAGNON / FAMILIER D'UN PJ */}
+      {pendingCandyRequests.length === 0 && pendingFamilierRequests.length > 0 && (() => {
+        const req = pendingFamilierRequests[0];
+        return (
+          <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/85 backdrop-blur-xs p-3 sm:p-5 animate-fadeIn">
+            <div className="bg-[#181410] border-2 border-[#6fa85b] rounded-2xl w-full max-w-lg shadow-2xl p-5 space-y-4">
+              <div className="flex items-start justify-between gap-3 border-b border-[#3d3023] pb-3">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-2xl">🐾</span>
+                    <h4 className="font-serif-co text-lg font-bold text-[#b8f2c2]">
+                      Demande d&apos;Accès · Compagnon / Familier
+                    </h4>
+                  </div>
+                  <p className="text-xs text-[#cbb8a7]">
+                    Le joueur <b className="text-[#f3d48d]">{req.pj.name}</b> demande à déverrouiller son onglet cadenassé <b>Mon Compagnon / Familier</b> :
+                  </p>
+                </div>
+                {pendingFamilierRequests.length > 1 && (
+                  <span className="px-2 py-0.5 rounded bg-[#15331d] border border-[#6fa85b] text-[10px] font-bold text-[#86efac] shrink-0">
+                    1 / {pendingFamilierRequests.length}
+                  </span>
+                )}
+              </div>
+
+              <div className="p-4 rounded-xl bg-[#111b14] border border-[#3a6b45] space-y-2.5 text-xs">
+                {req.note ? (
+                  <div className="p-3 rounded-lg bg-[#1b1610] border border-[#d4a84a]/60 text-[#ede3d1] space-y-1">
+                    <b className="text-[#f3d48d] text-[11px] uppercase tracking-wider block">
+                      💬 Message RP du joueur :
+                    </b>
+                    <p className="text-xs sm:text-sm italic text-[#fde68a]">« {req.note} »</p>
+                  </div>
+                ) : (
+                  <p className="text-[11px] text-[#9eb5a3] italic">
+                    Aucun message RP joint par le joueur.
+                  </p>
+                )}
+
+                <p className="text-[11px] text-[#8db898]">
+                  Vous pouvez déverrouiller sa fiche et choisir ou créer son compagnon / familier depuis votre base pré-établie MJ.
+                </p>
+              </div>
+
+              <div className="flex flex-col gap-2 pt-2 border-t border-[#30251a]">
+                <div className="flex flex-wrap items-center justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleResolveFamilierRequest(req.pjIdx, false)}
+                    className="px-3.5 py-2 rounded-xl bg-[#4a1818] hover:bg-[#612020] border border-[#a33939] text-xs font-bold text-[#ffd4d4] cursor-pointer"
+                  >
+                    🚫 Refuser (Garder cadenassé)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleResolveFamilierRequest(req.pjIdx, true, false)}
+                    className="px-3.5 py-2 rounded-xl bg-[#1f3b26] hover:bg-[#2a4f34] border border-[#4a8556] text-xs font-bold text-[#d5fce0] cursor-pointer"
+                  >
+                    🔓 Déverrouiller seul
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleResolveFamilierRequest(req.pjIdx, true, false);
+                      setEditingFamilier(null);
+                      setFamilierDefaultMaster({ id: req.pj.id, name: req.pj.name });
+                      setIsFamilierCreatorOpen(true);
+                    }}
+                    className="px-4 py-2 rounded-xl bg-[#6fa85b] hover:bg-[#7ebd67] text-black text-xs font-extrabold shadow-md cursor-pointer"
+                  >
+                    🛠️ Déverrouiller &amp; Attribuer (Base / Créateur MJ)
+                  </button>
+                </div>
               </div>
             </div>
           </div>

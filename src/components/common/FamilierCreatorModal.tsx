@@ -43,7 +43,14 @@ const DEFAULT_FAM_CARACS: Record<CaracName, number> = {
   CHA: 12,
 };
 
-const CATEGORIES: FamilierCategorie[] = ['Arcanique', 'Compagnon Animal', 'Éclaireur', 'Exotique'];
+const CATEGORIES: FamilierCategorie[] = [
+  'Compagnon Rôdeur',
+  'Arcanique',
+  'Éclaireur',
+  'Compagnon Animal',
+  'Exotique',
+  'Monture',
+];
 
 export const FamilierCreatorModal: React.FC<FamilierCreatorModalProps> = ({
   isOpen,
@@ -57,11 +64,13 @@ export const FamilierCreatorModal: React.FC<FamilierCreatorModalProps> = ({
   const { warning, info } = useToast();
 
   const [presetCatFilter, setPresetCatFilter] = useState<'all' | FamilierCategorie>('all');
+  const [presetSousFamilleFilter, setPresetSousFamilleFilter] = useState<'all' | 'Félin' | 'Canidé' | 'Rapace'>('all');
   const [selectedPresetId, setSelectedPresetId] = useState<string>(FAMILIERS_PRESETS[0].id);
 
   const [name, setName] = useState('');
   const [espece, setEspece] = useState('Corbeau');
   const [categorie, setCategorie] = useState<FamilierCategorie>('Éclaireur');
+  const [rolePnj, setRolePnj] = useState<'Familier' | 'Compagnon'>('Familier');
   const [level, setLevel] = useState(1);
   const [masterKey, setMasterKey] = useState<string>('');
   const [caracs, setCaracs] = useState<Record<CaracName, number>>({ ...DEFAULT_FAM_CARACS });
@@ -104,6 +113,12 @@ export const FamilierCreatorModal: React.FC<FamilierCreatorModalProps> = ({
     setName(preset.name);
     setEspece(preset.espece);
     setCategorie(preset.categorie);
+    setRolePnj(
+      preset.typeCompagnon ||
+        (preset.categorie === 'Monture' || preset.categorie === 'Compagnon Rôdeur'
+          ? 'Compagnon'
+          : 'Familier')
+    );
     setLevel(preset.level);
     setCaracs({ ...preset.base });
     setHp(preset.hp);
@@ -128,10 +143,16 @@ export const FamilierCreatorModal: React.FC<FamilierCreatorModalProps> = ({
       setSelectedPresetId('');
       setName(editingFamilier.name || '');
       setEspece(editingFamilier.familierEspece || 'Compagnon');
-      setCategorie(
-        (CATEGORIES.includes(editingFamilier.familierCategorie as FamilierCategorie)
-          ? editingFamilier.familierCategorie
-          : 'Compagnon Animal') as FamilierCategorie
+      const resolvedCat = (CATEGORIES.includes(editingFamilier.familierCategorie as FamilierCategorie)
+        ? editingFamilier.familierCategorie
+        : 'Compagnon Animal') as FamilierCategorie;
+      setCategorie(resolvedCat);
+      setRolePnj(
+        editingFamilier.rolePnj === 'Compagnon' ||
+          resolvedCat === 'Monture' ||
+          resolvedCat === 'Compagnon Rôdeur'
+          ? 'Compagnon'
+          : 'Familier'
       );
       setLevel(editingFamilier.level || 1);
       setMasterKey(findMasterKey(editingFamilier.masterId, editingFamilier.masterName));
@@ -229,7 +250,7 @@ export const FamilierCreatorModal: React.FC<FamilierCreatorModalProps> = ({
       ...(editingFamilier || {}),
       id: finalId,
       name: trimmedName,
-      player: master?.name ? `Familier de ${master.name}` : 'Familier (Disponible)',
+      player: master?.name ? `${rolePnj} de ${master.name}` : `${rolePnj} (Disponible)`,
       race: editingFamilier?.race || 'humain',
       profil: editingFamilier?.profil || 'rodeur',
       level: Math.max(1, level || 1),
@@ -257,7 +278,7 @@ export const FamilierCreatorModal: React.FC<FamilierCreatorModalProps> = ({
       poids: poids.trim(),
       etats: editingFamilier?.etats || [],
       isPnj: true,
-      rolePnj: 'Familier',
+      rolePnj,
       isFamilier: true,
       familierEspece: espece.trim() || 'Compagnon',
       familierCategorie: categorie,
@@ -274,9 +295,11 @@ export const FamilierCreatorModal: React.FC<FamilierCreatorModalProps> = ({
     onClose();
   };
 
-  const filteredPresets = FAMILIERS_PRESETS.filter(
-    (p) => presetCatFilter === 'all' || p.categorie === presetCatFilter
-  );
+  const filteredPresets = FAMILIERS_PRESETS.filter((p) => {
+    if (presetCatFilter !== 'all' && p.categorie !== presetCatFilter) return false;
+    if (presetSousFamilleFilter !== 'all' && p.sousFamille !== presetSousFamilleFilter) return false;
+    return true;
+  });
 
   return (
     <div className="fixed inset-0 z-[65] flex items-center justify-center bg-black/85 backdrop-blur-xs p-2 sm:p-4 animate-fadeIn">
@@ -290,11 +313,11 @@ export const FamilierCreatorModal: React.FC<FamilierCreatorModalProps> = ({
             <div className="min-w-0">
               <h3 className="font-serif-co text-base sm:text-lg font-bold text-[#b8f2c2] truncate">
                 {editingFamilier
-                  ? `Modifier le Familier · ${editingFamilier.name}`
-                  : 'Créer ou Lier un Familier (Modèles Pré-remplis & Fiche Complète)'}
+                  ? `Modifier ${rolePnj === 'Compagnon' ? 'le Compagnon' : 'le Familier'} · ${editingFamilier.name}`
+                  : 'Créateur de Familier & Compagnon (Base Pré-établie & Fiche Complète)'}
               </h3>
               <p className="text-[11px] text-[#9e907d] truncate">
-                10 familiers pré-remplis prêts en 1 clic ou entièrement personnalisables et liables à un PJ/PNJ
+                {FAMILIERS_PRESETS.length} familiers courants, compagnons animaux (Rôdeur) et montures prêts en 1 clic ou entièrement personnalisables
               </p>
             </div>
           </div>
@@ -314,14 +337,17 @@ export const FamilierCreatorModal: React.FC<FamilierCreatorModalProps> = ({
             <div className="bg-[#121914] border border-[#2f5236] rounded-xl p-3 space-y-2.5">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-[#86efac] flex items-center gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5" /> Familiers Pré-remplis (Cliquer pour charger ou ajouter)
+                  <Sparkles className="w-3.5 h-3.5" /> Base de Données · Familiers &amp; Compagnons Courants
                 </span>
                 <div className="flex flex-wrap items-center gap-1">
                   <button
                     type="button"
-                    onClick={() => setPresetCatFilter('all')}
+                    onClick={() => {
+                      setPresetCatFilter('all');
+                      setPresetSousFamilleFilter('all');
+                    }}
                     className={`px-2 py-0.5 rounded text-[10px] font-bold cursor-pointer ${
-                      presetCatFilter === 'all'
+                      presetCatFilter === 'all' && presetSousFamilleFilter === 'all'
                         ? 'bg-[#6fa85b] text-black'
                         : 'bg-[#1c261e] text-[#a7c4ad] hover:text-white'
                     }`}
@@ -332,20 +358,56 @@ export const FamilierCreatorModal: React.FC<FamilierCreatorModalProps> = ({
                     <button
                       key={cat}
                       type="button"
-                      onClick={() => setPresetCatFilter(cat)}
+                      onClick={() => {
+                        setPresetCatFilter(cat);
+                        if (cat !== 'Compagnon Rôdeur') setPresetSousFamilleFilter('all');
+                      }}
                       className={`px-2 py-0.5 rounded text-[10px] font-bold cursor-pointer ${
                         presetCatFilter === cat
                           ? 'bg-[#6fa85b] text-black'
                           : 'bg-[#1c261e] text-[#a7c4ad] hover:text-white'
                       }`}
                     >
-                      {cat}
+                      {cat === 'Compagnon Rôdeur' ? '🏹 Compagnon Rôdeur' : cat}
                     </button>
                   ))}
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 max-h-52 overflow-y-auto pr-1">
+              {/* Sous-filtre rapide Voie du Compagnon Rôdeur (Félins / Canidés / Rapaces) */}
+              <div className="flex flex-wrap items-center gap-1.5 pt-1 border-t border-[#233b28]">
+                <span className="text-[10px] font-bold text-[#f3d48d]">
+                  🏹 Voie du Compagnon (Rôdeur) :
+                </span>
+                {[
+                  { key: 'all', label: 'Toutes familles' },
+                  { key: 'Félin', label: '🐆 Félins' },
+                  { key: 'Canidé', label: '🐺 Canidés' },
+                  { key: 'Rapace', label: '🦅 Rapaces' },
+                ].map((sf) => (
+                  <button
+                    key={sf.key}
+                    type="button"
+                    onClick={() => {
+                      if (sf.key === 'all') {
+                        setPresetSousFamilleFilter('all');
+                      } else {
+                        setPresetCatFilter('Compagnon Rôdeur');
+                        setPresetSousFamilleFilter(sf.key as 'Félin' | 'Canidé' | 'Rapace');
+                      }
+                    }}
+                    className={`px-2 py-0.5 rounded text-[10px] font-bold cursor-pointer ${
+                      presetSousFamilleFilter === sf.key
+                        ? 'bg-[#d4a84a] text-black'
+                        : 'bg-[#1b241c] text-[#cbb8a7] hover:text-white border border-[#2f4534]'
+                    }`}
+                  >
+                    {sf.label}
+                  </button>
+                ))}
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 max-h-56 overflow-y-auto pr-1">
                 {filteredPresets.map((preset) => {
                   const isSelected = selectedPresetId === preset.id;
                   const thumb = buildFamilierPortraitDataUrl(preset.espece, preset.name, 0);
@@ -371,7 +433,8 @@ export const FamilierCreatorModal: React.FC<FamilierCreatorModalProps> = ({
                         <div className="min-w-0">
                           <b className="text-[11px] text-[#e8f5e9] block truncate">{preset.name}</b>
                           <span className="text-[10px] text-[#9ec4a6] block truncate">
-                            {preset.espece} · {preset.hp} PV · DEF {preset.def}
+                            {preset.sousFamille ? `${preset.sousFamille} · ` : ''}
+                            {preset.hp} PV · DEF {preset.def}
                             {preset.pmMax > 0 ? ` · ${preset.pmMax} PM` : ''}
                           </span>
                         </div>
@@ -431,28 +494,51 @@ export const FamilierCreatorModal: React.FC<FamilierCreatorModalProps> = ({
           {/* Identité & Portrait */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
             <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-              <div className="sm:col-span-2">
-                <label className="text-[10px] font-bold uppercase text-[#9e907d] block mb-1">
-                  Nom du Familier *
-                </label>
-                <input
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Ex: Huginn, Fauve, Onyx..."
-                  className="w-full px-3 py-1.5 bg-[#231c15] border border-[#3d3023] focus:border-[#6fa85b] rounded-lg text-xs text-[#ede3d1] outline-none"
-                />
+              <div className="sm:col-span-2 flex flex-col sm:flex-row sm:items-end gap-2">
+                <div className="flex-1">
+                  <label className="text-[10px] font-bold uppercase text-[#9e907d] block mb-1">
+                    Nom du {rolePnj} *
+                  </label>
+                  <input
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="Ex: Huginn, Fauve, Aldric, Foudre..."
+                    className="w-full px-3 py-1.5 bg-[#231c15] border border-[#3d3023] focus:border-[#6fa85b] rounded-lg text-xs text-[#ede3d1] outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold uppercase text-[#9e907d] block mb-1">
+                    Type de lien
+                  </label>
+                  <div className="flex rounded-lg overflow-hidden border border-[#3d3023] bg-[#14100c]">
+                    {(['Familier', 'Compagnon'] as const).map((r) => (
+                      <button
+                        key={r}
+                        type="button"
+                        onClick={() => setRolePnj(r)}
+                        className={`px-3 py-1.5 text-[11px] font-bold cursor-pointer transition-colors ${
+                          rolePnj === r
+                            ? 'bg-[#6fa85b] text-black'
+                            : 'text-[#9e907d] hover:text-[#ede3d1]'
+                        }`}
+                      >
+                        {r === 'Familier' ? '🐾 Familier' : '🤝 Compagnon'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
 
               <div>
                 <label className="text-[10px] font-bold uppercase text-[#9e907d] block mb-1">
-                  Espèce / Créature
+                  Espèce / Profil
                 </label>
                 <input
                   type="text"
                   value={espece}
                   onChange={(e) => setEspece(e.target.value)}
-                  placeholder="Corbeau, Loup, Chat Noir, Pseudodragon..."
+                  placeholder="Corbeau, Loup, Lynx, Aigle, Destrier..."
                   className="w-full px-3 py-1.5 bg-[#231c15] border border-[#3d3023] rounded-lg text-xs text-[#ede3d1] outline-none"
                 />
               </div>
@@ -463,7 +549,13 @@ export const FamilierCreatorModal: React.FC<FamilierCreatorModalProps> = ({
                 </label>
                 <select
                   value={categorie}
-                  onChange={(e) => setCategorie(e.target.value as FamilierCategorie)}
+                  onChange={(e) => {
+                    const nextCat = e.target.value as FamilierCategorie;
+                    setCategorie(nextCat);
+                    if (nextCat === 'Monture' || nextCat === 'Compagnon Rôdeur') {
+                      setRolePnj('Compagnon');
+                    }
+                  }}
                   className="w-full px-3 py-1.5 bg-[#231c15] border border-[#3d3023] rounded-lg text-xs text-[#ede3d1] outline-none"
                 >
                   {CATEGORIES.map((c) => (
@@ -847,7 +939,11 @@ export const FamilierCreatorModal: React.FC<FamilierCreatorModalProps> = ({
               className="px-5 py-2 rounded-xl bg-gradient-to-r from-[#6fa85b] to-[#4c823b] hover:brightness-110 text-black font-extrabold text-xs flex items-center gap-1.5 shadow-md cursor-pointer"
             >
               <Check className="w-4 h-4" />
-              <span>{editingFamilier ? 'Enregistrer les modifications' : 'Créer & Enregistrer le Familier'}</span>
+              <span>
+                {editingFamilier
+                  ? 'Enregistrer les modifications'
+                  : `Créer & Enregistrer le ${rolePnj}`}
+              </span>
             </button>
           </div>
         </form>

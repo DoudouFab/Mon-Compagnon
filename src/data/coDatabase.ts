@@ -21,9 +21,41 @@ export const CARAC_LIST: CaracName[] = ['FOR', 'DEX', 'CON', 'INT', 'SAG', 'CHA'
 
 export const PROFILS: ProfilData[] = OFFICIAL_DRS_PROFILS;
 export const RACES: RaceData[] = OFFICIAL_DRS_RACES;
-export const ARMES_CATALOG: Equipment[] = pjCatalog.armes as Equipment[];
-export const ARMURES_CATALOG: Equipment[] = pjCatalog.armures as Equipment[];
-export const BIENS_CATALOG: Equipment[] = pjCatalog.biens as Equipment[];
+const rawEquipments = equipementsRaw as Equipment[];
+const baseArmes = pjCatalog.armes as Equipment[];
+const baseArmures = pjCatalog.armures as Equipment[];
+const baseBiens = pjCatalog.biens as Equipment[];
+
+export const ARMES_CATALOG: Equipment[] = [
+  ...baseArmes,
+  ...rawEquipments.filter(
+    (e) =>
+      (e.cat === 'Armes Contact' || e.cat === 'Armes Distance' || e.cat === 'Armes Poudre') &&
+      !baseArmes.some((a) => a.n.toLowerCase() === e.n.toLowerCase())
+  ),
+];
+
+export const ARMURES_CATALOG: Equipment[] = [
+  ...baseArmures,
+  ...rawEquipments.filter(
+    (e) =>
+      (e.cat === 'Armures' || e.cat === 'Boucliers') &&
+      !baseArmures.some((a) => a.n.toLowerCase() === e.n.toLowerCase())
+  ),
+];
+
+export const BIENS_CATALOG: Equipment[] = [
+  ...baseBiens,
+  ...rawEquipments.filter(
+    (e) =>
+      e.cat !== 'Armes Contact' &&
+      e.cat !== 'Armes Distance' &&
+      e.cat !== 'Armes Poudre' &&
+      e.cat !== 'Armures' &&
+      e.cat !== 'Boucliers' &&
+      !baseBiens.some((b) => b.n.toLowerCase() === e.n.toLowerCase())
+  ),
+];
 import allVoiesDRS from './allVoiesDRS.json';
 import {
   THARNEA_MONSTERS,
@@ -141,26 +173,25 @@ export const BESTIAIRE: Monster[] = bestiaireRaw as Monster[];
 export const ALL_PJ_EQUIPMENT: Equipment[] = [
   ...ARMES_CATALOG.map((w) => ({
     ...w,
-    cat: w.t?.includes('Distance') ? 'Armes Distance' : w.t?.includes('Poudre') ? 'Armes Poudre' : 'Armes Contact',
+    cat: (w as any).cat || (w.t?.includes('Distance') ? 'Armes Distance' : w.t?.includes('Poudre') ? 'Armes Poudre' : 'Armes Contact'),
     prix: (w as any).prix || (w.t?.includes('Poudre') ? '15 pa' : '5 pa'),
     desc: (w as any).props || (w as any).desc || '',
   })),
   ...ARMURES_CATALOG.map((a) => ({
     ...a,
-    cat: a.t?.includes('Bouclier') ? 'Boucliers' : 'Armures',
+    cat: (a as any).cat || (a.t?.includes('Bouclier') ? 'Boucliers' : 'Armures'),
     prix: (a as any).prix || '8 pa',
     desc: (a as any).props || (a as any).desc || '',
   })),
   ...BIENS_CATALOG.map((b) => ({
     ...b,
-    cat: b.n.toLowerCase().includes('tente') || b.n.toLowerCase().includes('paillasse') || b.n.toLowerCase().includes('camp') ? 'Campement' : 'Aventure',
+    cat:
+      (b as any).cat ||
+      (b.n.toLowerCase().includes('tente') || b.n.toLowerCase().includes('paillasse') || b.n.toLowerCase().includes('camp')
+        ? 'Campement'
+        : 'Aventure'),
     prix: (b as any).prix || '2 pa',
   })),
-  ...(equipementsRaw as Equipment[]).filter(
-    (e: any) =>
-      !['Armes Contact', 'Armes Distance', 'Armes Poudre', 'Armures', 'Boucliers'].includes(e.cat) &&
-      !BIENS_CATALOG.some((b) => b.n.toLowerCase() === e.n.toLowerCase())
-  ),
 ] as Equipment[];
 
 export const EQUIPEMENTS: Equipment[] = ALL_PJ_EQUIPMENT;

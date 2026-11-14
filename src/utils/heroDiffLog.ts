@@ -199,11 +199,34 @@ export function buildHeroDiffEvents(
     );
   }
 
-  // 9. Familiers liés
-  const prevFams = (prev.familiers || []).map((f) => f.name);
-  const nextFams = (next.familiers || []).map((f) => f.name);
-  const addedFams = nextFams.filter((n) => !prevFams.includes(n));
-  const removedFams = prevFams.filter((n) => !nextFams.includes(n));
+  // 9. Familiers liés (ajouts, retraits, renommages)
+  const prevFamList = prev.familiers || [];
+  const nextFamList = next.familiers || [];
+  const renamedFams: string[] = [];
+  nextFamList.forEach((nf) => {
+    if (!nf.id) return;
+    const pf = prevFamList.find((p) => p.id === nf.id);
+    if (pf && pf.name !== nf.name) {
+      renamedFams.push(`${pf.name} → ${nf.name}`);
+    }
+  });
+  if (renamedFams.length > 0) {
+    pushEvent(
+      'famrename',
+      'fiche',
+      `Compagnon / Familier rebaptisé : ${renamedFams.join(' · ')}`,
+      actorRole === 'mj' ? 'Renommé par le MJ' : 'Rebaptisé par le PJ'
+    );
+  }
+
+  const prevFamsById = new Set(prevFamList.map((f) => f.id).filter(Boolean));
+  const nextFamsById = new Set(nextFamList.map((f) => f.id).filter(Boolean));
+  const addedFams = nextFamList
+    .filter((nf) => !(nf.id && prevFamsById.has(nf.id)) && !prevFamList.some((pf) => !pf.id && pf.name === nf.name))
+    .map((f) => f.name);
+  const removedFams = prevFamList
+    .filter((pf) => !(pf.id && nextFamsById.has(pf.id)) && !nextFamList.some((nf) => !nf.id && nf.name === pf.name))
+    .map((f) => f.name);
   if (addedFams.length > 0 || removedFams.length > 0) {
     const parts: string[] = [];
     if (addedFams.length > 0) parts.push(`+ ${addedFams.join(', ')}`);

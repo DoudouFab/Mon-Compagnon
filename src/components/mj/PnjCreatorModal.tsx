@@ -16,6 +16,7 @@ import {
   Unlock,
   Check,
   Package,
+  BookOpen,
 } from 'lucide-react';
 import { CaracName, Character, Combatant, InventoryItem, WeaponItem } from '../../types/chroniques';
 import {
@@ -32,6 +33,14 @@ import {
   RACIAL_ARMOR_NOTES,
   STARTING_PACKAGES_BY_PROFIL,
 } from '../../data/startingGearData';
+import {
+  PNJ_PRESETS,
+  PNJ_PRESET_CATEGORIES,
+  PnjPreset,
+  PnjPresetCategorie,
+  createPnjFromPreset,
+} from '../../data/pnjPresetsCatalog';
+import { buildCharacterPortraitDataUrl } from '../../utils/fantasyPortraitGenerator';
 import { useToast } from '../common/ToastContext';
 import { PortraitPicker } from '../common/PortraitPicker';
 import { DetailItem, DetailModal } from '../DetailModal';
@@ -110,6 +119,9 @@ export const PnjCreatorModal: React.FC<PnjCreatorModalProps> = ({
   // Voies & Rangs du profil (0 blocage : tout rang R1..R5 sélectionnable librement)
   const [selectedCaps, setSelectedCaps] = useState<{ wayKey: string; rank: number }[]>([]);
   const [detailItem, setDetailItem] = useState<DetailItem | null>(null);
+
+  const [pnjPresetCat, setPnjPresetCat] = useState<'all' | PnjPresetCategorie>('all');
+  const [selectedPresetId, setSelectedPresetId] = useState<string>('');
 
   const [notes, setNotes] = useState("Allié fidèle recruté en jeu. Obéit aux directives du groupe.");
   const [addToGroup, setAddToGroup] = useState(true);
@@ -207,6 +219,8 @@ export const PnjCreatorModal: React.FC<PnjCreatorModalProps> = ({
   // Réinitialiser proprement à l'ouverture
   useEffect(() => {
     if (!isOpen) return;
+    setPnjPresetCat('all');
+    setSelectedPresetId('');
     setPortrait(undefined);
     setName('');
     setRole('Allié du groupe');
@@ -443,6 +457,129 @@ export const PnjCreatorModal: React.FC<PnjCreatorModalProps> = ({
 
         {/* Form Body */}
         <form onSubmit={handleSubmit} className="p-4 sm:p-5 overflow-y-auto space-y-4 text-xs">
+          {/* Base de Données PNJ Pré-tirés */}
+          <div className="bg-[#12161d] border border-[#364d68] rounded-xl p-3 space-y-2.5">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-[#93c5fd] flex items-center gap-1.5">
+                <BookOpen className="w-3.5 h-3.5" /> Base de Données · PNJ Pré-tirés ({PNJ_PRESETS.length})
+              </span>
+              <div className="flex flex-wrap items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => setPnjPresetCat('all')}
+                  className={`px-2 py-0.5 rounded text-[10px] font-bold cursor-pointer ${
+                    pnjPresetCat === 'all'
+                      ? 'bg-[#60a5fa] text-black'
+                      : 'bg-[#1b2430] text-[#a5bedb] hover:text-white'
+                  }`}
+                >
+                  Tous ({PNJ_PRESETS.length})
+                </button>
+                {PNJ_PRESET_CATEGORIES.map((cat) => (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => setPnjPresetCat(cat)}
+                    className={`px-2 py-0.5 rounded text-[10px] font-bold cursor-pointer ${
+                      pnjPresetCat === cat
+                        ? 'bg-[#60a5fa] text-black'
+                        : 'bg-[#1b2430] text-[#a5bedb] hover:text-white'
+                    }`}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 max-h-48 overflow-y-auto pr-1">
+              {PNJ_PRESETS.filter((p) => pnjPresetCat === 'all' || p.categorie === pnjPresetCat).map((preset) => {
+                const isSelected = selectedPresetId === preset.id;
+                const fullName = preset.titre ? `${preset.name}, ${preset.titre}` : preset.name;
+                const raceLabel = RACES.find((r) => r.id === preset.race)?.n || preset.race;
+                const profLabel = PROFILS.find((pr) => pr.id === preset.profil)?.n || preset.profil;
+                const thumb = buildCharacterPortraitDataUrl(
+                  { name: fullName, race: preset.race, profil: preset.profil, persoTraits: preset.notes },
+                  0
+                );
+                return (
+                  <div
+                    key={preset.id}
+                    onClick={() => {
+                      setSelectedPresetId(preset.id);
+                      setName(fullName);
+                      setRole(preset.role);
+                      setRace(preset.race);
+                      setProfil(preset.profil);
+                      setLevel(preset.level);
+                      setCaracs({ ...preset.base });
+                      setHp(preset.hp);
+                      setDef(preset.def);
+                      setPmMax(preset.pmMax);
+                      setArm(preset.arm);
+                      setBou(preset.bou);
+                      setArmes(preset.armes.map((w) => ({ ...w })));
+                      setInventaire(preset.inventaire.map((it) => ({ ...it })));
+                      setSelectedCaps(preset.caps.map((c) => ({ ...c })));
+                      setNotes(preset.notes);
+                      setAddToGroup(true);
+                      setAddToCombat(
+                        preset.role === 'Ennemi' ||
+                          preset.role === 'Mercenaire' ||
+                          preset.role === "Garde d'Élite"
+                      );
+                      setPortrait(thumb);
+                    }}
+                    className={`p-2 rounded-lg border cursor-pointer transition-all flex items-center gap-2 ${
+                      isSelected
+                        ? 'bg-[#1a293d] border-[#60a5fa] shadow-sm'
+                        : 'bg-[#161c24] border-[#2b3b4e] hover:border-[#4d7ca8]'
+                    }`}
+                  >
+                    <img
+                      src={thumb}
+                      alt={preset.name}
+                      className="w-10 h-10 rounded-lg object-cover border border-[#364d68] shrink-0"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between gap-1">
+                        <b className="text-[11px] text-[#e2efff] truncate">{preset.name}</b>
+                        <span className="text-[9px] font-mono text-[#93c5fd] shrink-0">
+                          Niv {preset.level}
+                        </span>
+                      </div>
+                      <div className="text-[10px] text-[#9eb4cc] truncate">{preset.titre}</div>
+                      <div className="flex items-center justify-between gap-1 mt-0.5">
+                        <span className="text-[9px] text-[#7c94b0] truncate">
+                          {raceLabel} · {profLabel} · {preset.hp} PV / DEF {preset.def}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={(ev) => {
+                            ev.stopPropagation();
+                            const created = createPnjFromPreset(preset, {
+                              addToGroup: true,
+                              addToCombat:
+                                preset.role === 'Ennemi' ||
+                                preset.role === 'Mercenaire' ||
+                                preset.role === "Garde d'Élite",
+                            });
+                            onSave(created.pnjChar, created.combatant);
+                            onClose();
+                          }}
+                          className="px-1.5 py-0.5 rounded bg-[#223d5e] hover:bg-[#2d5280] text-[#cce3ff] text-[9px] font-bold shrink-0 cursor-pointer"
+                          title="Créer et intégrer directement ce PNJ pré-tiré"
+                        >
+                          + Direct
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
           {/* 1. Identité, Rôle, Race, Profil, Niveau */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             <div className="sm:col-span-2">

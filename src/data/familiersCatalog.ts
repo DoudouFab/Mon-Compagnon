@@ -1,13 +1,32 @@
 import { CaracName, Character, InventoryItem, WeaponItem } from '../types/chroniques';
 import { buildFamilierPortraitDataUrl } from '../utils/fantasyPortraitGenerator';
 
-export type FamilierCategorie = 'Arcanique' | 'Compagnon Animal' | 'Éclaireur' | 'Exotique';
+export type FamilierCategorie =
+  | 'Arcanique'
+  | 'Compagnon Animal'
+  | 'Compagnon Rôdeur'
+  | 'Éclaireur'
+  | 'Exotique'
+  | 'Monture';
+
+export type FamilierSousFamille =
+  | 'Félin'
+  | 'Canidé'
+  | 'Rapace'
+  | 'Oiseau'
+  | 'Automate'
+  | 'Reptile'
+  | 'Féerique'
+  | 'Monture'
+  | 'Autre';
 
 export interface FamilierPreset {
   id: string;
   name: string;
   espece: string;
   categorie: FamilierCategorie;
+  sousFamille?: FamilierSousFamille;
+  typeCompagnon?: 'Familier' | 'Compagnon';
   profilSuggested: string;
   level: number;
   base: Record<CaracName, number>;
@@ -451,6 +470,1312 @@ export const FAMILIERS_PRESETS: FamilierPreset[] = [
     persoTraits:
       'Rieuse, lumineuse et curieuse. Laisse un léger sillage de poussière dorée quand elle s’enthousiasme.',
   },
+  // ==================== MONTURES & COMPAGNONS NON-HUMANOÏDES ====================
+  {
+    id: 'comp_destrier_guerre',
+    name: 'Foudre, Destrier de Guerre',
+    espece: 'Cheval de Guerre Caparaçonné',
+    categorie: 'Monture',
+    typeCompagnon: 'Compagnon',
+    profilSuggested: 'chevalier',
+    level: 2,
+    base: { FOR: 18, DEX: 13, CON: 16, INT: 4, SAG: 12, CHA: 11 },
+    hp: 26,
+    def: 15,
+    pmMax: 0,
+    vitesse: '28 m (Galop)',
+    taille: '1,65 m au garrot',
+    poids: '540 kg',
+    age: '6 ans',
+    armes: [
+      {
+        n: 'Ruade & Sabots ferrés',
+        t: 'Contact',
+        dm: '1d8+4',
+        crit: '20',
+        por: 'Contact',
+        props: 'En charge montée, +1d6 DM et la cible risque d’être Renversée (test FOR Diff 13).',
+      },
+    ],
+    capacitesSpeciales: [
+      {
+        n: 'Monture dressée au combat',
+        t: 'Ne panique pas face aux cris, au feu ou au cliquetis d’acier ; permet au cavalier d’attaquer depuis sa selle sans malus.',
+      },
+      {
+        n: 'Barde de cuir & Charge impétueuse',
+        t: 'Capable de porter un cavalier en armure complète + 60 kg de sacoches ; +10 m de vitesse en sprint.',
+      },
+    ],
+    inventaire: [
+      { n: 'Selle de guerre, bride & sacoches doubles', q: 1, desc: 'Capacité 60 kg de paquetage' },
+    ],
+    persoTraits:
+      'Massif, nerveux face aux inconnus mais d’une loyauté sans faille envers son cavalier.',
+  },
+  {
+    id: 'comp_mule_bat',
+    name: 'Barnabé, Mule de Bât Robuste',
+    espece: 'Mule de Somme',
+    categorie: 'Monture',
+    typeCompagnon: 'Compagnon',
+    profilSuggested: 'guerrier',
+    level: 1,
+    base: { FOR: 16, DEX: 10, CON: 17, INT: 4, SAG: 13, CHA: 9 },
+    hp: 20,
+    def: 12,
+    pmMax: 0,
+    vitesse: '14 m',
+    taille: '1,35 m au garrot',
+    poids: '360 kg',
+    age: '8 ans',
+    armes: [
+      {
+        n: 'Ruade sèche',
+        t: 'Contact',
+        dm: '1d6+3',
+        crit: '20',
+        por: 'Contact',
+        props: 'Repousse l’agresseur de 2 m s’il vient par derrière.',
+      },
+    ],
+    capacitesSpeciales: [
+      {
+        n: 'Pied sûr en montagne',
+        t: 'Ne glisse pas sur les sentiers rocailleux, les éboulis ou les pentes enneigées.',
+      },
+      {
+        n: 'Convoi de charge (120 kg)',
+        t: 'Transporte tentes, coffres, rations et butins encombrants sans ralentir le rythme de marche.',
+      },
+    ],
+    inventaire: [
+      { n: 'Bât renforcé & double panier d’osier', q: 1, desc: 'Supporte jusqu’à 120 kg de matériel' },
+    ],
+    persoTraits:
+      'Têtue quand on la bouscule, mais infatigable et adorable pour une simple carotte.',
+  },
+  // ==================== COMPAGNONS RÔDEUR — VOIE DU COMPAGNON ANIMAL (FÉLINS, CANIDÉS, RAPACES) ====================
+  // --- FÉLINS (RÔDEUR) ---
+  {
+    id: 'rod_felin_panthere',
+    name: 'Ombre-Griffe, Panthère Noire',
+    espece: 'Panthère (Félin)',
+    categorie: 'Compagnon Rôdeur',
+    sousFamille: 'Félin',
+    typeCompagnon: 'Compagnon',
+    profilSuggested: 'rodeur',
+    level: 2,
+    base: { FOR: 15, DEX: 18, CON: 13, INT: 7, SAG: 14, CHA: 11 },
+    hp: 18,
+    def: 16,
+    pmMax: 0,
+    vitesse: '22 m · Escalade 14 m',
+    taille: '80 cm au garrot',
+    poids: '48 kg',
+    age: '4 ans',
+    armes: [
+      {
+        n: 'Griffes & Morsure furtive',
+        t: 'Contact',
+        dm: '1d8+2',
+        crit: '19-20',
+        por: 'Contact',
+        props: 'Attaque avec DEX ou FOR. +1d6 DM si la cible est Surprise ou engagée par le rôdeur (Ordres d’attaque).',
+      },
+    ],
+    capacitesSpeciales: [
+      {
+        n: 'Voie du Compagnon Animal — Félin d’embuscade',
+        t: 'Bonus de +5 en Discrétion dans la pénombre ou les feuillages ; coordonne ses attaques pour donner l’avantage au rôdeur.',
+      },
+      {
+        n: 'Bond félin',
+        t: 'Peut charger et frapper sans pénalité sur terrain accidenté ou depuis une branche jusqu’à 6 m.',
+      },
+      {
+        n: 'Défense mutuelle',
+        t: 'Aux côtés du rôdeur (Rang 4 Voie du compagnon), tous deux bénéficient de +2 en DEF.',
+      },
+    ],
+    inventaire: [{ n: 'Collier de cuir tressé sylvestre', q: 1, desc: 'Marque du lien avec le rôdeur' }],
+    persoTraits:
+      'Silencieuse comme la nuit, souple et patiente ; traque les proies blessées sans jamais faire craquer une brindille.',
+  },
+  {
+    id: 'rod_felin_lynx',
+    name: 'Kael, Lynx Boréal',
+    espece: 'Lynx (Félin)',
+    categorie: 'Compagnon Rôdeur',
+    sousFamille: 'Félin',
+    typeCompagnon: 'Compagnon',
+    profilSuggested: 'rodeur',
+    level: 1,
+    base: { FOR: 13, DEX: 18, CON: 12, INT: 8, SAG: 16, CHA: 11 },
+    hp: 15,
+    def: 16,
+    pmMax: 0,
+    vitesse: '20 m · Escalade 12 m',
+    taille: '65 cm au garrot',
+    poids: '24 kg',
+    age: '3 ans',
+    armes: [
+      {
+        n: 'Coup de pattes lacérant',
+        t: 'Contact',
+        dm: '1d6+2',
+        crit: '19-20',
+        por: 'Contact',
+        props: 'Finesse (DEX). Double griffure : sur 17+, inflige Saignement (1d4 DM au tour suivant).',
+      },
+    ],
+    capacitesSpeciales: [
+      {
+        n: 'Voie du Compagnon Animal — Guetteur des bois',
+        t: 'Vue et ouïe perçantes (+5 Perception) ; repère les embuscades et pièges naturels à 30 m.',
+      },
+      {
+        n: 'Pas sur la neige',
+        t: 'Ignore les malus de déplacement sur neige profonde, boue ou sous-bois épais.',
+      },
+    ],
+    inventaire: [],
+    persoTraits:
+      'Pinceaux de poils noirs aux oreilles, regard doré perçant ; avertit son rôdeur par un feulement sourd.',
+  },
+  {
+    id: 'rod_felin_couguar',
+    name: 'Fauve-Roux, Couguar des Cimes',
+    espece: 'Couguar (Félin)',
+    categorie: 'Compagnon Rôdeur',
+    sousFamille: 'Félin',
+    typeCompagnon: 'Compagnon',
+    profilSuggested: 'rodeur',
+    level: 2,
+    base: { FOR: 16, DEX: 16, CON: 14, INT: 7, SAG: 14, CHA: 10 },
+    hp: 20,
+    def: 15,
+    pmMax: 0,
+    vitesse: '22 m · Saut 8 m',
+    taille: '78 cm au garrot',
+    poids: '58 kg',
+    age: '5 ans',
+    armes: [
+      {
+        n: 'Morsure à la nuque',
+        t: 'Contact',
+        dm: '1d8+3',
+        crit: '20',
+        por: 'Contact',
+        props: 'Sur charge bondissante, la cible doit réussir un test de FOR (Diff 13) ou être Renversée.',
+      },
+    ],
+    capacitesSpeciales: [
+      {
+        n: 'Voie du Compagnon Animal — Prédateur alpin',
+        t: 'Grimpe les parois rocheuses sans test (+6 en Athlétisme / Escalade) et encaisse sans dégâts les sauts de 8 m.',
+      },
+      {
+        n: 'Bête féroce',
+        t: 'Compatible Rang 3 : morsure puissante et ténacité face aux créatures plus grandes.',
+      },
+    ],
+    inventaire: [],
+    persoTraits:
+      'Musculeux, fier et infatigable sur les crêtes rocheuses ; se couche toujours en hauteur pour surveiller le camp.',
+  },
+  {
+    id: 'rod_felin_tigre',
+    name: 'Rajah, Tigre des Confins',
+    espece: 'Tigre (Félin)',
+    categorie: 'Compagnon Rôdeur',
+    sousFamille: 'Félin',
+    typeCompagnon: 'Compagnon',
+    profilSuggested: 'rodeur',
+    level: 3,
+    base: { FOR: 18, DEX: 15, CON: 16, INT: 7, SAG: 14, CHA: 12 },
+    hp: 28,
+    def: 15,
+    pmMax: 0,
+    vitesse: '20 m',
+    taille: '1,05 m au garrot',
+    poids: '165 kg',
+    age: '6 ans',
+    armes: [
+      {
+        n: 'Griffes & Gueule de tigre',
+        t: 'Contact',
+        dm: '1d8+4',
+        crit: '19-20',
+        por: 'Contact',
+        props: 'Bête féroce : peut attaquer deux cibles adjacentes ou renverser sur 16+.',
+      },
+    ],
+    capacitesSpeciales: [
+      {
+        n: 'Voie du Compagnon Animal — Bête féroce',
+        t: 'Compagnon aguerri (+10 PV inclus, attaques 1d8 + FOR). Protège farouchement le flanc du rôdeur.',
+      },
+      {
+        n: 'Rugissement intimidant (1/combat)',
+        t: 'Les ennemis à moins de 10 m réussissent un test de SAG (Diff 13) ou sont Secoués (-2 attaque) pendant 1 tour.',
+      },
+    ],
+    inventaire: [{ n: 'Bandeau de cuir gravé', q: 1, desc: 'Trophée de meute' }],
+    persoTraits:
+      'Majestueux et redoutable ; d’une douceur surprenante avec son maître rôdeur, impitoyable face aux prédateurs.',
+  },
+  // --- CANIDÉS (RÔDEUR) ---
+  {
+    id: 'rod_canide_loup_steppes',
+    name: 'Croc-Gris, Loup des Steppes',
+    espece: 'Loup des Steppes (Canidé)',
+    categorie: 'Compagnon Rôdeur',
+    sousFamille: 'Canidé',
+    typeCompagnon: 'Compagnon',
+    profilSuggested: 'rodeur',
+    level: 1,
+    base: { FOR: 15, DEX: 15, CON: 14, INT: 8, SAG: 15, CHA: 10 },
+    hp: 17,
+    def: 14,
+    pmMax: 0,
+    vitesse: '22 m',
+    taille: '85 cm au garrot',
+    poids: '42 kg',
+    age: '4 ans',
+    armes: [
+      {
+        n: 'Morsure de meute',
+        t: 'Contact',
+        dm: '1d6+2',
+        crit: '20',
+        por: 'Contact',
+        props: 'Renversement (test FOR/DEX Diff 12) si l’ennemi est déjà engagé par le rôdeur.',
+      },
+    ],
+    capacitesSpeciales: [
+      {
+        n: 'Voie du Compagnon Animal — Ordres d’attaque',
+        t: 'Lorsque le loup attaque au contact d’un ennemi, il harcèle ses appuis et confère l’avantage à la prochaine attaque du rôdeur.',
+      },
+      {
+        n: 'Endurance de steppe',
+        t: 'Peut courir à vive allure toute une journée sans fatigue ; +5 en Pistage olfactif.',
+      },
+    ],
+    inventaire: [{ n: 'Harnais de pisteur léger', q: 1, desc: 'Avec deux petites poches latérales' }],
+    persoTraits:
+      'Sûr, endurant et complice ; comprend d’un simple geste de la main quand encercler une cible.',
+  },
+  {
+    id: 'rod_canide_loup_blanc',
+    name: 'Givre, Loup Blanc Boréal',
+    espece: 'Loup Blanc (Canidé)',
+    categorie: 'Compagnon Rôdeur',
+    sousFamille: 'Canidé',
+    typeCompagnon: 'Compagnon',
+    profilSuggested: 'rodeur',
+    level: 2,
+    base: { FOR: 16, DEX: 15, CON: 16, INT: 8, SAG: 15, CHA: 11 },
+    hp: 22,
+    def: 15,
+    pmMax: 0,
+    vitesse: '20 m',
+    taille: '95 cm au garrot',
+    poids: '54 kg',
+    age: '5 ans',
+    armes: [
+      {
+        n: 'Morsure glaciale',
+        t: 'Contact',
+        dm: '1d8+3',
+        crit: '20',
+        por: 'Contact',
+        props: 'Puissante morsure ; immobilise la proie sur critique (test FOR Diff 13).',
+      },
+    ],
+    capacitesSpeciales: [
+      {
+        n: 'Voie du Compagnon Animal — Pelage boréal',
+        t: 'Résistance au froid (réduit les dégâts de froid de 5) et +4 en Discrétion en terrain enneigé.',
+      },
+      {
+        n: 'Hurlement de ralliement (1/combat)',
+        t: 'Redonne courage aux alliés à 15 m (+1 attaque pendant 2 tours) et révèle sa position au rôdeur à 2 km.',
+      },
+    ],
+    inventaire: [],
+    persoTraits:
+      'Fourrure immaculée et yeux bleu glacier ; reste imperturbable dans les pires tempêtes de neige.',
+  },
+  {
+    id: 'rod_canide_renard',
+    name: 'Flèche-Rousse, Renard des Bois',
+    espece: 'Renard Sauvage (Canidé)',
+    categorie: 'Compagnon Rôdeur',
+    sousFamille: 'Canidé',
+    typeCompagnon: 'Compagnon',
+    profilSuggested: 'rodeur',
+    level: 1,
+    base: { FOR: 9, DEX: 18, CON: 12, INT: 11, SAG: 15, CHA: 14 },
+    hp: 12,
+    def: 16,
+    pmMax: 0,
+    vitesse: '20 m',
+    taille: '42 cm au garrot',
+    poids: '8 kg',
+    age: '3 ans',
+    armes: [
+      {
+        n: 'Morsure vive & Feinte',
+        t: 'Contact',
+        dm: '1d4+2',
+        crit: '19-20',
+        por: 'Contact',
+        props: 'Attaque avec DEX. Après l’attaque, se désengage sans provoquer d’attaque d’opportunité.',
+      },
+    ],
+    capacitesSpeciales: [
+      {
+        n: 'Voie du Compagnon Animal — Éclaireur rusé',
+        t: '+5 en Discrétion et Perception ; détecte les pièges de chasse et filets avant le groupe.',
+      },
+      {
+        n: 'Diversion agile',
+        t: 'Peut attirer l’attention d’un garde ou détourner une cible (+2 à l’attaque à distance du rôdeur).',
+      },
+    ],
+    inventaire: [],
+    persoTraits:
+      'Malicieux, rapide et curieux ; déniche toujours les passages cachés et les terriers.',
+  },
+  {
+    id: 'rod_canide_chien_loup',
+    name: 'Limier, Chien-Loup Traqueur',
+    espece: 'Chien-Loup (Canidé)',
+    categorie: 'Compagnon Rôdeur',
+    sousFamille: 'Canidé',
+    typeCompagnon: 'Compagnon',
+    profilSuggested: 'rodeur',
+    level: 2,
+    base: { FOR: 16, DEX: 14, CON: 15, INT: 8, SAG: 16, CHA: 10 },
+    hp: 21,
+    def: 15,
+    pmMax: 0,
+    vitesse: '18 m',
+    taille: '82 cm au garrot',
+    poids: '44 kg',
+    age: '5 ans',
+    armes: [
+      {
+        n: 'Mâchoire tenace',
+        t: 'Contact',
+        dm: '1d8+3',
+        crit: '20',
+        por: 'Contact',
+        props: 'Ne lâche pas sa prise : +2 pour maintenir ou faire chuter une proie en fuite.',
+      },
+    ],
+    capacitesSpeciales: [
+      {
+        n: 'Voie du Compagnon Animal — Pisteur infaillible',
+        t: 'Suit une piste vieille de 48h même sous la pluie (+6 en Pistage / Perception).',
+      },
+      {
+        n: 'Âme animale partagée (Garde)',
+        t: 'S’interpose devant le rôdeur en mêlée (+2 DEF mutuelle quand côte à côte).',
+      },
+    ],
+    inventaire: [{ n: 'Collier de cuir renforcé', q: 1 }],
+    persoTraits:
+      'Tenace, discipliné et d’une fidélité absolue ; ne recule jamais quand son maître est blessé.',
+  },
+  // --- RAPACES (RÔDEUR) ---
+  {
+    id: 'rod_rapace_aigle',
+    name: 'Foudre-du-Ciel, Aigle Royal',
+    espece: 'Aigle Royal (Rapace)',
+    categorie: 'Compagnon Rôdeur',
+    sousFamille: 'Rapace',
+    typeCompagnon: 'Compagnon',
+    profilSuggested: 'rodeur',
+    level: 2,
+    base: { FOR: 12, DEX: 18, CON: 13, INT: 9, SAG: 17, CHA: 12 },
+    hp: 16,
+    def: 16,
+    pmMax: 0,
+    vitesse: 'Vol 28 m',
+    taille: '90 cm (envergure 2,20 m)',
+    poids: '6,5 kg',
+    age: '6 ans',
+    armes: [
+      {
+        n: 'Serres d’aigle en piqué',
+        t: 'Contact',
+        dm: '1d8+2',
+        crit: '19-20',
+        por: 'Contact',
+        props: 'Attaque avec DEX. +1d4 DM sur plongeon de 10 m+ ; peut lacérer le visage (aveuglé 1 tour sur critique).',
+      },
+    ],
+    capacitesSpeciales: [
+      {
+        n: 'Voie du Compagnon Animal — Maître des cieux',
+        t: 'Voit nettement jusqu’à 3 km par temps clair (+6 Perception). Guide le rôdeur depuis les airs et partage ses sens au Rang 5.',
+      },
+      {
+        n: 'Frappe & Remontée',
+        t: 'Ne subit pas d’attaque d’opportunité lorsqu’il fond sur une cible puis reprend de l’altitude.',
+      },
+    ],
+    inventaire: [{ n: 'Gant de fauconnerie renforcé & grelot d’argent', q: 1 }],
+    persoTraits:
+      'Souverain des cimes, cri strident qui glace les éclaireurs ennemis ; obéit au moindre sifflement.',
+  },
+  {
+    id: 'rod_rapace_autour',
+    name: "Plume-d'Acier, Autour des Palombes",
+    espece: 'Autour des Palombes (Rapace)',
+    categorie: 'Compagnon Rôdeur',
+    sousFamille: 'Rapace',
+    typeCompagnon: 'Compagnon',
+    profilSuggested: 'rodeur',
+    level: 1,
+    base: { FOR: 9, DEX: 19, CON: 11, INT: 9, SAG: 16, CHA: 11 },
+    hp: 12,
+    def: 17,
+    pmMax: 0,
+    vitesse: 'Vol 24 m (Agilité forestière)',
+    taille: '58 cm (envergure 1,20 m)',
+    poids: '1,5 kg',
+    age: '4 ans',
+    armes: [
+      {
+        n: 'Serres rasantes',
+        t: 'Contact',
+        dm: '1d6+2',
+        crit: '19-20',
+        por: 'Contact',
+        props: 'Attaque avec DEX. Idéal pour harceler les archers ou lanceurs de sorts adverses.',
+      },
+    ],
+    capacitesSpeciales: [
+      {
+        n: 'Voie du Compagnon Animal — Chasseur de sous-bois',
+        t: 'Vole à pleine vitesse entre les troncs d’arbres serrés sans pénalité ; +4 en Esquive contre les projectiles.',
+      },
+      {
+        n: 'Marquage de proie (Ordres d’attaque)',
+        t: 'Désigne une cible cachée ou à couvert : les tirs du rôdeur ignorent le couvert partiel ce tour-ci.',
+      },
+    ],
+    inventaire: [{ n: 'Chaperon de cuir brun', q: 1 }],
+    persoTraits:
+      'Nerveux, précis et redoutablement efficace en forêt dense là où les grands aigles peinent à manœuvrer.',
+  },
+  {
+    id: 'rod_rapace_gerfaut',
+    name: 'Serre-Noire, Gerfaut des Falaises',
+    espece: 'Gerfaut (Rapace)',
+    categorie: 'Compagnon Rôdeur',
+    sousFamille: 'Rapace',
+    typeCompagnon: 'Compagnon',
+    profilSuggested: 'rodeur',
+    level: 2,
+    base: { FOR: 10, DEX: 19, CON: 12, INT: 9, SAG: 16, CHA: 12 },
+    hp: 14,
+    def: 17,
+    pmMax: 0,
+    vitesse: 'Vol 30 m (Piqué foudroyant)',
+    taille: '62 cm (envergure 1,35 m)',
+    poids: '1,9 kg',
+    age: '4 ans',
+    armes: [
+      {
+        n: 'Coup de bec & Serres fulgurantes',
+        t: 'Contact',
+        dm: '1d6+3',
+        crit: '18-20',
+        por: 'Contact',
+        props: 'Attaque avec DEX. Critique amélioré sur attaque en piqué.',
+      },
+    ],
+    capacitesSpeciales: [
+      {
+        n: 'Voie du Compagnon Animal — Éclair du ciel',
+        t: 'Initiative +4 ; fond sur un ennemi isolé dès le 1er tour pour le déstabiliser (-2 DEF contre le prochain tir du rôdeur).',
+      },
+      {
+        n: 'Messager longue distance',
+        t: 'Capable de couvrir 80 km en une journée entre deux points connus.',
+      },
+    ],
+    inventaire: [{ n: 'Anneau de messagerie en cuir', q: 1 }],
+    persoTraits:
+      'Plumage ardoise moucheté, regard glacial ; ne manque jamais une cible à découvert.',
+  },
+  {
+    id: 'rod_rapace_grand_duc',
+    name: 'Nuit-Blanche, Grand-Duc Chasseur',
+    espece: 'Hibou Grand-Duc (Rapace)',
+    categorie: 'Compagnon Rôdeur',
+    sousFamille: 'Rapace',
+    typeCompagnon: 'Compagnon',
+    profilSuggested: 'rodeur',
+    level: 2,
+    base: { FOR: 11, DEX: 17, CON: 13, INT: 10, SAG: 17, CHA: 11 },
+    hp: 15,
+    def: 16,
+    pmMax: 0,
+    vitesse: 'Vol 22 m (Silencieux)',
+    taille: '70 cm (envergure 1,75 m)',
+    poids: '3,2 kg',
+    age: '7 ans',
+    armes: [
+      {
+        n: 'Serres nocturnes silencieuses',
+        t: 'Contact',
+        dm: '1d6+2',
+        crit: '19-20',
+        por: 'Contact',
+        props: 'Attaque avec DEX. Sur cible Surprise, ajoute +1d6 DM.',
+      },
+    ],
+    capacitesSpeciales: [
+      {
+        n: 'Voie du Compagnon Animal — Prédateur nocturne',
+        t: 'Vol 100% silencieux (+6 Discrétion nocturne) et vision dans le noir à 40 m.',
+      },
+      {
+        n: 'Sentinelle de bivouac',
+        t: 'Empêche toute embuscade nocturne dans un rayon de 50 m autour du campement.',
+      },
+    ],
+    inventaire: [],
+    persoTraits:
+      'Grandes aigrettes dressées et yeux orange perçants ; chasse la nuit pendant que la troupe récupère.',
+  },
+  // ==================== FAMILIERS & COMPAGNONS SUPPLÉMENTAIRES ====================
+  {
+    id: 'fam_chouette_mecanique',
+    name: 'Tic-Tac, Chouette Mécanique',
+    espece: 'Chouette Mécanique (Automate)',
+    categorie: 'Arcanique',
+    sousFamille: 'Automate',
+    typeCompagnon: 'Familier',
+    profilSuggested: 'forgesort',
+    level: 1,
+    base: { FOR: 6, DEX: 16, CON: 14, INT: 12, SAG: 14, CHA: 8 },
+    hp: 12,
+    def: 16,
+    pmMax: 2,
+    vitesse: 'Vol 16 m',
+    taille: '38 cm',
+    poids: '2,8 kg',
+    age: 'Assemblé (Automate)',
+    armes: [
+      {
+        n: 'Serres de laiton & Bec d’acier',
+        t: 'Contact',
+        dm: '1d4+1',
+        crit: '20',
+        por: 'Contact',
+        props: 'Attaque avec DEX.',
+      },
+    ],
+    capacitesSpeciales: [
+      {
+        n: 'Voie des Automates — Familier mécanique',
+        t: 'Immunisé au poison, à la maladie, au sommeil et aux illusions mentales. Réparable avec des outils de mécanicien.',
+      },
+      {
+        n: 'Lentille optique & Enregistreur',
+        t: 'Mémorise et rejoue fidèlement 1 minute de conversation entendue ; vision nocturne 20 m.',
+      },
+    ],
+    inventaire: [{ n: 'Fiole d’huile fine & clé de remontage', q: 1 }],
+    persoTraits:
+      'Ses yeux de rubis cliquettent doucement lorsqu’elle pivote la tête ; adore se percher sur l’établi du forgesort.',
+  },
+  {
+    id: 'fam_scarabee_airain',
+    name: 'Airain, Scarabée Runique',
+    espece: 'Scarabée Mécanique (Automate)',
+    categorie: 'Éclaireur',
+    sousFamille: 'Automate',
+    typeCompagnon: 'Familier',
+    profilSuggested: 'forgesort',
+    level: 1,
+    base: { FOR: 4, DEX: 17, CON: 15, INT: 11, SAG: 13, CHA: 6 },
+    hp: 10,
+    def: 17,
+    pmMax: 0,
+    vitesse: '10 m · Escalade 10 m · Vol court 6 m',
+    taille: '14 cm',
+    poids: '0,6 kg',
+    age: 'Assemblé (Automate)',
+    armes: [
+      {
+        n: 'Mandibules coupantes',
+        t: 'Contact',
+        dm: '1d3',
+        crit: '20',
+        por: 'Contact',
+        props: 'Peut sectionner une cordelette ou un fil de piège.',
+      },
+    ],
+    capacitesSpeciales: [
+      {
+        n: 'Espion minuscule & Crochetage',
+        t: 'Se faufile sous les portes (+7 Discrétion) et offre +2 aux tests de crochetage/mécanismes à distance.',
+      },
+      {
+        n: 'Carapace d’airain',
+        t: 'Immunisé aux poisons, gaz et saignements ; RD 2 contre les dégâts non magiques.',
+      },
+    ],
+    inventaire: [],
+    persoTraits:
+      'Silencieux malgré ses minuscules engrenages ; se replie en sphère dorée dans la paume de son créateur.',
+  },
+  {
+    id: 'fam_salamandre_foyer',
+    name: 'Braises, Salamandre de Foyer',
+    espece: 'Salamandre Élémentaire',
+    categorie: 'Arcanique',
+    sousFamille: 'Reptile',
+    typeCompagnon: 'Familier',
+    profilSuggested: 'magicien',
+    level: 1,
+    base: { FOR: 6, DEX: 15, CON: 13, INT: 10, SAG: 12, CHA: 13 },
+    hp: 11,
+    def: 14,
+    pmMax: 4,
+    vitesse: '12 m · Escalade 8 m',
+    taille: '45 cm (queue comprise)',
+    poids: '1,4 kg',
+    age: '12 ans',
+    armes: [
+      {
+        n: 'Crachat d’étincelle',
+        t: 'Distance',
+        dm: '1d4+1 feu',
+        crit: '20',
+        por: '8 m',
+        props: 'Dégâts de feu. Allume instantanément torches, mèches ou feux de camp.',
+      },
+    ],
+    capacitesSpeciales: [
+      {
+        n: 'Corps incandescent',
+        t: 'Immunisée au feu ordinaire ; éclaire comme une bougie (3 m) ou une torche (10 m) sur commande.',
+      },
+      {
+        n: 'Affinité pyromantique (2 PM)',
+        t: 'Ajoute +2 aux dégâts d’un sort de feu lancé par son maître à moins de 10 m (1/combat).',
+      },
+    ],
+    inventaire: [],
+    persoTraits:
+      'Frétillante et chaleureuse ; adore dormir roulée en boule dans les cendres tièdes ou sur l’épaule.',
+  },
+  {
+    id: 'fam_cameleon_sylvestre',
+    name: 'Mousse-Œil, Caméléon Sylvestre',
+    espece: 'Caméléon Géant (Reptile)',
+    categorie: 'Éclaireur',
+    sousFamille: 'Reptile',
+    typeCompagnon: 'Familier',
+    profilSuggested: 'druide',
+    level: 1,
+    base: { FOR: 6, DEX: 17, CON: 12, INT: 9, SAG: 15, CHA: 10 },
+    hp: 9,
+    def: 16,
+    pmMax: 2,
+    vitesse: '10 m · Escalade 12 m',
+    taille: '40 cm',
+    poids: '1,1 kg',
+    age: '4 ans',
+    armes: [
+      {
+        n: 'Langue fouettante',
+        t: 'Distance',
+        dm: '1d3',
+        crit: '20',
+        por: '4 m',
+        props: 'Peut attraper un petit objet (clé, dague, parchemin) à 4 m.',
+      },
+    ],
+    capacitesSpeciales: [
+      {
+        n: 'Camouflage mimétique parfait',
+        t: 'Immobile, devient presque invisible (+8 en Discrétion) et change de couleur en 1 action.',
+      },
+      {
+        n: 'Vision panoramique à 360°',
+        t: 'Impossible à prendre par surprise ; avertit son maître de tout mouvement derrière lui.',
+      },
+    ],
+    inventaire: [],
+    persoTraits:
+      'Bouge au ralenti avec une patience infinie ; ses deux yeux tournent indépendamment pour guetter le danger.',
+  },
+  {
+    id: 'fam_noctule_chauve_souris',
+    name: 'Noctule, Chauve-Souris des Cryptes',
+    espece: 'Chauve-Souris Géante',
+    categorie: 'Exotique',
+    sousFamille: 'Oiseau',
+    typeCompagnon: 'Familier',
+    profilSuggested: 'necromancien',
+    level: 1,
+    base: { FOR: 6, DEX: 18, CON: 11, INT: 10, SAG: 14, CHA: 9 },
+    hp: 10,
+    def: 16,
+    pmMax: 2,
+    vitesse: 'Vol 18 m',
+    taille: '55 cm d’envergure',
+    poids: '0,9 kg',
+    age: '5 ans',
+    armes: [
+      {
+        n: 'Morsure drainante',
+        t: 'Contact',
+        dm: '1d4',
+        crit: '19-20',
+        por: 'Contact',
+        props: 'Attaque avec DEX. Rend 1 PV à la chauve-souris si la cible est vivante.',
+      },
+    ],
+    capacitesSpeciales: [
+      {
+        n: 'Écholocalisation souterraine (Sonar 25 m)',
+        t: 'Perçoit parfaitement les silhouettes, créatures invisibles et sorties cachées dans le noir absolu.',
+      },
+      {
+        n: 'Vol muet de caverne',
+        t: '+5 en Discrétion dans les souterrains et ruines nocturnes.',
+      },
+    ],
+    inventaire: [],
+    persoTraits:
+      'S’accroche la tête en bas sous la cape de son maître pendant la journée ; pousse de légers clics aigus dans les tunnels.',
+  },
+  {
+    id: 'fam_diablotin_encre',
+    name: 'Cendre-Plume, Diablotin d’Encre',
+    espece: 'Diablotin Érudit',
+    categorie: 'Exotique',
+    sousFamille: 'Féerique',
+    typeCompagnon: 'Familier',
+    profilSuggested: 'ensorceleur',
+    level: 2,
+    base: { FOR: 7, DEX: 17, CON: 12, INT: 15, SAG: 12, CHA: 15 },
+    hp: 14,
+    def: 16,
+    pmMax: 5,
+    vitesse: 'Vol 14 m · Sol 8 m',
+    taille: '45 cm',
+    poids: '3,2 kg',
+    age: 'Inconnu',
+    armes: [
+      {
+        n: 'Dard d’encre venimeux',
+        t: 'Contact',
+        dm: '1d4+1',
+        crit: '20',
+        por: 'Contact',
+        props: 'Ajoute 1d4 DM de poison (test CON Diff 12 pour annuler).',
+      },
+    ],
+    capacitesSpeciales: [
+      {
+        n: 'Scribe & Lecteur de langues',
+        t: 'Sait lire le commun et déchiffrer les glyphes mineurs ; peut copier un parchemin sous la dictée.',
+      },
+      {
+        n: 'Invisibilité mineure (2 PM)',
+        t: 'Devient invisible pendant 3 tours ou jusqu’à sa prochaine attaque.',
+      },
+    ],
+    inventaire: [{ n: 'Plume en os & encrier miniature', q: 1 }],
+    persoTraits:
+      'Sarcastique, tatillon sur les contrats et fasciné par les bibliothèques interdites ; a les doigts perpétuellement tachés d’encre.',
+  },
+  {
+    id: 'fam_hermine_neiges',
+    name: 'Neige, Hermine des Cimes',
+    espece: 'Hermine',
+    categorie: 'Éclaireur',
+    sousFamille: 'Autre',
+    typeCompagnon: 'Familier',
+    profilSuggested: 'voleur',
+    level: 1,
+    base: { FOR: 5, DEX: 19, CON: 11, INT: 10, SAG: 14, CHA: 14 },
+    hp: 8,
+    def: 17,
+    pmMax: 0,
+    vitesse: '15 m',
+    taille: '32 cm',
+    poids: '0,4 kg',
+    age: '2 ans',
+    armes: [
+      {
+        n: 'Morsure vive',
+        t: 'Contact',
+        dm: '1d3+1',
+        crit: '19-20',
+        por: 'Contact',
+        props: 'Attaque avec DEX. Peut distraire un garde.',
+      },
+    ],
+    capacitesSpeciales: [
+      {
+        n: 'Faufilement silencieux',
+        t: '+6 en Discrétion ; ne laisse aucune trace perceptible sur la neige ou la boue.',
+      },
+      {
+        n: 'Vigilance glacée',
+        t: 'Alerte le maître dès qu’un être vivant approche à moins de 15 m.',
+      },
+    ],
+    inventaire: [],
+    persoTraits:
+      'D’un blanc immaculé avec le bout de la queue noir ; vif-argent impossible à attraper.',
+  },
+  {
+    id: 'fam_rat_bibliothecaire',
+    name: 'Grimoire, Rat Albinos Éveillé',
+    espece: 'Rat Éveillé',
+    categorie: 'Arcanique',
+    sousFamille: 'Autre',
+    typeCompagnon: 'Familier',
+    profilSuggested: 'magicien',
+    level: 1,
+    base: { FOR: 4, DEX: 16, CON: 11, INT: 14, SAG: 14, CHA: 10 },
+    hp: 7,
+    def: 15,
+    pmMax: 2,
+    vitesse: '12 m · Escalade 10 m · Nage 8 m',
+    taille: '28 cm',
+    poids: '0,5 kg',
+    age: '3 ans',
+    armes: [
+      {
+        n: 'Incisives acérées',
+        t: 'Contact',
+        dm: '1d3',
+        crit: '20',
+        por: 'Contact',
+        props: 'Peut ronger rapidement cuir fin, corde ou cire de sceau.',
+      },
+    ],
+    capacitesSpeciales: [
+      {
+        n: 'Flair des encres & poisons',
+        t: 'Repère les parchemins cachés, doubles-fonds de coffres et poisons dans la nourriture (+5 Perception).',
+      },
+      {
+        n: 'Messager des égouts',
+        t: 'Retrouve toujours son chemin en milieu urbain ou souterrain.',
+      },
+    ],
+    inventaire: [{ n: 'Micro-lunettes en fil de laiton (décoratives)', q: 1 }],
+    persoTraits:
+      'Curieux, méthodique et friand de vieux parchemins moisis autant que de fromage affiné.',
+  },
+  {
+    id: 'comp_sanglier_combat',
+    name: 'Sanglier-Roc, Sanglier de Combat',
+    espece: 'Sanglier Sauvage',
+    categorie: 'Compagnon Animal',
+    sousFamille: 'Autre',
+    typeCompagnon: 'Compagnon',
+    profilSuggested: 'druide',
+    level: 2,
+    base: { FOR: 17, DEX: 10, CON: 17, INT: 5, SAG: 12, CHA: 7 },
+    hp: 24,
+    def: 14,
+    pmMax: 0,
+    vitesse: '16 m',
+    taille: '90 cm au garrot',
+    poids: '140 kg',
+    age: '5 ans',
+    armes: [
+      {
+        n: 'Défenses tranchantes',
+        t: 'Contact',
+        dm: '1d8+3',
+        crit: '20',
+        por: 'Contact',
+        props: 'En charge (5 m+), ajoute +1d6 DM et tente de Renverser (test FOR Diff 13).',
+      },
+    ],
+    capacitesSpeciales: [
+      {
+        n: 'Ténacité implacable (1/combat)',
+        t: 'Si une attaque devait le réduire à 0 PV, il tombe à 1 PV à la place et continue de charger.',
+      },
+      {
+        n: 'Cuir épais',
+        t: 'Peau dure et soies raides lui conférant DEF 14 naturelle.',
+      },
+    ],
+    inventaire: [],
+    persoTraits:
+      'Bourru, obstiné et brave devant les pires monstres ; déterre volontiers truffes et racines pour son maître.',
+  },
+  {
+    id: 'comp_poney_nain',
+    name: 'Bourrasque, Poney de Guerre Nain',
+    espece: 'Poney Robuste des Montagnes',
+    categorie: 'Monture',
+    sousFamille: 'Monture',
+    typeCompagnon: 'Compagnon',
+    profilSuggested: 'guerrier',
+    level: 1,
+    base: { FOR: 16, DEX: 12, CON: 17, INT: 5, SAG: 13, CHA: 10 },
+    hp: 22,
+    def: 14,
+    pmMax: 0,
+    vitesse: '20 m',
+    taille: '1,25 m au garrot',
+    poids: '320 kg',
+    age: '7 ans',
+    armes: [
+      {
+        n: 'Coup de sabot ferré',
+        t: 'Contact',
+        dm: '1d6+3',
+        crit: '20',
+        por: 'Contact',
+        props: 'Repousse ou sonne un adversaire au contact.',
+      },
+    ],
+    capacitesSpeciales: [
+      {
+        n: 'Habitué aux galeries & cols',
+        t: 'Ne craint ni les tunnels étroits ni les torches ; circule sans malus sur pentes rocheuses.',
+      },
+      {
+        n: 'Endurance de fer',
+        t: 'Peut porter un Nain ou Halfelin en armure lourde plus 50 kg d’équipement sans ralentir.',
+      },
+    ],
+    inventaire: [{ n: 'Selle de montagne naine & sacoches', q: 1 }],
+    persoTraits:
+      'Trapu, poil épais et caractère bien trempé ; n’obéit qu’à son cavalier et aux poignées d’avoine.',
+  },
+  // ==================== MONTURES CLASSIQUES, D'ATTELAGE & EXOTIQUES DE COMBAT ====================
+  {
+    id: 'mont_cheval_selle',
+    name: 'Éclair, Cheval de Selle Classique',
+    espece: 'Cheval de Selle',
+    categorie: 'Monture',
+    sousFamille: 'Monture',
+    typeCompagnon: 'Compagnon',
+    profilSuggested: 'rodeur',
+    level: 1,
+    base: { FOR: 16, DEX: 13, CON: 15, INT: 4, SAG: 12, CHA: 11 },
+    hp: 20,
+    def: 13,
+    pmMax: 0,
+    vitesse: '30 m (Galop rapide)',
+    taille: '1,58 m au garrot',
+    poids: '460 kg',
+    age: '5 ans',
+    armes: [
+      {
+        n: 'Ruade / Sabots',
+        t: 'Contact',
+        dm: '1d6+3',
+        crit: '20',
+        por: 'Contact',
+        props: 'Frappe défensive si encerclé ou attaqué par derrière.',
+      },
+    ],
+    capacitesSpeciales: [
+      {
+        n: 'Monture de voyage endurante',
+        t: 'Couvre 60 km par jour au trot sans fatigue ; porte un cavalier et 40 kg de fontes sans malus.',
+      },
+      {
+        n: 'Docile & Sûr',
+        t: 'Saute haies et fossés (3 m) sur un simple coup de talon ; +2 aux tests d’équitation.',
+      },
+    ],
+    inventaire: [
+      { n: 'Selle de voyage en cuir, mors & fontes', q: 1, desc: 'Capacité 40 kg de bagages' },
+    ],
+    persoTraits:
+      'Robe alezane lustrée, vif mais docile ; fiable sur les longues routes comme pour fuir une embuscade.',
+  },
+  {
+    id: 'mont_cheval_attelage',
+    name: 'Goliath, Cheval d’Attelage & de Trait',
+    espece: 'Cheval de Trait Lourd',
+    categorie: 'Monture',
+    sousFamille: 'Monture',
+    typeCompagnon: 'Compagnon',
+    profilSuggested: 'guerrier',
+    level: 1,
+    base: { FOR: 20, DEX: 9, CON: 18, INT: 4, SAG: 12, CHA: 9 },
+    hp: 26,
+    def: 12,
+    pmMax: 0,
+    vitesse: '18 m (Traction lourde)',
+    taille: '1,76 m au garrot',
+    poids: '860 kg',
+    age: '7 ans',
+    armes: [
+      {
+        n: 'Coup de sabot massif',
+        t: 'Contact',
+        dm: '1d8+5',
+        crit: '20',
+        por: 'Contact',
+        props: 'Repousse la cible de 2 m (test FOR Diff 14 pour résister).',
+      },
+    ],
+    capacitesSpeciales: [
+      {
+        n: 'Force d’attelage (400 kg+)',
+        t: 'Conçu pour tirer chariots, charrettes, pièces d’artillerie ou troncs abattus ; ne fatigue jamais à allure modérée.',
+      },
+      {
+        n: 'Tempérament placide',
+        t: 'Ne s’emballe pas facilement face aux bruits de forge, foules ou orages.',
+      },
+    ],
+    inventaire: [
+      { n: 'Collier d’attelage en cuir rembourré & traits de fer', q: 1, desc: 'Harnais complet de chariot' },
+    ],
+    persoTraits:
+      'Colosse paisible aux sabots larges comme des assiettes ; adore qu’on lui brosse la crinière après l’étape.',
+  },
+  {
+    id: 'mont_coursier_plaines',
+    name: 'Zéphyr, Coursier des Plaines',
+    espece: 'Coursier Léger Elfique',
+    categorie: 'Monture',
+    sousFamille: 'Monture',
+    typeCompagnon: 'Compagnon',
+    profilSuggested: 'rodeur',
+    level: 2,
+    base: { FOR: 15, DEX: 16, CON: 15, INT: 5, SAG: 14, CHA: 13 },
+    hp: 22,
+    def: 15,
+    pmMax: 0,
+    vitesse: '34 m (Sprint éclair)',
+    taille: '1,60 m au garrot',
+    poids: '420 kg',
+    age: '6 ans',
+    armes: [
+      {
+        n: 'Sabots vifs',
+        t: 'Contact',
+        dm: '1d6+2',
+        crit: '20',
+        por: 'Contact',
+        props: 'Peut frapper puis s’éloigner sans perdre son élan.',
+      },
+    ],
+    capacitesSpeciales: [
+      {
+        n: 'Foulée silencieuse',
+        t: '+4 en Discrétion sur herbe ou terre battue ; permet au cavalier de tirer à l’arc au galop sans malus.',
+      },
+      {
+        n: 'Réflexes d’esquive',
+        t: '+2 en DEF contre les projectiles en plein galop.',
+      },
+    ],
+    inventaire: [{ n: 'Selle légère elfique & bride tressée', q: 1 }],
+    persoTraits:
+      'Fin, nerveux et incroyablement rapide ; répond à la pression des genoux sans même toucher les rênes.',
+  },
+  {
+    id: 'mont_poney_voyage',
+    name: 'Châtaigne, Poney de Selle Rustique',
+    espece: 'Poney de Voyage',
+    categorie: 'Monture',
+    sousFamille: 'Monture',
+    typeCompagnon: 'Compagnon',
+    profilSuggested: 'voleur',
+    level: 1,
+    base: { FOR: 13, DEX: 12, CON: 15, INT: 5, SAG: 13, CHA: 12 },
+    hp: 16,
+    def: 13,
+    pmMax: 0,
+    vitesse: '18 m',
+    taille: '1,18 m au garrot',
+    poids: '240 kg',
+    age: '5 ans',
+    armes: [
+      {
+        n: 'Petite ruade',
+        t: 'Contact',
+        dm: '1d4+1',
+        crit: '20',
+        por: 'Contact',
+        props: 'Gêne l’attaquant.',
+      },
+    ],
+    capacitesSpeciales: [
+      {
+        n: 'Monture pour Petite Taille & Sentiers',
+        t: 'Idéal pour Halfelins, Gnomes ou éclaireurs légers ; passe aisément sous les branches basses et dans les ruelles.',
+      },
+      {
+        n: 'Sobriété rustique',
+        t: 'Se contente d’herbe sèche ou de broussailles ; porte jusqu’à 75 kg (cavalier + fontes).',
+      },
+    ],
+    inventaire: [{ n: 'Petite selle confortable & double sacoche', q: 1 }],
+    persoTraits:
+      'Doux, curieux et glouton ; fouille systématiquement les poches de son maître pour trouver une pomme.',
+  },
+  {
+    id: 'mont_sanglier_selle',
+    name: 'Brise-Souche, Sanglier Monture',
+    espece: 'Sanglier Géant de Selle',
+    categorie: 'Monture',
+    sousFamille: 'Monture',
+    typeCompagnon: 'Compagnon',
+    profilSuggested: 'rodeur',
+    level: 2,
+    base: { FOR: 18, DEX: 11, CON: 18, INT: 5, SAG: 12, CHA: 8 },
+    hp: 28,
+    def: 15,
+    pmMax: 0,
+    vitesse: '20 m (Charge forestière)',
+    taille: '1,25 m au garrot',
+    poids: '280 kg',
+    age: '6 ans',
+    armes: [
+      {
+        n: 'Boutoir & Défenses d’ivoire',
+        t: 'Contact',
+        dm: '1d8+4',
+        crit: '19-20',
+        por: 'Contact',
+        props: 'Charge montée (6 m+) : +1d6 DM et la cible est Renversée (test FOR Diff 14).',
+      },
+    ],
+    capacitesSpeciales: [
+      {
+        n: 'Monture tout-terrain des sous-bois',
+        t: 'Fonce à travers ronces, taillis épais et pentes boueuses sans aucun ralentissement ; équipé d’une selle basse à arçon renforcé.',
+      },
+      {
+        n: 'Ténacité de sanglier (1/combat)',
+        t: 'S’il tombe à 0 PV sous le coup d’une attaque, reste debout à 1 PV pour protéger son cavalier.',
+      },
+    ],
+    inventaire: [
+      { n: 'Selle basse à sangles doubles & protège-flancs en cuir bouilli', q: 1 },
+    ],
+    persoTraits:
+      'Hargneux envers les étrangers mais d’une loyauté féroce envers son cavalier ; broie les ronces et charge sans hésiter.',
+  },
+  {
+    id: 'mont_loup_geant',
+    name: 'Fenris, Loup Géant Monture',
+    espece: 'Loup Géant (Worg / Monture)',
+    categorie: 'Monture',
+    sousFamille: 'Monture',
+    typeCompagnon: 'Compagnon',
+    profilSuggested: 'rodeur',
+    level: 3,
+    base: { FOR: 18, DEX: 16, CON: 16, INT: 8, SAG: 15, CHA: 11 },
+    hp: 30,
+    def: 15,
+    pmMax: 0,
+    vitesse: '26 m (Course sauvage)',
+    taille: '1,35 m au garrot',
+    poids: '190 kg',
+    age: '5 ans',
+    armes: [
+      {
+        n: 'Gueule broyeuse',
+        t: 'Contact',
+        dm: '1d10+4',
+        crit: '19-20',
+        por: 'Contact',
+        props: 'Renversement automatique sur 15+ ou test FOR (Diff 14) ; peut attaquer en coordination avec son cavalier.',
+      },
+    ],
+    capacitesSpeciales: [
+      {
+        n: 'Monture prédatrice agile',
+        t: 'Porte un cavalier (Nain, Elfe, Halfelin ou Humain léger) à vive allure en forêt ou montagne ; bondit jusqu’à 5 m par-dessus les obstacles.',
+      },
+      {
+        n: 'Tactique de meute & Pistage',
+        t: 'Confère +2 à l’attaque du cavalier contre une cible déjà mordue ; flair infaillible à 30 m.',
+      },
+    ],
+    inventaire: [
+      { n: 'Harnais-selle de loup en cuir sombre & sangles d’épaule', q: 1 },
+    ],
+    persoTraits:
+      'Pelage gris-fer hérissé et regard d’ambre ; intimide les chevaux ordinaires et file comme une ombre entre les pins.',
+  },
+  {
+    id: 'mont_rhinoceros_guerre',
+    name: "Corne-d'Airain, Rhinocéros de Guerre",
+    espece: 'Rhinocéros Blindé (Monture & Combat)',
+    categorie: 'Monture',
+    sousFamille: 'Monture',
+    typeCompagnon: 'Compagnon',
+    profilSuggested: 'guerrier',
+    level: 4,
+    base: { FOR: 22, DEX: 9, CON: 20, INT: 4, SAG: 12, CHA: 8 },
+    hp: 45,
+    def: 17,
+    pmMax: 0,
+    vitesse: '18 m (Charge dévastatrice)',
+    taille: '1,95 m au garrot',
+    poids: '1 800 kg',
+    age: '11 ans',
+    armes: [
+      {
+        n: 'Charge de corne blindée',
+        t: 'Contact',
+        dm: '2d8+6',
+        crit: '19-20',
+        por: 'Contact',
+        props: 'En charge (8 m+), ajoute +2d6 DM, projette la cible à 4 m (À terre, FOR Diff 16) et brise palissades ou portes.',
+      },
+      {
+        n: 'Piétinement écrasant',
+        t: 'Contact',
+        dm: '2d6+6',
+        crit: '20',
+        por: 'Contact',
+        props: 'Sur une cible déjà À terre.',
+      },
+    ],
+    capacitesSpeciales: [
+      {
+        n: 'Cuirasse naturelle & RD 3',
+        t: 'Peau épaisse de 4 cm renforcée par un chanfrein d’acier : DEF 17 et réduit tous les dégâts physiques non magiques de 3.',
+      },
+      {
+        n: 'Monture lourde & Bélier vivant',
+        t: 'Peut porter un ou deux cavaliers en armure complète dans une nacelle/selle haute et enfoncer les formations ennemies.',
+      },
+      {
+        n: 'Piétinement de masse',
+        t: 'Ne peut pas être renversé ou repoussé par des créatures de taille Grande ou inférieure.',
+      },
+    ],
+    inventaire: [
+      { n: 'Selle-nacelle renforcée, chanfrein de fer & plaques de flanc', q: 1, desc: 'Harnais de guerre lourd' },
+    ],
+    persoTraits:
+      'Colosse tellurique à la vue courte mais au flair redoutable ; calme au pas, cataclysmique dès qu’il baisse la tête pour charger.',
+  },
 ];
 
 export function createFamilierFromPreset(
@@ -459,11 +1784,16 @@ export function createFamilierFromPreset(
 ): Character {
   const uniqueId = `fam_${preset.id}_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
   const portrait = buildFamilierPortraitDataUrl(preset.espece, preset.name, 0);
+  const roleLabel: 'Compagnon' | 'Familier' =
+    preset.typeCompagnon ||
+    (preset.categorie === 'Monture' || preset.categorie === 'Compagnon Rôdeur'
+      ? 'Compagnon'
+      : 'Familier');
 
   return {
     id: uniqueId,
     name: preset.name,
-    player: master?.name ? `Familier de ${master.name}` : 'Familier (Disponible)',
+    player: master?.name ? `${roleLabel} de ${master.name}` : `${roleLabel} (Disponible)`,
     race: 'humain',
     profil: preset.profilSuggested,
     level: preset.level,
@@ -491,7 +1821,7 @@ export function createFamilierFromPreset(
     poids: preset.poids,
     etats: [],
     isPnj: true,
-    rolePnj: 'Familier',
+    rolePnj: roleLabel,
     isFamilier: true,
     familierEspece: preset.espece,
     familierCategorie: preset.categorie,

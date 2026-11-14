@@ -759,6 +759,11 @@ export default function App() {
             const newRejectedAt = remote.candyBox?.rejectedTaste?.rejectedAt || 0;
             const oldRejectedAt = curPj.candyBox?.rejectedTaste?.rejectedAt || 0;
 
+            const wasFamUnlocked = Boolean(curPj.familierAccess?.unlocked);
+            const nextFamUnlocked = Boolean(remote.familierAccess?.unlocked);
+            const newFamRejectedAt = remote.familierAccess?.rejectedAt || 0;
+            const oldFamRejectedAt = curPj.familierAccess?.rejectedAt || 0;
+
             applyLocalPjUpdate(
               {
                 ...curPj,
@@ -773,13 +778,20 @@ export default function App() {
                 etats: remote.etats || [],
                 inventaire: remote.inventaire || [],
                 ...(remote.familiers !== undefined ? { familiers: remote.familiers } : {}),
+                ...(remote.familierAccess !== undefined ? { familierAccess: remote.familierAccess } : {}),
                 ...(remote.candyBox !== undefined ? { candyBox: remote.candyBox } : {}),
                 dmPatchAt: remote.dmPatchAt,
               },
               false
             );
 
-            if (nextTastedLen > prevTastedLen) {
+            if (nextFamUnlocked && !wasFamUnlocked) {
+              showToast('🔓 Le MJ a déverrouillé votre onglet Compagnon / Familier !');
+            } else if (!nextFamUnlocked && wasFamUnlocked) {
+              showToast('🔒 Le MJ a cadenassé votre fiche Compagnon / Familier.');
+            } else if (newFamRejectedAt > oldFamRejectedAt) {
+              showToast('🔒 Le MJ a refusé la demande d’accès Compagnon / Familier pour le moment.');
+            } else if (nextTastedLen > prevTastedLen) {
               showToast('🍬 Le MJ a validé votre dégustation ! Nouvel effet de bonbon révélé !');
             } else if (newRejectedAt > oldRejectedAt) {
               showToast('🔒 Le MJ a refusé la dégustation de ce bonbon pour le moment.');
@@ -817,11 +829,25 @@ export default function App() {
                     (existing.dmPatchAt || 0) > (remoteHero.dmPatchAt || 0) &&
                     (!remoteHero.candyBox?.pendingTaste ||
                       remoteHero.candyBox.pendingTaste.requestedAt <= (existing.dmPatchAt || 0));
+                  const mjFamilierAccessNewer =
+                    existing.familierAccess &&
+                    (existing.dmPatchAt || 0) > (remoteHero.dmPatchAt || 0) &&
+                    (!remoteHero.familierAccess?.pendingRequest ||
+                      remoteHero.familierAccess.pendingRequest.requestedAt <= (existing.dmPatchAt || 0));
+                  const mjFamiliersLockedOrNewer =
+                    (existing.dmPatchAt || 0) > (remoteHero.dmPatchAt || 0) &&
+                    (!existing.familierAccess?.unlocked || existing.familiers !== undefined);
                   const merged: Character = {
                     ...existing,
                     ...remoteHero,
                     etats: remoteHero.etats || [],
                     ...(mjCandyNewer ? { candyBox: existing.candyBox, dmPatchAt: existing.dmPatchAt } : {}),
+                    ...(mjFamilierAccessNewer
+                      ? { familierAccess: existing.familierAccess, dmPatchAt: existing.dmPatchAt }
+                      : {}),
+                    ...(mjFamiliersLockedOrNewer
+                      ? { familiers: existing.familiers || [], dmPatchAt: existing.dmPatchAt }
+                      : {}),
                   };
                   if (JSON.stringify(existing) !== JSON.stringify(merged)) {
                     pjs[idx] = merged;
@@ -837,6 +863,7 @@ export default function App() {
 
               if (!changed) return prev;
 
+              const incomingFamiliers = incomingHeroes.flatMap((h) => h.familiers || []);
               const combatants = prev.combatants.map((c: Combatant) => {
                 const match = incomingHeroes.find(
                   (h) => (h.id && c.pjRefId === h.id) || (h.name && c.n.toLowerCase().startsWith(h.name.toLowerCase()))
@@ -847,6 +874,18 @@ export default function App() {
                     hp: match.hp,
                     hpMax: match.hpMaxAuto || match.hpMaxManual || c.hpMax,
                     etats: match.etats || [],
+                  };
+                }
+                const famMatch = c.pjRefId
+                  ? incomingFamiliers.find((f) => f.id && f.id === c.pjRefId)
+                  : undefined;
+                if (famMatch) {
+                  return {
+                    ...c,
+                    n: famMatch.name,
+                    hp: famMatch.hp,
+                    hpMax: famMatch.hpMaxManual || famMatch.hpMaxAuto || famMatch.hpBase || c.hpMax,
+                    etats: famMatch.etats || [],
                   };
                 }
                 return c;
