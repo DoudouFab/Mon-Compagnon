@@ -183,7 +183,15 @@ export const PortraitPicker: React.FC<PortraitPickerProps> = ({
           )}
 
           <p className="text-[10px] text-[#9e907d] leading-snug">
-            Importez votre propre image (compressée automatiquement) ou générez un portrait selon la race (<b>{characterDraft.race || 'humain'}</b>) et le profil (<b>{characterDraft.profil || 'guerrier'}</b>).
+            {characterDraft.isFamilier ? (
+              <>
+                Importez votre propre image (compressée automatiquement) ou générez un portrait selon l&apos;espèce (<b>{characterDraft.familierEspece || 'Familier'}</b>).
+              </>
+            ) : (
+              <>
+                Importez votre propre image (compressée automatiquement) ou générez un portrait selon la race (<b>{characterDraft.race || 'humain'}</b>) et le profil (<b>{characterDraft.profil || 'guerrier'}</b>).
+              </>
+            )}
           </p>
         </div>
       </div>

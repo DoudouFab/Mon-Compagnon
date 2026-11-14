@@ -128,6 +128,15 @@ export interface Character {
   etats?: string[];
   isPnj?: boolean;
   rolePnj?: string;
+  isFamilier?: boolean;
+  familierEspece?: string;
+  familierCategorie?: string;
+  masterId?: string;
+  masterName?: string;
+  defManual?: number | null;
+  vitesse?: string;
+  capacitesSpeciales?: { n: string; t: string }[];
+  familiers?: Character[];
   dmPatchAt?: number;
   bourse?: { po: number; pa: number; pc: number };
   portrait?: string;
@@ -234,6 +243,8 @@ export interface Combatant {
   n: string;
   isPj: boolean;
   isPnj?: boolean;
+  isFamilier?: boolean;
+  masterName?: string;
   hp: number;
   hpMax: number;
   def: number;

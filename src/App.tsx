@@ -29,6 +29,11 @@ import { TableFeedDrawer } from './components/common/TableFeedDrawer';
 import { realtimeTable, LiveConnectionStatus } from './services/realtimeSync';
 import { Character, Combatant, TableFeedEntry } from './types/chroniques';
 import { buildHeroDiffEvents, isFeedEntryVisibleToPj } from './utils/heroDiffLog';
+import { buildInitialSeededFamiliers } from './data/familiersCatalog';
+import {
+  mergeMasterFamiliersIntoTablePjs,
+  syncMasterArraysFromTablePjs,
+} from './utils/familierSync';
 
 export default function App() {
   const [isMjAuthorized, setIsMjAuthorized] = useState<boolean>(() => {
@@ -307,15 +312,16 @@ export default function App() {
 
     if (syncToMjTable) {
       setTableData((prevTable: any) => {
-        const pjs = [...prevTable.pjs];
+        let pjs = [...prevTable.pjs];
         const pIdx = pjs.findIndex(
           (p: Character) =>
             (p.id && p.id === updated.id) || (p.name || '').toLowerCase() === (updated.name || '').toLowerCase()
         );
         if (pIdx >= 0) {
           const merged = { ...pjs[pIdx], ...updated };
-          if (JSON.stringify(pjs[pIdx]) === JSON.stringify(merged)) return prevTable;
           pjs[pIdx] = merged;
+          pjs = mergeMasterFamiliersIntoTablePjs(merged, pjs);
+          if (JSON.stringify(prevTable.pjs) === JSON.stringify(pjs)) return prevTable;
           return { ...prevTable, pjs };
         }
         return prevTable;
@@ -522,14 +528,36 @@ export default function App() {
     e.target.value = '';
   };
 
-  // Load MJ table from LocalStorage with full DRS data
+  // Load MJ table from LocalStorage with full DRS data + pre-filled starter familiars (1st boot)
   const [tableData, setTableData] = useState(() => {
+    const ensureInitialFamiliers = (initialPjs: Character[]): Character[] => {
+      let seededAlready = false;
+      try {
+        seededAlready = localStorage.getItem('cof_familiers_seeded_v1') === '1';
+      } catch {}
+
+      let nextPjs = [...initialPjs];
+      const hasAnyFamilier = nextPjs.some((p) => p.isFamilier);
+
+      if (!seededAlready && !hasAnyFamilier) {
+        const defaultMaster = nextPjs.find((p) => !p.isPnj && !p.isFamilier) || null;
+        const starterFamiliers = buildInitialSeededFamiliers(
+          defaultMaster ? { id: defaultMaster.id, name: defaultMaster.name } : null
+        );
+        nextPjs = [...nextPjs, ...starterFamiliers];
+        try {
+          localStorage.setItem('cof_familiers_seeded_v1', '1');
+        } catch {}
+      }
+      return syncMasterArraysFromTablePjs(nextPjs);
+    };
+
     try {
       const saved = localStorage.getItem('co_mj_table');
       if (saved) {
         const parsed = JSON.parse(saved);
         return {
-          pjs: parsed.pjs || [SAMPLE_HERO],
+          pjs: ensureInitialFamiliers(parsed.pjs || [SAMPLE_HERO]),
           combatants: parsed.combatants || [],
           bestiaire: parsed.bestiaire?.length ? parsed.bestiaire : BESTIAIRE,
           equipements: parsed.equipements?.length ? parsed.equipements : EQUIPEMENTS,
@@ -545,7 +573,7 @@ export default function App() {
     }
 
     return {
-      pjs: [SAMPLE_HERO],
+      pjs: ensureInitialFamiliers([SAMPLE_HERO]),
       combatants: [
         {
           id: 'c_init_1',
@@ -665,7 +693,7 @@ export default function App() {
   const mjComposerPjs = useMemo(() => {
     const map = new Map<string, Character>();
     [...tableData.pjs, ...connectedHeroes].forEach((p) => {
-      if (!p || !p.name) return;
+      if (!p || !p.name || p.isFamilier) return;
       const key = p.id || p.name.toLowerCase();
       if (!map.has(key)) map.set(key, p);
     });
@@ -744,6 +772,7 @@ export default function App() {
                 armes: remote.armes || curPj.armes || [],
                 etats: remote.etats || [],
                 inventaire: remote.inventaire || [],
+                ...(remote.familiers !== undefined ? { familiers: remote.familiers } : {}),
                 ...(remote.candyBox !== undefined ? { candyBox: remote.candyBox } : {}),
                 dmPatchAt: remote.dmPatchAt,
               },
@@ -770,14 +799,15 @@ export default function App() {
             } catch {}
 
             setTableData((prev: any) => {
-              const pjs = [...prev.pjs];
+              let pjs = [...prev.pjs];
               let changed = false;
 
               incomingHeroes.forEach((remoteHero) => {
                 const idx = pjs.findIndex(
                   (p: Character) =>
-                    (remoteHero.id && p.id === remoteHero.id) ||
-                    (p.name || '').toLowerCase() === (remoteHero.name || '').toLowerCase()
+                    !p.isFamilier &&
+                    ((remoteHero.id && p.id === remoteHero.id) ||
+                      (p.name || '').toLowerCase() === (remoteHero.name || '').toLowerCase())
                 );
 
                 if (idx >= 0) {
@@ -795,10 +825,12 @@ export default function App() {
                   };
                   if (JSON.stringify(existing) !== JSON.stringify(merged)) {
                     pjs[idx] = merged;
+                    pjs = mergeMasterFamiliersIntoTablePjs(merged, pjs);
                     changed = true;
                   }
                 } else if (autoAdd) {
                   pjs.push(remoteHero);
+                  pjs = mergeMasterFamiliersIntoTablePjs(remoteHero, pjs);
                   changed = true;
                 }
               });
@@ -909,9 +941,9 @@ export default function App() {
   // Sync PJ into MJ table
   const handleSendPjToMj = () => {
     if (!currentPj) return;
-    const pjs = [...tableData.pjs];
+    let pjs = [...tableData.pjs];
     const idx = pjs.findIndex(
-      (p) => (p.id && p.id === currentPj.id) || p.name.toLowerCase() === currentPj.name.toLowerCase()
+      (p) => !p.isFamilier && ((p.id && p.id === currentPj.id) || p.name.toLowerCase() === currentPj.name.toLowerCase())
     );
 
     if (idx >= 0) {
@@ -921,6 +953,7 @@ export default function App() {
       pjs.push({ ...currentPj });
       showToast(`Héros "${currentPj.name}" ajouté à l'équipe MJ !`);
     }
+    pjs = mergeMasterFamiliersIntoTablePjs(currentPj, pjs);
 
     appendFeedEntries([
       {
@@ -1137,7 +1170,8 @@ export default function App() {
               const isLive = liveStatusRef.current === 'connected' || Boolean(realtimeTable.room);
               const stripPatch = (h: Character) => ({ ...h, dmPatchAt: 0 });
 
-              const nextPjs = updated.pjs.map((p: Character) => {
+              const syncedPjs = syncMasterArraysFromTablePjs(updated.pjs);
+              const nextPjs = syncedPjs.map((p: Character) => {
                 const old = prevTable.pjs.find(
                   (o: Character) =>
                     (o.id && o.id === p.id) || (o.name || '').toLowerCase() === (p.name || '').toLowerCase()
@@ -1150,7 +1184,7 @@ export default function App() {
                     }
                   }
                   const patched = { ...p, dmPatchAt: now };
-                  if (isLive) {
+                  if (isLive && !p.isFamilier) {
                     realtimeTable.updateHero(patched);
                   }
                   return patched;

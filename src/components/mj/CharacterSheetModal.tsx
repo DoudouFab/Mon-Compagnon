@@ -16,16 +16,23 @@ import {
   BookOpen,
   Info,
   Coins,
+  Link2,
+  Edit3,
+  Footprints,
 } from 'lucide-react';
 import { Character, CaracName, ProfilData } from '../../types/chroniques';
 import { calcStats, CARAC_LIST, PROFILS, RACES, VOIES_CATALOG } from '../../data/coDatabase';
 import { StateBadgeList } from '../common/StateBadgeList';
+import { getLinkedFamiliersForMaster } from '../../utils/familierSync';
 
 interface CharacterSheetModalProps {
   pj: Character | null;
   isOpen: boolean;
   onClose: () => void;
   onToggleState?: (stName: string) => void;
+  allCharacters?: Character[];
+  onSelectCharacter?: (char: Character) => void;
+  onEditCharacter?: (char: Character) => void;
 }
 
 export const CharacterSheetModal: React.FC<CharacterSheetModalProps> = ({
@@ -33,6 +40,9 @@ export const CharacterSheetModal: React.FC<CharacterSheetModalProps> = ({
   isOpen,
   onClose,
   onToggleState,
+  allCharacters = [],
+  onSelectCharacter,
+  onEditCharacter,
 }) => {
   if (!isOpen || !pj) return null;
 
@@ -58,9 +68,28 @@ export const CharacterSheetModal: React.FC<CharacterSheetModalProps> = ({
   const pmCurrent = pj.pm !== undefined && pj.pm !== null ? pj.pm : pmMax;
   const pmPct = pmMax > 0 ? Math.max(0, Math.min(100, Math.round((100 * pmCurrent) / pmMax))) : 0;
 
+  const masterChar = pj.isFamilier
+    ? allCharacters.find(
+        (c) =>
+          !c.isFamilier &&
+          ((pj.masterId && c.id === pj.masterId) ||
+            (pj.masterName && c.name.trim().toLowerCase() === pj.masterName.trim().toLowerCase()))
+      )
+    : undefined;
+
+  const linkedFamiliers = !pj.isFamilier
+    ? allCharacters.length > 0
+      ? getLinkedFamiliersForMaster(pj, allCharacters)
+      : pj.familiers || []
+    : [];
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-xs p-3 sm:p-4 animate-fadeIn">
-      <div className="bg-[#181410] border-2 border-[#d4a84a] rounded-xl w-full max-w-4xl shadow-2xl p-5 space-y-4 max-h-[92vh] overflow-y-auto">
+      <div
+        className={`bg-[#181410] border-2 rounded-xl w-full max-w-4xl shadow-2xl p-5 space-y-4 max-h-[92vh] overflow-y-auto ${
+          pj.isFamilier ? 'border-[#6fa85b]' : 'border-[#d4a84a]'
+        }`}
+      >
         {/* Header avec Identité */}
         <div className="flex items-start justify-between border-b border-[#3d3023] pb-3 gap-3">
           <div className="flex items-start gap-3">
@@ -76,12 +105,18 @@ export const CharacterSheetModal: React.FC<CharacterSheetModalProps> = ({
               <div className="flex items-center gap-2 flex-wrap">
                 <span
                   className={`text-[10px] px-2 py-0.5 rounded font-bold uppercase tracking-wider ${
-                    pj.isPnj
+                    pj.isFamilier
+                      ? 'bg-[#172b1b] text-[#86efac] border border-[#3d7a4a]'
+                      : pj.isPnj
                       ? 'bg-[#18283a] text-[#7db5ff] border border-[#2b4c6f]'
                       : 'bg-[#291e13] text-[#f3d48d] border border-[#d4a84a]/50'
                   }`}
                 >
-                  {pj.isPnj ? pj.rolePnj || 'PNJ Allié' : 'Personnage Joueur (PJ)'}
+                  {pj.isFamilier
+                    ? `🐾 Familier · ${pj.familierEspece || 'Compagnon'}`
+                    : pj.isPnj
+                    ? pj.rolePnj || 'PNJ Allié'
+                    : 'Personnage Joueur (PJ)'}
                 </span>
                 <h3 className="font-serif-co text-2xl font-bold text-[#f3d48d]">
                   {pj.name}
@@ -90,18 +125,68 @@ export const CharacterSheetModal: React.FC<CharacterSheetModalProps> = ({
                   Niveau {pj.level}
                 </span>
               </div>
-              <p className="text-xs text-[#9e907d] mt-1">
-                <b>{rc.n}</b> · <b>{pr.n}</b> (Dé de Vie d{pr.dv}) {pj.player && <span>• Joueur : {pj.player}</span>}
-              </p>
+              {pj.isFamilier ? (
+                <div className="text-xs text-[#9e907d] mt-1 flex flex-wrap items-center gap-2">
+                  <span>
+                    Catégorie : <b className="text-[#b8f2c2]">{pj.familierCategorie || 'Compagnon'}</b>
+                  </span>
+                  {pj.vitesse && (
+                    <span>
+                      · Vitesse : <b className="text-[#ede3d1]">{pj.vitesse}</b>
+                    </span>
+                  )}
+                  {(pj.taille || pj.poids) && (
+                    <span>
+                      · {[pj.taille, pj.poids].filter(Boolean).join(' / ')}
+                    </span>
+                  )}
+                </div>
+              ) : (
+                <p className="text-xs text-[#9e907d] mt-1">
+                  <b>{rc.n}</b> · <b>{pr.n}</b> (Dé de Vie d{pr.dv}) {pj.player && <span>• Joueur : {pj.player}</span>}
+                </p>
+              )}
+
+              {/* Bannière de lien Maître <-> Familier */}
+              {pj.isFamilier && (
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#141f16] border border-[#3d7a4a]/60 text-xs text-[#cbb8a7]">
+                    <Link2 className="w-3.5 h-3.5 text-[#86efac]" />
+                    <span>Maître lié :</span>
+                    <b className="text-[#f3d48d]">{masterChar?.name || pj.masterName || 'Aucun (Disponible)'}</b>
+                  </span>
+                  {masterChar && onSelectCharacter && (
+                    <button
+                      type="button"
+                      onClick={() => onSelectCharacter(masterChar)}
+                      className="px-2.5 py-1 rounded-lg bg-[#231c15] hover:bg-[#32271d] border border-[#d4a84a]/60 text-[#f3d48d] text-[11px] font-bold cursor-pointer"
+                    >
+                      Ouvrir la fiche du maître ➔
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
-          <button
-            onClick={onClose}
-            className="p-1.5 rounded-lg text-[#9e907d] hover:text-[#ede3d1] hover:bg-[#231c15] transition-colors cursor-pointer"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-1.5 shrink-0">
+            {onEditCharacter && (
+              <button
+                type="button"
+                onClick={() => onEditCharacter(pj)}
+                className="px-2.5 py-1.5 rounded-lg bg-[#1a291e] hover:bg-[#233829] border border-[#6fa85b]/60 text-[#b8f2c2] text-xs font-bold flex items-center gap-1 cursor-pointer"
+                title="Modifier cette fiche"
+              >
+                <Edit3 className="w-3.5 h-3.5" /> Modifier
+              </button>
+            )}
+            <button
+              onClick={onClose}
+              className="p-1.5 rounded-lg text-[#9e907d] hover:text-[#ede3d1] hover:bg-[#231c15] transition-colors cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         {/* Jauges Vitalité & Mana */}
@@ -154,7 +239,11 @@ export const CharacterSheetModal: React.FC<CharacterSheetModalProps> = ({
             <span className="text-[10px] text-[#9e907d] uppercase font-bold block">Défense (DEF)</span>
             <b className="font-serif-co text-xl text-[#6fa85b]">{st ? st.def : 10}</b>
             <span className="text-[10px] text-[#9e907d] block mt-0.5">
-              Armure: {pj.arm || 'Aucune'}
+              {pj.isFamilier
+                ? pj.defManual !== undefined && pj.defManual !== null
+                  ? 'Défense naturelle'
+                  : 'Agilité'
+                : `Armure: ${pj.arm || 'Aucune'}`}
             </span>
           </div>
           <div className="p-2.5 bg-[#231c15] border border-[#3d3023] rounded-xl">
@@ -270,8 +359,76 @@ export const CharacterSheetModal: React.FC<CharacterSheetModalProps> = ({
           )}
         </div>
 
-        {/* Capacités raciales */}
-        {Array.isArray((rc as any).cap) && (rc as any).cap.length > 0 && (
+        {/* Capacités Spéciales du Familier & Notes RP */}
+        {pj.isFamilier && ((pj.capacitesSpeciales && pj.capacitesSpeciales.length > 0) || pj.persoTraits) && (
+          <div className="bg-[#162118] border border-[#3d7a4a]/60 rounded-xl p-3.5 space-y-2.5">
+            <span className="text-[10px] font-bold text-[#86efac] uppercase tracking-wider flex items-center gap-1.5">
+              <Footprints className="w-3.5 h-3.5" /> Capacités Spéciales &amp; Tempérament du Familier
+            </span>
+            {pj.capacitesSpeciales && pj.capacitesSpeciales.length > 0 && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {pj.capacitesSpeciales.map((cap, i) => (
+                  <div key={i} className="p-2.5 bg-[#111913] border border-[#2d5436] rounded-lg space-y-0.5">
+                    <b className="text-xs text-[#b8f2c2] block">{cap.n}</b>
+                    <p className="text-[11px] text-[#ede3d1] leading-snug">{cap.t}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+            {pj.persoTraits && (
+              <p className="text-xs text-[#cbb8a7] italic bg-[#111913] p-2.5 rounded-lg border border-[#2b3f2f]">
+                « {pj.persoTraits} »
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* Familiers liés au Maître (visible sur fiche PJ/PNJ) */}
+        {!pj.isFamilier && linkedFamiliers.length > 0 && (
+          <div className="bg-[#162118] border border-[#3d7a4a]/60 rounded-xl p-3.5 space-y-2">
+            <span className="text-[10px] font-bold text-[#86efac] uppercase tracking-wider block">
+              🐾 Familiers &amp; Compagnons Liés ({linkedFamiliers.length})
+            </span>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {linkedFamiliers.map((fam) => {
+                const fStats = calcStats(fam);
+                const fHpMax = fam.hpMaxManual || fStats?.hpMax || 10;
+                return (
+                  <button
+                    key={fam.id || fam.name}
+                    type="button"
+                    onClick={() => onSelectCharacter && onSelectCharacter(fam)}
+                    className={`p-2.5 bg-[#111913] border border-[#2d5436] rounded-lg flex items-center justify-between gap-2 text-left ${
+                      onSelectCharacter ? 'hover:border-[#6fa85b] cursor-pointer' : ''
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      {fam.portrait && (
+                        <img
+                          src={fam.portrait}
+                          alt={fam.name}
+                          className="w-10 h-10 rounded-lg object-cover border border-[#6fa85b]/60 shrink-0"
+                        />
+                      )}
+                      <div className="min-w-0">
+                        <b className="text-xs text-[#b8f2c2] block truncate">{fam.name}</b>
+                        <span className="text-[10px] text-[#9ec4a6] block truncate">
+                          {fam.familierEspece || 'Familier'} · PV {fam.hp}/{fHpMax} · DEF {fStats?.def ?? fam.defManual ?? 14}
+                        </span>
+                      </div>
+                    </div>
+                    {onSelectCharacter && (
+                      <span className="text-[10px] font-bold text-[#86efac] shrink-0">Fiche ➔</span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Capacités raciales (hors familier) */}
+        {!pj.isFamilier && Array.isArray((rc as any).cap) && (rc as any).cap.length > 0 && (
           <div className="bg-[#231c15] border border-[#3d3023] rounded-xl p-3.5 space-y-2">
             <span className="text-[10px] font-bold text-[#d4a84a] uppercase tracking-wider block">
               Capacités raciales ({(rc as any).n})
@@ -285,6 +442,7 @@ export const CharacterSheetModal: React.FC<CharacterSheetModalProps> = ({
         )}
 
         {/* Voies & Capacités acquises */}
+        {(!pj.isFamilier || (pj.caps && pj.caps.length > 0)) && (
         <div className="bg-[#231c15] border border-[#3d3023] rounded-xl p-3.5 space-y-2">
           <span className="text-[10px] font-bold text-[#d4a84a] uppercase tracking-wider block">
             Voies &amp; Rangs de Capacités
@@ -350,8 +508,10 @@ export const CharacterSheetModal: React.FC<CharacterSheetModalProps> = ({
             <p className="text-xs text-[#9e907d] italic">Aucune capacité apprise.</p>
           )}
         </div>
+        )}
 
-        {/* Bourse du Héros */}
+        {/* Bourse du Héros (masquée pour les familiers sauf s'ils portent des pièces) */}
+        {(!pj.isFamilier || ((pj.bourse?.po || 0) + (pj.bourse?.pa || 0) + (pj.bourse?.pc || 0)) > 0) && (
         <div className="bg-[#231c15] border border-[#d4a84a]/50 rounded-xl p-3.5 space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-bold text-[#d4a84a] uppercase tracking-wider flex items-center gap-1.5">
@@ -379,6 +539,7 @@ export const CharacterSheetModal: React.FC<CharacterSheetModalProps> = ({
             1 PO = 10 PA • 1 PA = 10 PC (1 PO = 100 PC)
           </p>
         </div>
+        )}
 
         {/* Inventaire emporté */}
         <div className="bg-[#231c15] border border-[#3d3023] rounded-xl p-3.5 space-y-2">

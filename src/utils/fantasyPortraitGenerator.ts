@@ -580,9 +580,157 @@ export const buildMonsterVisualSvg = (monster: Monster, variantSeed = 0): string
 </svg>`.trim();
 };
 
+const renderFamilierArtwork = (char: Partial<Character>, pal: typeof PALETTES[number], seed: number): string => {
+  const hay = `${char.familierEspece || ''} ${char.name || ''} ${char.familierCategorie || ''} ${char.persoTraits || ''}`.toLowerCase();
+  const eyeGlow = pal.glow;
+
+  // Draconique / Pseudodragon
+  if (/dragon|pseudodragon|wyverne|drake/.test(hay)) {
+    return `
+      <path d="M192 184 L54 88 L88 188 L128 172 L144 232 Z" fill="#1b0e14" stroke="${pal.glow}" stroke-width="2.5"/>
+      <path d="M192 184 L330 88 L296 188 L256 172 L240 232 Z" fill="#1b0e14" stroke="${pal.glow}" stroke-width="2.5"/>
+      <path d="M148 334 Q158 228 192 174 Q226 228 236 334 Z" fill="#29121a" stroke="${pal.accent}" stroke-width="2.5"/>
+      <path d="M160 226 Q192 250 224 226 M156 262 Q192 288 228 262" stroke="${pal.accent}" stroke-width="2" fill="none" opacity="0.65"/>
+      <path d="M192 114 L164 152 L176 190 L208 190 L220 152 Z" fill="#331520" stroke="${pal.glow}" stroke-width="2.5"/>
+      <path d="M174 126 L146 78 L168 118 M210 126 L238 78 L216 118" stroke="${pal.accent}" stroke-width="4" fill="none" stroke-linecap="round"/>
+      <circle cx="180" cy="148" r="4.5" fill="${eyeGlow}"/>
+      <circle cx="204" cy="148" r="4.5" fill="${eyeGlow}"/>
+      <path d="M236 300 Q296 290 308 236 L320 226 L310 248" stroke="${pal.glow}" stroke-width="4" fill="none" stroke-linecap="round"/>
+    `;
+  }
+
+  // Oiseaux : Corbeau, Chouette, Hibou, Faucon
+  if (/corbeau|chouette|hibou|faucon|rapace|oiseau|aigle/.test(hay)) {
+    const isOwl = /chouette|hibou/.test(hay);
+    const isFalcon = /faucon|aigle|rapace/.test(hay);
+    const bodyFill = isOwl ? '#2b241d' : isFalcon ? '#3b2618' : '#121318';
+    const wingStroke = isOwl ? '#fde68a' : isFalcon ? '#f59e0b' : pal.accent;
+    return `
+      <path d="M110 330 Q122 206 192 178 Q262 206 274 330 Z" fill="${bodyFill}" stroke="${wingStroke}" stroke-width="2.5"/>
+      <path d="M116 254 Q70 190 96 138 Q128 182 146 228 Z" fill="${bodyFill}" stroke="${pal.glow}" stroke-width="2" opacity="0.9"/>
+      <path d="M268 254 Q314 190 288 138 Q256 182 238 228 Z" fill="${bodyFill}" stroke="${pal.glow}" stroke-width="2" opacity="0.9"/>
+      <circle cx="192" cy="146" r="36" fill="${bodyFill}" stroke="${wingStroke}" stroke-width="2.5"/>
+      ${isOwl ? `
+        <path d="M158 118 L144 92 L176 114 M226 118 L240 92 L208 114" stroke="${wingStroke}" stroke-width="4" fill="none" stroke-linecap="round"/>
+        <circle cx="177" cy="144" r="11" fill="#14100c" stroke="${pal.accent}" stroke-width="2"/>
+        <circle cx="207" cy="144" r="11" fill="#14100c" stroke="${pal.accent}" stroke-width="2"/>
+        <circle cx="177" cy="144" r="5" fill="#fde047"/>
+        <circle cx="207" cy="144" r="5" fill="#fde047"/>
+        <path d="M186 154 L192 168 L198 154 Z" fill="#f59e0b"/>
+      ` : `
+        <circle cx="180" cy="140" r="5" fill="${eyeGlow}"/>
+        <circle cx="204" cy="140" r="5" fill="${eyeGlow}"/>
+        <path d="M186 148 L224 158 L186 168 Z" fill="#f59e0b" stroke="#78350f" stroke-width="1.5"/>
+      `}
+    `;
+  }
+
+  // Félins : Chat noir, Panthère, Lynx
+  if (/chat|félin|panthère|lynx|tigre/.test(hay)) {
+    return `
+      <path d="M132 338 Q144 218 192 196 Q240 218 252 338 Z" fill="#111015" stroke="${pal.glow}" stroke-width="2.5"/>
+      <path d="M244 316 Q306 294 298 226 Q294 202 276 210" stroke="${pal.accent}" stroke-width="6" fill="none" stroke-linecap="round"/>
+      <path d="M152 146 L142 86 L180 120 L204 120 L242 86 L232 146 Q240 192 192 204 Q144 192 152 146 Z" fill="#16141c" stroke="${pal.accent}" stroke-width="2.5"/>
+      <ellipse cx="176" cy="150" rx="8" ry="5" fill="${eyeGlow}"/>
+      <ellipse cx="208" cy="150" rx="8" ry="5" fill="${eyeGlow}"/>
+      <ellipse cx="176" cy="150" rx="2" ry="4.5" fill="#09080c"/>
+      <ellipse cx="208" cy="150" rx="2" ry="4.5" fill="#09080c"/>
+      <path d="M187 166 L197 166 L192 172 Z" fill="#fda4af"/>
+      <path d="M158 164 L120 158 M158 172 L120 176 M226 164 L264 158 M226 172 L264 176" stroke="${pal.accent}" stroke-width="1.5" opacity="0.75"/>
+    `;
+  }
+
+  // Canidés : Loup, Molosse, Chien, Renard
+  if (/loup|molosse|chien|renard|canidé/.test(hay)) {
+    const isFox = /renard/.test(hay);
+    const fur = isFox ? '#6b2c14' : '#26211e';
+    return `
+      <path d="M114 338 Q128 210 192 182 Q256 210 270 338 Z" fill="${fur}" stroke="${pal.accent}" stroke-width="2.5"/>
+      <path d="M148 168 L138 88 L174 126 L210 126 L246 88 L236 168 Q192 214 148 168 Z" fill="${fur}" stroke="${pal.glow}" stroke-width="2.5"/>
+      <path d="M174 166 L192 198 L210 166 Z" fill="#171311" stroke="${pal.accent}" stroke-width="1.5"/>
+      <circle cx="176" cy="146" r="5" fill="${eyeGlow}"/>
+      <circle cx="208" cy="146" r="5" fill="${eyeGlow}"/>
+      <ellipse cx="192" cy="192" rx="8" ry="6" fill="#0b0908"/>
+      <path d="M174 202 L180 212 L192 204 L204 212 L210 202" stroke="#f5ebd6" stroke-width="2.5" fill="none"/>
+    `;
+  }
+
+  // Mustélidés / Rongeurs : Furet, Belette, Rat, Souris
+  if (/furet|belette|hermine|rat|souris|écureuil/.test(hay)) {
+    return `
+      <path d="M138 338 Q148 228 192 204 Q236 228 246 338 Z" fill="#3b2c20" stroke="${pal.accent}" stroke-width="2.5"/>
+      <path d="M236 322 Q302 310 314 252" stroke="#5c4433" stroke-width="10" fill="none" stroke-linecap="round"/>
+      <circle cx="156" cy="128" r="17" fill="#3b2c20" stroke="${pal.glow}" stroke-width="2"/>
+      <circle cx="228" cy="128" r="17" fill="#3b2c20" stroke="${pal.glow}" stroke-width="2"/>
+      <path d="M154 144 Q192 116 230 144 L214 192 Q192 210 170 192 Z" fill="#4f3b2c" stroke="${pal.accent}" stroke-width="2.5"/>
+      <ellipse cx="192" cy="182" rx="18" ry="12" fill="#e6d5c3"/>
+      <circle cx="178" cy="156" r="4.5" fill="#111"/>
+      <circle cx="206" cy="156" r="4.5" fill="#111"/>
+      <circle cx="177" cy="154" r="1.5" fill="#fff"/>
+      <circle cx="205" cy="154" r="1.5" fill="#fff"/>
+      <circle cx="192" cy="184" r="4.5" fill="#fda4af"/>
+    `;
+  }
+
+  // Batraciens / Reptiles : Crapaud, Grenouille, Serpent
+  if (/crapaud|grenouille|batracien|serpent|lézard/.test(hay)) {
+    return `
+      <ellipse cx="192" cy="248" rx="92" ry="74" fill="#1c3624" stroke="#84cc16" stroke-width="3"/>
+      <ellipse cx="192" cy="264" rx="60" ry="44" fill="#365c36" opacity="0.65"/>
+      <circle cx="152" cy="168" r="22" fill="#23452c" stroke="#bef264" stroke-width="2.5"/>
+      <circle cx="232" cy="168" r="22" fill="#23452c" stroke="#bef264" stroke-width="2.5"/>
+      <ellipse cx="152" cy="168" rx="10" ry="6" fill="#fde047"/>
+      <ellipse cx="232" cy="168" rx="10" ry="6" fill="#fde047"/>
+      <rect x="148" y="165" width="8" height="4" rx="1.5" fill="#111"/>
+      <rect x="228" y="165" width="8" height="4" rx="1.5" fill="#111"/>
+      <path d="M132 222 Q192 252 252 222" stroke="#112416" stroke-width="4" fill="none" stroke-linecap="round"/>
+      <circle cx="144" cy="256" r="8" fill="#a3e635" opacity="0.35"/>
+      <circle cx="234" cy="242" r="10" fill="#a3e635" opacity="0.35"/>
+    `;
+  }
+
+  // Esprit Follet / Lutin / Diablotin / Fée (fallback familier)
+  const stars = Array.from({ length: 8 }, (_, i) => {
+    const ang = (i * Math.PI) / 4 + (seed % 5) * 0.2;
+    const x = Math.round(192 + Math.cos(ang) * 116);
+    const y = Math.round(186 + Math.sin(ang) * 116);
+    return `<circle cx="${x}" cy="${y}" r="3.2" fill="${pal.accent}" opacity="0.8"/>`;
+  }).join('');
+
+  return `
+    ${stars}
+    <path d="M192 178 Q92 94 74 168 Q112 204 176 206 Z" fill="${pal.glow}" opacity="0.32" stroke="${pal.accent}" stroke-width="2"/>
+    <path d="M192 178 Q292 94 310 168 Q272 204 208 206 Z" fill="${pal.glow}" opacity="0.32" stroke="${pal.accent}" stroke-width="2"/>
+    <circle cx="192" cy="184" r="44" fill="${pal.glow}" opacity="0.45"/>
+    <circle cx="192" cy="184" r="24" fill="#ffffff" opacity="0.9"/>
+    <circle cx="183" cy="180" r="3.5" fill="${pal.bg1}"/>
+    <circle cx="201" cy="180" r="3.5" fill="${pal.bg1}"/>
+  `;
+};
+
 export const buildCharacterPortraitSvg = (char: Partial<Character>, variantSeed = 0): string => {
-  const seed = hashString(`${char.name || 'Heros'}_${char.race || 'humain'}_${char.profil || 'guerrier'}`) + variantSeed * 4999;
+  const seed = hashString(`${char.name || 'Heros'}_${char.familierEspece || char.race || 'humain'}_${char.profil || 'guerrier'}`) + variantSeed * 4999;
   const pal = PALETTES[(seed + variantSeed) % PALETTES.length];
+
+  if (char.isFamilier || char.familierEspece) {
+    const artwork = renderFamilierArtwork(char, pal, seed);
+    return `
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 384" width="384" height="384">
+  <defs>
+    <radialGradient id="famBg" cx="50%" cy="40%" r="72%">
+      <stop offset="0%" stop-color="${pal.bg2}"/>
+      <stop offset="100%" stop-color="${pal.bg1}"/>
+    </radialGradient>
+  </defs>
+  <rect width="384" height="384" fill="url(#famBg)"/>
+  <circle cx="192" cy="182" r="144" fill="${pal.glow}" opacity="0.16"/>
+  <circle cx="192" cy="182" r="134" fill="none" stroke="${pal.accent}" stroke-width="1.2" stroke-dasharray="6 6" opacity="0.45"/>
+  ${artwork}
+  <rect x="8" y="8" width="368" height="368" rx="20" fill="none" stroke="${pal.glow}" stroke-width="2.5" opacity="0.75"/>
+  <text x="192" y="362" text-anchor="middle" font-family="Georgia, serif" font-size="13" font-weight="bold" fill="${pal.accent}" opacity="0.92">${(char.name || char.familierEspece || 'Familier').slice(0, 28).replace(/&/g, '&amp;').replace(/</g, '&lt;')}</text>
+</svg>`.trim();
+  }
+
   const race = (char.race || 'humain').toLowerCase();
   const profil = (char.profil || 'guerrier').toLowerCase();
 
@@ -647,4 +795,20 @@ export const buildCharacterPortraitSvg = (char: Partial<Character>, variantSeed 
   <rect x="8" y="8" width="368" height="368" rx="20" fill="none" stroke="${pal.glow}" stroke-width="2.5" opacity="0.72"/>
   <text x="192" y="362" text-anchor="middle" font-family="Georgia, serif" font-size="13" font-weight="bold" fill="${pal.accent}" opacity="0.9">${(char.name || 'Aventurier').slice(0, 28).replace(/&/g, '&amp;').replace(/</g, '&lt;')}</text>
 </svg>`.trim();
+};
+
+export const buildFamilierPortraitDataUrl = (
+  espece: string,
+  name?: string,
+  variantSeed = 0
+): string => {
+  const svg = buildCharacterPortraitSvg(
+    {
+      isFamilier: true,
+      familierEspece: espece,
+      name: name || espece,
+    },
+    variantSeed
+  );
+  return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
 };

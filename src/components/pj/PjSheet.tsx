@@ -32,6 +32,8 @@ import {
   Calculator,
   RefreshCw,
   Camera,
+  Link2,
+  Edit3,
 } from 'lucide-react';
 import { OSGILD_REGIONS, OSGILD_DEITIES, OSGILD_ACADEMIES } from '../../data/osgildLore';
 import { DetailModal, DetailItem } from '../DetailModal';
@@ -44,6 +46,10 @@ import { THARNEA_ARTIFACTS } from '../../data/tharneaSupplement';
 import { MoneyCalculatorModal } from '../common/MoneyCalculatorModal';
 import { useToast } from '../common/ToastContext';
 import { PortraitPicker } from '../common/PortraitPicker';
+import { FamilierCreatorModal } from '../common/FamilierCreatorModal';
+import { CharacterSheetModal } from '../mj/CharacterSheetModal';
+import { FAMILIERS_PRESETS, createFamilierFromPreset } from '../../data/familiersCatalog';
+import { normalizeFamilierForMaster } from '../../utils/familierSync';
 import { resolveActionRule } from '../../data/actionRules';
 import {
   ARMES_CATALOG,
@@ -123,6 +129,12 @@ export const PjSheet: React.FC<PjSheetProps> = ({
   const [customSpellRank, setCustomSpellRank] = useState(1);
   const [customSpellRange, setCustomSpellRange] = useState('30 m');
   const [customSpellDesc, setCustomSpellDesc] = useState('');
+
+  // Familiers liés state
+  const [isFamilierModalOpen, setIsFamilierModalOpen] = useState<boolean>(false);
+  const [editingFamilier, setEditingFamilier] = useState<Character | null>(null);
+  const [selectedFamilierSheet, setSelectedFamilierSheet] = useState<Character | null>(null);
+  const [confirmRemoveFamilierId, setConfirmRemoveFamilierId] = useState<string | null>(null);
 
   if (!pj) {
     return (
@@ -1710,6 +1722,320 @@ export const PjSheet: React.FC<PjSheetProps> = ({
               />
             </div>
           </div>
+
+          {/* FAMILIERS & COMPAGNONS LIÉS */}
+          {(() => {
+            const familiers = pj.familiers || [];
+            const updateFamiliersList = (nextFamiliers: Character[]) => {
+              onUpdatePj({
+                ...pj,
+                familiers: nextFamiliers.map((f) =>
+                  normalizeFamilierForMaster(f, { id: pj.id, name: pj.name })
+                ),
+              });
+            };
+
+            return (
+              <div className="print-card bg-[#111b14] border border-[#3a6b45] rounded-xl p-4 space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#25452c] pb-2.5">
+                  <div>
+                    <h3 className="font-serif-co text-base font-bold text-[#9ff0b2] flex items-center gap-2">
+                      <span>🐾</span>
+                      <span>Familiers &amp; Compagnons Liés</span>
+                      <span className="text-xs px-2 py-0.5 rounded bg-[#183320] border border-[#3a7048] text-[#d5fce0] font-mono">
+                        {familiers.length}
+                      </span>
+                    </h3>
+                    <p className="text-[11px] text-[#8db898]">
+                      Liez un familier (ou choisissez parmi les fiches pré-remplies), suivez ses PV/PM/États et consultez sa fiche complète comme un PNJ.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditingFamilier(null);
+                      setIsFamilierModalOpen(true);
+                    }}
+                    className="no-print px-3 py-1.5 rounded-lg bg-gradient-to-r from-[#235430] to-[#16381f] hover:brightness-110 border border-[#4a8556] text-[#d5fce0] text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs"
+                  >
+                    <Plus className="w-3.5 h-3.5" /> Lier / Créer un familier
+                  </button>
+                </div>
+
+                {familiers.length === 0 ? (
+                  <div className="p-3 bg-[#0c140e] border border-[#223d28] rounded-xl space-y-2.5">
+                    <p className="text-xs text-[#9eb5a3]">
+                      Aucun familier n&apos;est encore lié à <b>{pj.name}</b>. Cliquez sur un modèle pré-rempli pour le lier immédiatement ou créez le vôtre :
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {FAMILIERS_PRESETS.slice(0, 5).map((preset) => (
+                        <button
+                          key={preset.id}
+                          type="button"
+                          onClick={() => {
+                            const created = normalizeFamilierForMaster(
+                              createFamilierFromPreset(preset, { id: pj.id, name: pj.name }),
+                              { id: pj.id, name: pj.name }
+                            );
+                            updateFamiliersList([...familiers, created]);
+                            success(`🐾 Familier « ${created.name} » lié à ${pj.name} !`);
+                          }}
+                          className="px-2.5 py-1 rounded-lg bg-[#16291c] hover:bg-[#1f3b27] border border-[#356642] text-[11px] font-bold text-[#d5fce0] flex items-center gap-1 cursor-pointer"
+                        >
+                          <Plus className="w-3 h-3 text-[#86efac]" /> {preset.name}
+                        </button>
+                      ))}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditingFamilier(null);
+                          setIsFamilierModalOpen(true);
+                        }}
+                        className="px-2.5 py-1 rounded-lg bg-[#1c2820] hover:bg-[#27382d] border border-[#4a8556] text-[11px] font-bold text-[#f3d48d] cursor-pointer"
+                      >
+                        Voir les 10 modèles &amp; créer...
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {familiers.map((fam, fIdx) => {
+                      const famStats = calcStats(fam);
+                      const famHpMax = fam.hpMaxManual || fam.hpMaxAuto || fam.hpBase || 8;
+                      const famDef = famStats ? famStats.def : fam.defManual ?? 12;
+                      const famPmMax =
+                        fam.pmMaxManual !== null && fam.pmMaxManual !== undefined
+                          ? fam.pmMaxManual
+                          : famStats?.pmMax || 0;
+                      const famPmCur = fam.pm !== undefined && fam.pm !== null ? fam.pm : famPmMax;
+                      const isConfirmingRemove = confirmRemoveFamilierId === (fam.id || fam.name);
+
+                      return (
+                        <div
+                          key={fam.id || fIdx}
+                          className="p-3 bg-[#152118] border border-[#386944] rounded-xl space-y-2.5 flex flex-col justify-between"
+                        >
+                          <div className="space-y-2">
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                {fam.portrait && (
+                                  <button
+                                    type="button"
+                                    onClick={() => setSelectedFamilierSheet(fam)}
+                                    className="w-11 h-11 rounded-lg overflow-hidden border border-[#4a8556] hover:border-[#9ff0b2] shrink-0 cursor-pointer"
+                                    title="Ouvrir la fiche du familier"
+                                  >
+                                    <img
+                                      src={fam.portrait}
+                                      alt={fam.name}
+                                      className="w-full h-full object-cover"
+                                    />
+                                  </button>
+                                )}
+                                <div className="min-w-0">
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#0e1911] text-[#9ff0b2] border border-[#2d5e37] font-bold uppercase">
+                                      🐾 {fam.familierEspece || 'Familier'}
+                                    </span>
+                                    {fam.familierCategorie && (
+                                      <span className="text-[10px] text-[#8db898]">
+                                        {fam.familierCategorie}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={() => setSelectedFamilierSheet(fam)}
+                                    className="font-serif-co text-sm font-bold text-[#e6ffec] hover:underline flex items-center gap-1 cursor-pointer truncate mt-0.5"
+                                  >
+                                    <span className="truncate">{fam.name}</span>
+                                    <ExternalLink className="w-3 h-3 shrink-0 opacity-80" />
+                                  </button>
+                                  <div className="text-[11px] text-[#9eb5a3]">
+                                    Niv. {fam.level}
+                                    {fam.vitesse ? ` • ${fam.vitesse}` : ''}
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div className="no-print flex items-center gap-1 shrink-0">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setEditingFamilier(fam);
+                                    setIsFamilierModalOpen(true);
+                                  }}
+                                  className="p-1.5 rounded bg-[#1a3321] hover:bg-[#234d2d] text-[#9ff0b2] border border-[#356642] cursor-pointer"
+                                  title="Modifier la fiche du familier"
+                                >
+                                  <Edit3 className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setConfirmRemoveFamilierId(
+                                      isConfirmingRemove ? null : fam.id || fam.name
+                                    )
+                                  }
+                                  className="p-1.5 rounded bg-[#211414] hover:bg-[#381b1b] text-[#fca5a5] border border-[#5e2929] cursor-pointer"
+                                  title="Délier / retirer ce familier"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </div>
+
+                            {isConfirmingRemove && (
+                              <div className="no-print p-2 rounded-lg bg-[#2b1414] border border-[#9c2a2b] text-xs flex items-center justify-between gap-2">
+                                <span className="text-[#ffd4d4]">Retirer {fam.name} ?</span>
+                                <div className="flex items-center gap-1.5">
+                                  <button
+                                    type="button"
+                                    onClick={() => setConfirmRemoveFamilierId(null)}
+                                    className="px-2 py-0.5 rounded bg-[#231c15] text-[#ede3d1] text-[11px] cursor-pointer"
+                                  >
+                                    Annuler
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const next = familiers.filter((_, idx) => idx !== fIdx);
+                                      updateFamiliersList(next);
+                                      setConfirmRemoveFamilierId(null);
+                                      info(`🐾 « ${fam.name} » retiré de vos familiers.`);
+                                    }}
+                                    className="px-2 py-0.5 rounded bg-[#9c2a2b] text-white font-bold text-[11px] cursor-pointer"
+                                  >
+                                    Confirmer
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* PV / DEF / PM */}
+                            <div className="flex flex-wrap items-center justify-between gap-2 bg-[#0d1610] p-2 rounded-lg border border-[#23422a] text-xs">
+                              <div className="flex items-center gap-1.5">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const next = [...familiers];
+                                    next[fIdx] = { ...fam, hp: Math.max(0, fam.hp - 1) };
+                                    updateFamiliersList(next);
+                                  }}
+                                  className="no-print w-5 h-5 rounded bg-[#2b1416] hover:bg-[#3d1a1e] text-[#ff8080] font-bold flex items-center justify-center border border-[#6d252b] cursor-pointer"
+                                >
+                                  -
+                                </button>
+                                <span>PV :</span>
+                                <b className={fam.hp <= 0 ? 'text-[#ff5555]' : 'text-[#86efac]'}>
+                                  {fam.hp}
+                                </b>
+                                <span className="text-[#8db898]">/ {famHpMax}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const next = [...familiers];
+                                    next[fIdx] = { ...fam, hp: Math.min(famHpMax, fam.hp + 1) };
+                                    updateFamiliersList(next);
+                                  }}
+                                  className="no-print w-5 h-5 rounded bg-[#172b1a] hover:bg-[#203d24] text-[#86efac] font-bold flex items-center justify-center border border-[#276e43] cursor-pointer"
+                                >
+                                  +
+                                </button>
+                              </div>
+
+                              <div className="flex items-center gap-1 font-bold text-[#7db5ff]">
+                                <Shield className="w-3.5 h-3.5" />
+                                <span>DEF {famDef}</span>
+                              </div>
+
+                              {famPmMax > 0 && (
+                                <div className="flex items-center gap-1">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const next = [...familiers];
+                                      next[fIdx] = { ...fam, pm: Math.max(0, famPmCur - 1) };
+                                      updateFamiliersList(next);
+                                    }}
+                                    className="no-print w-5 h-5 rounded bg-[#162538] text-[#8dbbff] font-bold flex items-center justify-center border border-[#2e5077] cursor-pointer"
+                                  >
+                                    -
+                                  </button>
+                                  <span className="text-[#8dbbff] font-bold">
+                                    {famPmCur}/{famPmMax} PM
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const next = [...familiers];
+                                      next[fIdx] = {
+                                        ...fam,
+                                        pm: Math.min(famPmMax, famPmCur + 1),
+                                      };
+                                      updateFamiliersList(next);
+                                    }}
+                                    className="no-print w-5 h-5 rounded bg-[#162538] text-[#8dbbff] font-bold flex items-center justify-center border border-[#2e5077] cursor-pointer"
+                                  >
+                                    +
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+
+                            {fam.armes && fam.armes.length > 0 && (
+                              <div className="text-[11px] text-[#ede3d1] bg-[#0e1811] px-2.5 py-1.5 rounded border border-[#23422a]">
+                                <b className="text-[#86efac]">⚔️ Attaques :</b>{' '}
+                                {fam.armes.map((w) => `${w.n} (${w.dm})`).join(' · ')}
+                              </div>
+                            )}
+
+                            {fam.capacitesSpeciales && fam.capacitesSpeciales.length > 0 && (
+                              <div className="flex flex-wrap gap-1">
+                                {fam.capacitesSpeciales.map((cap, ci) => (
+                                  <span
+                                    key={ci}
+                                    title={cap.t}
+                                    className="px-1.5 py-0.5 rounded bg-[#102116] border border-[#2d5e37] text-[10px] text-[#b7f7c7] font-semibold"
+                                  >
+                                    ✦ {cap.n}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+
+                            <StateBadgeList
+                              activeStates={fam.etats || []}
+                              onToggleState={(stName) => {
+                                const cur = fam.etats || [];
+                                const updatedStates = cur.includes(stName)
+                                  ? cur.filter((s) => s !== stName)
+                                  : [...cur, stName];
+                                const next = [...familiers];
+                                next[fIdx] = { ...fam, etats: updatedStates };
+                                updateFamiliersList(next);
+                              }}
+                              onSelectDetail={(state) => setDetailItem({ type: 'etat', data: state })}
+                              allowEdit={true}
+                              compact={true}
+                            />
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => setSelectedFamilierSheet(fam)}
+                            className="no-print w-full py-1.5 rounded-lg bg-[#1a3321] hover:bg-[#234d2d] border border-[#4a8556] text-[#d5fce0] text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer"
+                          >
+                            <ExternalLink className="w-3.5 h-3.5" /> Fiche complète du familier
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
         </div>
       )}
 
@@ -3818,6 +4144,77 @@ export const PjSheet: React.FC<PjSheetProps> = ({
           </div>
         </div>
       )}
+
+      {/* ==================== MODAL CRÉATION / ÉDITION FAMILIER (PJ) ==================== */}
+      <FamilierCreatorModal
+        isOpen={isFamilierModalOpen}
+        onClose={() => {
+          setIsFamilierModalOpen(false);
+          setEditingFamilier(null);
+        }}
+        onSave={(famChar, _combatant, isEdit) => {
+          const normalized = normalizeFamilierForMaster(famChar, {
+            id: pj.id,
+            name: pj.name,
+          });
+          const curList = pj.familiers || [];
+          const existingIdx = curList.findIndex((f) => f.id === normalized.id);
+          const nextList =
+            existingIdx >= 0
+              ? curList.map((f, idx) => (idx === existingIdx ? normalized : f))
+              : [...curList, normalized];
+          onUpdatePj({ ...pj, familiers: nextList });
+          setEditingFamilier(null);
+          success(
+            isEdit
+              ? `🐾 Familier « ${normalized.name} » mis à jour !`
+              : `🐾 Familier « ${normalized.name} » lié à ${pj.name} !`
+          );
+        }}
+        mastersList={[pj]}
+        defaultMaster={{ id: pj.id, name: pj.name }}
+        editingFamilier={editingFamilier}
+        isMj={false}
+      />
+
+      {/* ==================== FICHE COMPLÈTE DU FAMILIER (POP-UP) ==================== */}
+      <CharacterSheetModal
+        pj={selectedFamilierSheet}
+        isOpen={!!selectedFamilierSheet}
+        onClose={() => setSelectedFamilierSheet(null)}
+        allCharacters={[pj, ...(pj.familiers || [])]}
+        onSelectCharacter={(char) => {
+          if (char.isFamilier) {
+            setSelectedFamilierSheet(char);
+          } else {
+            setSelectedFamilierSheet(null);
+          }
+        }}
+        onEditCharacter={(char) => {
+          if (char.isFamilier) {
+            setSelectedFamilierSheet(null);
+            setEditingFamilier(char);
+            setIsFamilierModalOpen(true);
+          }
+        }}
+        onToggleState={(stName) => {
+          if (!selectedFamilierSheet) return;
+          const curList = pj.familiers || [];
+          const nextList = curList.map((f) => {
+            if (f.id === selectedFamilierSheet.id || f.name === selectedFamilierSheet.name) {
+              const states = f.etats || [];
+              const updatedStates = states.includes(stName)
+                ? states.filter((s) => s !== stName)
+                : [...states, stName];
+              const nextFam = { ...f, etats: updatedStates };
+              setSelectedFamilierSheet(nextFam);
+              return nextFam;
+            }
+            return f;
+          });
+          onUpdatePj({ ...pj, familiers: nextList });
+        }}
+      />
 
       {/* Discreet Signature */}
       <div className="text-right text-[10px] text-[#4d3d2e] font-mono tracking-wider pt-2 select-none">

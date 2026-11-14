@@ -37,6 +37,9 @@ import {
   Lock,
   Unlock,
   Shuffle,
+  Link2,
+  Edit3,
+  Footprints,
 } from 'lucide-react';
 import {
   OSGILD_GEOGRAPHY_ASCII,
@@ -52,6 +55,9 @@ import { CharacterSheetModal } from './CharacterSheetModal';
 import { QuickInitModal } from './QuickInitModal';
 import { OsgildLoreMj } from './OsgildLoreMj';
 import { MoneyCalculatorModal } from '../common/MoneyCalculatorModal';
+import { FamilierCreatorModal } from '../common/FamilierCreatorModal';
+import { FAMILIERS_PRESETS, createFamilierFromPreset } from '../../data/familiersCatalog';
+import { getLinkedFamiliersForMaster } from '../../utils/familierSync';
 import { useToast } from '../common/ToastContext';
 import {
   BESTIAIRE,
@@ -138,6 +144,7 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
   const [pjSearch, setPjSearch] = useState('');
   const [pjProfFilter, setPjProfFilter] = useState('');
   const [pjRaceFilter, setPjRaceFilter] = useState('');
+  const [pjTypeFilter, setPjTypeFilter] = useState<'all' | 'pj' | 'pnj' | 'familier'>('all');
 
   const [bestSearch, setBestSearch] = useState('');
   const [bestNcFilter, setBestNcFilter] = useState('');
@@ -148,6 +155,10 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
   const [tharneaSubTab, setTharneaSubTab] = useState<'monstres' | 'artefacts' | 'bonbons' | 'lore'>('monstres');
   const [tharneaSearch, setTharneaSearch] = useState('');
   const [isPnjCreatorOpen, setIsPnjCreatorOpen] = useState(false);
+  const [isFamilierCreatorOpen, setIsFamilierCreatorOpen] = useState(false);
+  const [editingFamilier, setEditingFamilier] = useState<Character | null>(null);
+  const [familierDefaultMaster, setFamilierDefaultMaster] = useState<{ id?: string; name: string } | null>(null);
+  const [showPresetFamiliersBar, setShowPresetFamiliersBar] = useState(false);
 
   // Random Loot Table states
   const [lootSearch, setLootSearch] = useState('');
@@ -215,9 +226,9 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
     };
   };
 
-  // Finances cumulées du groupe des PJ uniquement (les PNJ sont comptés à part)
+  // Finances cumulées du groupe des PJ uniquement (les PNJ et familiers sont comptés à part)
   const groupPjsOnly = React.useMemo(
-    () => tableData.pjs.filter((p) => !p.isPnj),
+    () => tableData.pjs.filter((p) => !p.isPnj && !p.isFamilier),
     [tableData.pjs]
   );
   const groupFinances: CurrencyBourse = groupPjsOnly.reduce(
@@ -1084,6 +1095,100 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
     success(`🤝 PNJ « ${createdName} » créé et intégré !`);
   };
 
+  const handleSaveFamilier = (famChar: Character, combatant: Combatant | null, isEdit: boolean) => {
+    const existingIdx = tableData.pjs.findIndex((p) => p.id === famChar.id);
+    const nextPjs = [...tableData.pjs];
+    if (existingIdx >= 0) {
+      nextPjs[existingIdx] = famChar;
+    } else {
+      nextPjs.push(famChar);
+    }
+
+    let nextCombatants = [...tableData.combatants];
+    const existingCmbIdx = nextCombatants.findIndex(
+      (c) => c.pjRefId === famChar.id || c.id === famChar.id
+    );
+    const st = calcStats(famChar);
+    const computedHpMax = famChar.hpMaxManual || famChar.hpMaxAuto || famChar.hpBase || 8;
+    const computedDef = st ? st.def : famChar.defManual ?? 12;
+
+    if (existingCmbIdx >= 0) {
+      nextCombatants[existingCmbIdx] = {
+        ...nextCombatants[existingCmbIdx],
+        n: famChar.name,
+        hp: famChar.hp,
+        hpMax: computedHpMax,
+        def: computedDef,
+        baseInit: (famChar.base.DEX || 10) + (famChar.rb?.DEX || 0),
+        etats: famChar.etats || [],
+        isPnj: true,
+        isFamilier: true,
+        masterName: famChar.masterName,
+        notes: `${famChar.familierEspece || 'Familier'} Niv. ${famChar.level}${
+          famChar.masterName ? ` • Maître : ${famChar.masterName}` : ''
+        }`,
+      };
+    } else if (combatant) {
+      nextCombatants = [...nextCombatants, combatant];
+    }
+
+    onUpdateTableData({ ...tableData, pjs: nextPjs, combatants: nextCombatants });
+    setEditingFamilier(null);
+    setFamilierDefaultMaster(null);
+    success(
+      isEdit
+        ? `🐾 Familier « ${famChar.name} » mis à jour !`
+        : `🐾 Familier « ${famChar.name} » créé${famChar.masterName ? ` et lié à ${famChar.masterName}` : ''} !`
+    );
+  };
+
+  const handleChangeFamilierMaster = (famId: string, masterKey: string) => {
+    const master = masterKey
+      ? tableData.pjs.find((m) => !m.isFamilier && (m.id === masterKey || m.name === masterKey))
+      : undefined;
+
+    const nextPjs = tableData.pjs.map((p) => {
+      if (p.id !== famId) return p;
+      return {
+        ...p,
+        masterId: master ? master.id : undefined,
+        masterName: master ? master.name : undefined,
+        player: master ? `Familier de ${master.name}` : 'Familier (Disponible)',
+      };
+    });
+
+    const nextCombatants = tableData.combatants.map((c) => {
+      if (c.pjRefId !== famId && c.id !== famId) return c;
+      return {
+        ...c,
+        masterName: master ? master.name : undefined,
+      };
+    });
+
+    onUpdateTableData({ ...tableData, pjs: nextPjs, combatants: nextCombatants });
+    const fam = tableData.pjs.find((p) => p.id === famId);
+    if (fam) {
+      info(
+        master
+          ? `🔗 « ${fam.name} » est désormais lié à ${master.name}.`
+          : `🔓 « ${fam.name} » est désormais libre (sans maître lié).`
+      );
+    }
+  };
+
+  const handleQuickSpawnPresetFamilier = (
+    presetIndex: number,
+    master?: { id?: string; name?: string } | null
+  ) => {
+    const preset = FAMILIERS_PRESETS[presetIndex];
+    if (!preset) return;
+    const newFam = createFamilierFromPreset(preset, master || null);
+    onUpdateTableData({ ...tableData, pjs: [...tableData.pjs, newFam] });
+    success(
+      `🐾 « ${newFam.name} » ajouté au groupe${master?.name ? ` et lié à ${master.name}` : ''} !`
+    );
+  };
+
   const handleAddCustomCombatant = () => {
     if (!newCombatantName.trim()) {
       warning('Veuillez spécifier un nom pour le combattant.');
@@ -1148,16 +1253,23 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
 
   const pushPjCombatant = (pj: Character) => {
     const hpMax = pj.hpMaxManual || pj.hpMaxAuto || pj.hpBase || 10;
+    const st = calcStats(pj);
+    const defVal = st ? st.def : 10 + getMod((pj.base.DEX || 10) + (pj.rb.DEX || 0));
     const newC: Combatant = {
       id: 'pj_cmb_' + Date.now() + '_' + Math.random().toString(36).substring(2, 5),
       n: pj.name,
       isPj: true,
+      isPnj: Boolean(pj.isPnj),
+      isFamilier: Boolean(pj.isFamilier),
+      masterName: pj.masterName,
       hp: pj.hp,
       hpMax: hpMax,
-      def: 10 + getMod((pj.base.DEX || 10) + (pj.rb.DEX || 0)),
+      def: defVal,
       baseInit: (pj.base.DEX || 10) + (pj.rb.DEX || 0),
       init: null,
-      notes: `${pj.profil} Niv. ${pj.level} (${pj.race})`,
+      notes: pj.isFamilier
+        ? `${pj.familierEspece || 'Familier'} Niv. ${pj.level}${pj.masterName ? ` • Maître : ${pj.masterName}` : ''}`
+        : `${pj.profil} Niv. ${pj.level} (${pj.race})`,
       pjRefId: pj.id,
       etats: pj.etats || [],
     };
@@ -1185,16 +1297,23 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
     }
     const combatantsToAdd: Combatant[] = tableData.pjs.map((p, idx) => {
       const hpMax = p.hpMaxManual || p.hpMaxAuto || p.hpBase || 10;
+      const st = calcStats(p);
+      const defVal = st ? st.def : 10 + getMod((p.base.DEX || 10) + (p.rb.DEX || 0));
       return {
         id: 'pj_cmb_' + (p.id || idx) + '_' + Date.now() + '_' + idx,
         n: p.name,
         isPj: true,
+        isPnj: Boolean(p.isPnj),
+        isFamilier: Boolean(p.isFamilier),
+        masterName: p.masterName,
         hp: p.hp,
         hpMax: hpMax,
-        def: 10 + getMod((p.base.DEX || 10) + (p.rb.DEX || 0)),
+        def: defVal,
         baseInit: (p.base.DEX || 10) + (p.rb.DEX || 0),
         init: null,
-        notes: `${p.profil} Niv. ${p.level} (${p.race})`,
+        notes: p.isFamilier
+          ? `${p.familierEspece || 'Familier'} Niv. ${p.level}${p.masterName ? ` • Maître : ${p.masterName}` : ''}`
+          : `${p.profil} Niv. ${p.level} (${p.race})`,
         pjRefId: p.id,
         etats: p.etats || [],
       };
@@ -1313,39 +1432,34 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
 
   return (
     <div className="max-w-[1400px] mx-auto space-y-2.5">
-      {/* MJ Console Sub-Header & Controls */}
-      <div className="bg-gradient-to-r from-[#2e1313] via-[#1c1410] to-[#120f0d] border border-[#9c2a2b]/70 rounded-xl p-3 sm:p-3.5 shadow-xl">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div>
-            <div className="flex items-center gap-2">
-              <h2 className="font-serif-co text-2xl font-bold text-[#ffb8b8]">
-                Console du Meneur de Jeu (MJ)
-              </h2>
-              <span className="text-[10px] uppercase font-bold tracking-widest px-2 py-0.5 rounded bg-[#4d1f1c] text-[#ff9d9d] border border-[#cf5544]/50">
-                Hub de Table &amp; DRS
-              </span>
-            </div>
-            <p className="text-xs text-[#9e907d] mt-1">
-              Gestion de combat, initiatives d20, bestiaire complet (53 monstres), groupe d'aventuriers, règles officielles et équipement.
-            </p>
+      {/* MJ Console Sub-Header & Controls (Compact) */}
+      <div className="bg-gradient-to-r from-[#2e1313] via-[#1c1410] to-[#120f0d] border border-[#9c2a2b]/70 rounded-xl px-3 py-1.5 shadow-md">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            <h2 className="font-serif-co text-base sm:text-lg font-bold text-[#ffb8b8] leading-tight">
+              Console du Meneur de Jeu (MJ)
+            </h2>
+            <span className="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-[#4d1f1c] text-[#ff9d9d] border border-[#cf5544]/50">
+              Hub &amp; DRS
+            </span>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-1.5">
             <button
               onClick={handleDownloadOfflineMjHtml}
-              className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-[#8b2628] to-[#691c1d] hover:brightness-110 text-xs font-bold text-white flex items-center gap-1.5 shadow-md"
+              className="px-2.5 py-1 rounded-lg bg-gradient-to-r from-[#8b2628] to-[#691c1d] hover:brightness-110 text-[11px] font-bold text-white flex items-center gap-1 shadow-xs cursor-pointer"
               title="Télécharger l'application HTML autonome du MJ pour jouer hors-ligne"
             >
-              <Download className="w-3.5 h-3.5" /> MJ Offline (.html)
+              <Download className="w-3 h-3" /> MJ Offline (.html)
             </button>
             <button
               onClick={handleSaveMaster}
-              className="px-3 py-1.5 rounded-lg bg-[#231c15] hover:bg-[#32271d] border border-[#3d3023] hover:border-[#d4a84a] text-xs font-semibold text-[#f3d48d] flex items-center gap-1.5 shadow-xs"
+              className="px-2.5 py-1 rounded-lg bg-[#231c15] hover:bg-[#32271d] border border-[#3d3023] hover:border-[#d4a84a] text-[11px] font-semibold text-[#f3d48d] flex items-center gap-1 shadow-xs cursor-pointer"
             >
-              <FileDown className="w-3.5 h-3.5 text-[#d4a84a]" /> Sauvegarder (JSON)
+              <FileDown className="w-3 h-3 text-[#d4a84a]" /> Sauvegarder (JSON)
             </button>
-            <label className="px-3 py-1.5 rounded-lg bg-[#231c15] hover:bg-[#32271d] border border-[#3d3023] hover:border-[#d4a84a] text-xs font-semibold text-[#ede3d1] flex items-center gap-1.5 cursor-pointer shadow-xs">
-              <FileUp className="w-3.5 h-3.5 text-[#d4a84a]" /> Charger Campagne
+            <label className="px-2.5 py-1 rounded-lg bg-[#231c15] hover:bg-[#32271d] border border-[#3d3023] hover:border-[#d4a84a] text-[11px] font-semibold text-[#ede3d1] flex items-center gap-1 cursor-pointer shadow-xs">
+              <FileUp className="w-3 h-3 text-[#d4a84a]" /> Charger Campagne
               <input
                 type="file"
                 accept=".json"
@@ -1419,19 +1533,6 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
             </button>
           );
         })}
-
-        {/* Bouton Grimoire JdR Externe (doudoufab) */}
-        <a
-          href="https://doudoufab.github.io/grimoire-jdr-ok-/"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold shrink-0 bg-gradient-to-r from-[#2c1d12] to-[#1e130a] hover:from-[#3a2718] hover:to-[#2a1b0e] border border-[#d4a84a]/70 hover:border-[#f3d48d] text-[#f3d48d] hover:text-white transition-all shadow-xs ml-auto"
-          title="Ouvrir le Grimoire interactif des Sorts (doudoufab) dans un nouvel onglet"
-        >
-          <BookOpen className="w-3.5 h-3.5 text-[#d4a84a]" />
-          <span>📖 Grimoire JdR</span>
-          <ExternalLink className="w-3 h-3 text-[#a0907d]" />
-        </a>
       </div>
 
       {/* ==================== 1. COMBAT & INITIATIVE ==================== */}
@@ -1652,9 +1753,13 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                 const pct = Math.max(0, Math.min(100, Math.round((100 * c.hp) / Math.max(1, c.hpMax))));
                 const barCol = pct > 50 ? '#6fa85b' : pct > 25 ? '#c97d32' : '#cf5544';
                 const matchedPj = resolvePjForCombatant(c);
-                const pjCol = c.isPj
-                  ? getPjColor(matchedPj || { id: c.pjRefId, name: c.n }, tableData.pjs)
-                  : null;
+                const isCombatantFamilier = Boolean(c.isFamilier || matchedPj?.isFamilier);
+                const isCombatantPnj = Boolean(c.isPnj || matchedPj?.isPnj) && !isCombatantFamilier;
+                const combatantMasterName = c.masterName || matchedPj?.masterName;
+                const pjCol =
+                  c.isPj && !isCombatantFamilier && !isCombatantPnj
+                    ? getPjColor(matchedPj || { id: c.pjRefId, name: c.n }, tableData.pjs)
+                    : null;
                 const isActiveTurn = activeTurnIds.has(c.id);
                 const isTiedGroup = isActiveTurn && activeTurnGroup.length > 1;
 
@@ -1686,7 +1791,13 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                         : undefined
                     }
                     className={`p-3.5 bg-[#181410] border-l-4 rounded-xl border border-[#3d3023] space-y-2.5 shadow-sm transition-opacity ${
-                      c.isPj ? 'border-l-[#d4a84a]' : 'border-l-[#9c2a2b]'
+                      isCombatantFamilier
+                        ? 'border-l-[#4a8556]'
+                        : isCombatantPnj
+                        ? 'border-l-[#4d7ca8]'
+                        : c.isPj
+                        ? 'border-l-[#d4a84a]'
+                        : 'border-l-[#9c2a2b]'
                     } ${isActiveTurn ? 'ring-1 ring-[#d4a84a]/60 shadow-lg' : ''} ${
                       c.actedInRound ? 'opacity-65' : ''
                     }`}
@@ -1712,16 +1823,34 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                               : undefined
                           }
                           className={`text-xs px-2 py-0.5 rounded font-bold uppercase tracking-wider border ${
-                            c.isPj
+                            isCombatantFamilier
+                              ? 'bg-[#152d1c] text-[#9ff0b2] border-[#4a8556]'
+                              : isCombatantPnj
+                              ? 'bg-[#18283a] text-[#7db5ff] border-[#2b4c6f]'
+                              : c.isPj
                               ? 'bg-[#3b2a1a] text-[#f3d48d] border-[#d4a84a]/40'
                               : 'bg-[#381616] text-[#ff9d9d] border-[#6d2525]'
                           }`}
                         >
-                          {c.isPj ? 'PJ' : 'Monstre'}
+                          {isCombatantFamilier
+                            ? '🐾 Familier'
+                            : isCombatantPnj
+                            ? 'PNJ'
+                            : c.isPj
+                            ? 'PJ'
+                            : 'Monstre'}
                         </span>
                         <b
                           className="font-serif-co text-base flex items-center gap-1.5"
-                          style={{ color: pjCol ? pjCol.hex : '#ede3d1' }}
+                          style={{
+                            color: pjCol
+                              ? pjCol.hex
+                              : isCombatantFamilier
+                              ? '#b7f7c7'
+                              : isCombatantPnj
+                              ? '#cce3ff'
+                              : '#ede3d1',
+                          }}
                         >
                           {pjCol && (
                             <span
@@ -1732,6 +1861,11 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                           )}
                           <span>{c.n}</span>
                         </b>
+                        {isCombatantFamilier && combatantMasterName && (
+                          <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-[#102116] text-[#9ff0b2] border border-[#2d5e37] flex items-center gap-1">
+                            <Link2 className="w-3 h-3" /> {combatantMasterName}
+                          </span>
+                        )}
 
                         {isActiveTurn && (
                           <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-[#d4a84a] text-[#140e08] uppercase tracking-wider">
@@ -2078,10 +2212,36 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                 <button
                   type="button"
                   onClick={() => setIsPnjCreatorOpen(true)}
-                  className="px-2.5 py-1.5 bg-gradient-to-r from-[#2c4058] to-[#1a293b] hover:brightness-110 border border-[#4d7ca8] text-[#cce3ff] text-xs font-bold rounded-lg flex items-center gap-1.5 shadow-sm"
+                  className="px-2.5 py-1.5 bg-gradient-to-r from-[#2c4058] to-[#1a293b] hover:brightness-110 border border-[#4d7ca8] text-[#cce3ff] text-xs font-bold rounded-lg flex items-center gap-1.5 shadow-sm cursor-pointer"
                   title="Créer un nouveau PNJ ou allié officiel et l'intégrer au groupe d'aventuriers"
                 >
                   <Plus className="w-3.5 h-3.5 text-[#7db5ff]" /> PNJ / Allié
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditingFamilier(null);
+                    setFamilierDefaultMaster(null);
+                    setIsFamilierCreatorOpen(true);
+                  }}
+                  className="px-2.5 py-1.5 bg-gradient-to-r from-[#1d3f27] to-[#122618] hover:brightness-110 border border-[#4a8556] text-[#b7f7c7] text-xs font-bold rounded-lg flex items-center gap-1.5 shadow-sm cursor-pointer"
+                  title="Créer ou choisir un familier pré-rempli et le lier à un PJ ou PNJ"
+                >
+                  <span>🐾</span> + Familier
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setShowPresetFamiliersBar((v) => !v)}
+                  className={`px-2.5 py-1.5 border text-xs font-bold rounded-lg flex items-center gap-1.5 cursor-pointer transition-colors ${
+                    showPresetFamiliersBar
+                      ? 'bg-[#1f3b26] border-[#6fa85b] text-[#d5fce0]'
+                      : 'bg-[#17211a] hover:bg-[#1e2d22] border-[#35543c] text-[#9ff0b2]'
+                  }`}
+                  title="Afficher les 10 fiches de familiers pré-remplies prêtes à ajouter en 1 clic"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-[#6fa85b]" /> Modèles pré-remplis ({FAMILIERS_PRESETS.length})
                 </button>
 
                 {currentActivePj && (
@@ -2136,7 +2296,7 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                     <span className="text-[10px] bg-[#140e0a] border border-[#4d3623] px-2 py-0.5 rounded text-[#cbd5e1] font-mono">
                       {groupPjsOnly.length} PJ à la table
                       {tableData.pjs.length > groupPjsOnly.length
-                        ? ` (+${tableData.pjs.length - groupPjsOnly.length} PNJ exclus)`
+                        ? ` (+${tableData.pjs.length - groupPjsOnly.length} PNJ / familiers exclus)`
                         : ''}
                     </span>
                   </div>
@@ -2219,13 +2379,98 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
               )}
             </div>
 
+            {/* Étagère rapide : 10 familiers pré-remplis */}
+            {showPresetFamiliersBar && (
+              <div className="p-3 bg-[#101c13] border border-[#4a8556]/70 rounded-xl space-y-2.5">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <h4 className="font-serif-co text-sm font-bold text-[#9ff0b2] flex items-center gap-1.5">
+                      <span>🐾</span> Catalogue de Familiers Pré-remplis (Ajout en 1 clic)
+                    </h4>
+                    <p className="text-[11px] text-[#8db898]">
+                      Ajoutez directement un familier avec ses stats, attaques, portrait et capacités spéciales, puis liez-le au maître de votre choix.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowPresetFamiliersBar(false)}
+                    className="p-1 rounded text-[#8db898] hover:text-white cursor-pointer"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2">
+                  {FAMILIERS_PRESETS.map((preset, pIdx) => (
+                    <div
+                      key={preset.id}
+                      className="p-2.5 bg-[#152419] border border-[#2d5236] rounded-lg flex flex-col justify-between gap-2"
+                    >
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between gap-1">
+                          <span className="text-[9px] uppercase font-bold px-1.5 py-0.5 rounded bg-[#0e1911] text-[#86efac] border border-[#2d5e37]">
+                            {preset.categorie}
+                          </span>
+                          <span className="text-[10px] font-mono text-[#a3b8a8]">
+                            {preset.hp} PV · DEF {preset.def}
+                          </span>
+                        </div>
+                        <b className="font-serif-co text-xs text-[#e6ffec] block truncate">{preset.name}</b>
+                        <p className="text-[10px] text-[#9eb5a3] line-clamp-2">{preset.persoTraits}</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleQuickSpawnPresetFamilier(pIdx, null)}
+                        className="w-full py-1 px-2 rounded bg-[#234d2d] hover:bg-[#2d633a] border border-[#4a8556] text-[#d5fce0] text-[11px] font-bold flex items-center justify-center gap-1 cursor-pointer"
+                      >
+                        <Plus className="w-3 h-3" /> Ajouter au groupe
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Filter Bar */}
             <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-[#30251a]">
+              {/* Filtre type PJ / PNJ / Familiers */}
+              <div className="flex flex-wrap items-center gap-1 bg-[#120e0a] p-1 rounded-lg border border-[#30251a]">
+                {([
+                  { key: 'all', label: `Tous (${tableData.pjs.length})` },
+                  {
+                    key: 'pj',
+                    label: `PJ (${tableData.pjs.filter((p) => !p.isPnj && !p.isFamilier).length})`,
+                  },
+                  {
+                    key: 'pnj',
+                    label: `PNJ (${tableData.pjs.filter((p) => p.isPnj && !p.isFamilier).length})`,
+                  },
+                  {
+                    key: 'familier',
+                    label: `🐾 Familiers (${tableData.pjs.filter((p) => p.isFamilier).length})`,
+                  },
+                ] as const).map((tab) => (
+                  <button
+                    key={tab.key}
+                    type="button"
+                    onClick={() => setPjTypeFilter(tab.key)}
+                    className={`px-2.5 py-1 rounded text-[11px] font-bold cursor-pointer transition-colors ${
+                      pjTypeFilter === tab.key
+                        ? tab.key === 'familier'
+                          ? 'bg-[#234d2d] text-[#d5fce0] border border-[#4a8556]'
+                          : 'bg-[#d4a84a] text-black'
+                        : 'text-[#cbb8a7] hover:bg-[#231c15]'
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+
               <div className="relative flex-1 min-w-[180px]">
                 <Search className="w-3.5 h-3.5 text-[#9e907d] absolute left-3 top-2.5" />
                 <input
                   type="text"
-                  placeholder="Rechercher par nom, joueur, roleplay..."
+                  placeholder="Rechercher par nom, espèce, maître, joueur..."
                   value={pjSearch}
                   onChange={(e) => setPjSearch(e.target.value)}
                   className="w-full pl-9 pr-3 py-1.5 bg-[#231c15] border border-[#3d3023] rounded-lg text-xs text-[#ede3d1] outline-none"
@@ -2260,23 +2505,48 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
             </div>
           </div>
 
-          {/* Grid of PJ cards */}
+          {/* Grid of PJ / PNJ / Familier cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             {tableData.pjs
               .filter((p) => {
-                const str = (p.name + (p.player || '') + (p.persoTraits || '')).toLowerCase();
+                const str = (
+                  p.name +
+                  (p.player || '') +
+                  (p.persoTraits || '') +
+                  (p.familierEspece || '') +
+                  (p.masterName || '') +
+                  (p.familierCategorie || '')
+                ).toLowerCase();
                 const matchQ = str.includes(pjSearch.toLowerCase());
                 const matchProf = !pjProfFilter || p.profil === pjProfFilter;
                 const matchRace = !pjRaceFilter || p.race === pjRaceFilter;
-                return matchQ && matchProf && matchRace;
+                const matchType =
+                  pjTypeFilter === 'all'
+                    ? true
+                    : pjTypeFilter === 'familier'
+                    ? Boolean(p.isFamilier)
+                    : pjTypeFilter === 'pnj'
+                    ? Boolean(p.isPnj && !p.isFamilier)
+                    : !p.isPnj && !p.isFamilier;
+                return matchQ && matchProf && matchRace && matchType;
               })
               .map((p, idx) => {
                 const pjIdx = tableData.pjs.indexOf(p);
                 const st = calcStats(p);
                 const hpMax = p.hpMaxManual || p.hpMaxAuto || p.hpBase || (st ? st.hpMax : 10);
-                const defVal = (p as any).def || (st ? st.def : 12);
+                const defVal = (p as any).def || (st ? st.def : p.defManual ?? 12);
                 const pmMax = p.pmMaxManual !== null && p.pmMaxManual !== undefined ? p.pmMaxManual : (st ? st.pmMax : 0);
                 const pmCurrent = p.pm !== undefined && p.pm !== null ? p.pm : pmMax;
+                const isFam = Boolean(p.isFamilier);
+                const eligibleMasters = tableData.pjs.filter((m) => !m.isFamilier);
+                const linkedMaster = isFam
+                  ? eligibleMasters.find(
+                      (m) =>
+                        (p.masterId && m.id === p.masterId) ||
+                        (p.masterName && m.name.trim().toLowerCase() === p.masterName.trim().toLowerCase())
+                    )
+                  : undefined;
+                const ownedFamiliers = !isFam ? getLinkedFamiliersForMaster(p, tableData.pjs) : [];
 
                 const handleTogglePjState = (stName: string) => {
                   if (pjIdx < 0) return;
@@ -2299,10 +2569,10 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                   onUpdateTableData({ ...tableData, pjs: list, combatants: updatedCombatants });
                 };
 
-                const isOnline = onlineHeroes.some(
+                const isOnline = !isFam && onlineHeroes.some(
                   (h) => (!!h.id && h.id === p.id) || (h.name || '').toLowerCase() === (p.name || '').toLowerCase()
                 );
-                const pjCol = !p.isPnj ? getPjColor(p, tableData.pjs) : null;
+                const pjCol = !p.isPnj && !isFam ? getPjColor(p, tableData.pjs) : null;
 
                 return (
                   <div
@@ -2316,7 +2586,11 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                         : undefined
                     }
                     className={`p-4 bg-[#181410] border rounded-xl flex flex-col justify-between space-y-3 ${
-                      p.isPnj ? 'border-[#3b597a]' : 'border-[#3d3023]'
+                      isFam
+                        ? 'border-[#4a8556] bg-gradient-to-b from-[#131e16] to-[#181410]'
+                        : p.isPnj
+                        ? 'border-[#3b597a]'
+                        : 'border-[#3d3023]'
                     }`}
                   >
                     <div>
@@ -2326,7 +2600,11 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                             <button
                               type="button"
                               onClick={() => setSelectedCharacterModal(p)}
-                              className="w-11 h-11 rounded-lg overflow-hidden border border-[#d4a84a]/60 shrink-0 shadow-sm cursor-pointer hover:border-[#f3d48d]"
+                              className={`w-11 h-11 rounded-lg overflow-hidden border shrink-0 shadow-sm cursor-pointer ${
+                                isFam
+                                  ? 'border-[#4a8556] hover:border-[#9ff0b2]'
+                                  : 'border-[#d4a84a]/60 hover:border-[#f3d48d]'
+                              }`}
                               title="Ouvrir la fiche complète"
                             >
                               <img
@@ -2348,12 +2626,18 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                                 : undefined
                             }
                             className={`text-[10px] px-2 py-0.5 rounded font-bold uppercase border ${
-                              p.isPnj
+                              isFam
+                                ? 'bg-[#152d1c] text-[#9ff0b2] border-[#4a8556]'
+                                : p.isPnj
                                 ? 'bg-[#18283a] text-[#7db5ff] border-[#2b4c6f]'
                                 : 'bg-[#291e13] text-[#f3d48d] border-[#d4a84a]/40'
                             }`}
                           >
-                            {p.isPnj ? p.rolePnj || 'PNJ Allié' : 'PJ'}
+                            {isFam
+                              ? `🐾 Familier${p.familierEspece ? ` · ${p.familierEspece}` : ''}`
+                              : p.isPnj
+                              ? p.rolePnj || 'PNJ Allié'
+                              : 'PJ'}
                           </span>
                           {isOnline && (
                             <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#18301c] text-[#7fb069] border border-[#2b5431] font-bold flex items-center gap-1">
@@ -2365,8 +2649,10 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                             type="button"
                             onClick={() => setSelectedCharacterModal(p)}
                             style={pjCol ? { color: pjCol.hex } : undefined}
-                            className="font-serif-co text-base text-[#f3d48d] hover:text-[#fff] hover:underline cursor-pointer flex items-center gap-1.5 font-bold"
-                            title="Cliquer pour afficher la fiche complète (Page 1 PJ en mode pop-up)"
+                            className={`font-serif-co text-base hover:text-[#fff] hover:underline cursor-pointer flex items-center gap-1.5 font-bold ${
+                              isFam ? 'text-[#b7f7c7]' : 'text-[#f3d48d]'
+                            }`}
+                            title="Cliquer pour afficher la fiche complète"
                           >
                             {pjCol && (
                               <span
@@ -2380,28 +2666,110 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                           </button>
                         </div>
 
-                        <button
-                          onClick={() => {
-                            if (pjIdx < 0) return;
-                            const list = [...tableData.pjs];
-                            list.splice(pjIdx, 1);
-                            onUpdateTableData({ ...tableData, pjs: list });
-                          }}
-                          className="p-1 rounded text-[#9e907d] hover:text-[#cf5544]"
-                          title="Supprimer du groupe"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        <div className="flex items-center gap-1 shrink-0">
+                          {isFam && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditingFamilier(p);
+                                setFamilierDefaultMaster(
+                                  p.masterName ? { id: p.masterId, name: p.masterName } : null
+                                );
+                                setIsFamilierCreatorOpen(true);
+                              }}
+                              className="p-1 rounded text-[#9ff0b2] hover:text-white hover:bg-[#1e3a24] cursor-pointer"
+                              title="Modifier la fiche du familier"
+                            >
+                              <Edit3 className="w-4 h-4" />
+                            </button>
+                          )}
+                          <button
+                            onClick={() => {
+                              if (pjIdx < 0) return;
+                              const removed = tableData.pjs[pjIdx];
+                              const list = tableData.pjs
+                                .filter((_, i) => i !== pjIdx)
+                                .map((c) => {
+                                  if (
+                                    !removed.isFamilier &&
+                                    c.isFamilier &&
+                                    ((removed.id && c.masterId === removed.id) ||
+                                      (removed.name &&
+                                        c.masterName &&
+                                        c.masterName.trim().toLowerCase() === removed.name.trim().toLowerCase()))
+                                  ) {
+                                    return {
+                                      ...c,
+                                      masterId: undefined,
+                                      masterName: undefined,
+                                      player: 'Familier (Disponible)',
+                                    };
+                                  }
+                                  return c;
+                                });
+                              onUpdateTableData({ ...tableData, pjs: list });
+                            }}
+                            className="p-1 rounded text-[#9e907d] hover:text-[#cf5544] cursor-pointer"
+                            title="Supprimer du groupe"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
                       </div>
 
                       <div className="text-xs text-[#9e907d]">
-                        {!p.isPnj && (
+                        {isFam ? (
                           <span>
-                            Joueur : <b className="text-[#ede3d1]">{p.player || 'Anonyme'}</b> •{' '}
+                            {p.familierCategorie || 'Familier'} • Niv. {p.level}
+                            {p.vitesse ? ` • ${p.vitesse}` : ''}
                           </span>
+                        ) : (
+                          <>
+                            {!p.isPnj && (
+                              <span>
+                                Joueur : <b className="text-[#ede3d1]">{p.player || 'Anonyme'}</b> •{' '}
+                              </span>
+                            )}
+                            {p.race} • {p.profil} Niv. {p.level}
+                          </>
                         )}
-                        {p.race} • {p.profil} Niv. {p.level}
                       </div>
+
+                      {/* Sélecteur rapide du maître lié pour les familiers */}
+                      {isFam && (
+                        <div className="mt-2 p-2 rounded-lg bg-[#102116] border border-[#2d5e37] flex items-center justify-between gap-2 text-xs">
+                          <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                            <Link2 className="w-3.5 h-3.5 text-[#86efac] shrink-0" />
+                            <select
+                              value={
+                                linkedMaster
+                                  ? linkedMaster.id || linkedMaster.name
+                                  : ''
+                              }
+                              onChange={(e) => handleChangeFamilierMaster(p.id || p.name, e.target.value)}
+                              className="w-full bg-[#0b160f] border border-[#2d5236] rounded px-2 py-1 text-[11px] font-semibold text-[#d5fce0] outline-none cursor-pointer"
+                              title="Lier ce familier à un PJ ou PNJ du groupe"
+                            >
+                              <option value="">— Libre (aucun maître lié) —</option>
+                              {eligibleMasters.map((m) => (
+                                <option key={m.id || m.name} value={m.id || m.name}>
+                                  Maître : {m.name} ({m.isPnj ? 'PNJ' : 'PJ'})
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                          {linkedMaster && (
+                            <button
+                              type="button"
+                              onClick={() => setSelectedCharacterModal(linkedMaster)}
+                              className="px-2 py-1 rounded bg-[#183320] hover:bg-[#234d2d] border border-[#4a8556] text-[10px] font-bold text-[#9ff0b2] shrink-0 cursor-pointer"
+                              title={`Ouvrir la fiche de ${linkedMaster.name}`}
+                            >
+                              Voir maître
+                            </button>
+                          )}
+                        </div>
+                      )}
 
                       {/* PV et DÉFENSE / CA avec ajustement direct par le MJ */}
                       <div className="mt-2.5 flex items-center justify-between text-xs bg-[#120f0c] p-2 rounded-lg border border-[#2d2218]">
@@ -2525,146 +2893,229 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                         )}
                       </div>
 
-                      {/* Points de capacité & Cadeau RP */}
-                      <div className="mt-2 flex items-center justify-between bg-[#19130d] p-1.5 px-2.5 rounded-lg border border-[#3d2e1b] text-xs">
-                        <span className="text-[#9e907d]">
-                          Pts Capacité : <b className="text-[#f3d48d]">{p.ptsCap || 0}</b>
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (pjIdx < 0) return;
-                            const list = [...tableData.pjs];
-                            const currentPts = list[pjIdx].ptsCap || 0;
-                            const gifts = (list[pjIdx].ptsCapCadeaux || 0) + 1;
-                            list[pjIdx] = { ...list[pjIdx], ptsCap: currentPts + 1, ptsCapCadeaux: gifts };
-                            onUpdateTableData({ ...tableData, pjs: list });
-                            success(`🎁 +1 Point de Capacité Cadeau offert à ${p.name} (Total : ${currentPts + 1}) !`);
-                          }}
-                          className="px-2 py-0.5 rounded bg-gradient-to-r from-[#855325] to-[#593313] hover:brightness-110 text-[#f7e0b5] border border-[#a8743d] font-bold text-[10px] flex items-center gap-1 cursor-pointer shadow-xs"
-                          title="Offrir à distance +1 point de capacité pour récompenser un excellent RP"
-                        >
-                          <Gift className="w-3 h-3 text-[#f3d48d]" />
-                          <span>+1 Pt Cadeau RP</span>
-                        </button>
-                      </div>
-
-                      {/* Bourse individuelle du héros (PO, PA, PC) visible et modifiable en direct par le MJ */}
-                      <div className="mt-2 bg-[#17110c] border border-[#d4a84a]/40 rounded-lg p-2 text-xs space-y-1.5 shadow-xs">
-                        <div className="flex items-center justify-between">
-                          <span className="font-bold text-[#f3d48d] flex items-center gap-1 text-[11px]">
-                            <Coins className="w-3.5 h-3.5 text-[#d4a84a]" /> Bourse :
-                          </span>
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-[10px] text-[#ede3d1] font-mono font-bold">
-                              ≈ {(( ((p.bourse?.po || 0) * 100) + ((p.bourse?.pa || 0) * 10) + (p.bourse?.pc || 0) ) / 100).toFixed(2)} PO
+                      {/* Points de capacité & Cadeau RP (masqué pour les familiers) */}
+                      {!isFam && (
+                        <>
+                          <div className="mt-2 flex items-center justify-between bg-[#19130d] p-1.5 px-2.5 rounded-lg border border-[#3d2e1b] text-xs">
+                            <span className="text-[#9e907d]">
+                              Pts Capacité : <b className="text-[#f3d48d]">{p.ptsCap || 0}</b>
                             </span>
                             <button
                               type="button"
-                              onClick={() => pjIdx >= 0 && setMoneyCalcTarget({ type: 'pj', pjIndex: pjIdx })}
-                              className="p-1 rounded bg-[#241a10] hover:bg-[#3d2c1c] text-[#f3d48d] border border-[#523d24] cursor-pointer"
-                              title={`Ouvrir la Calculatrice Ancienne pour ${p.name}`}
+                              onClick={() => {
+                                if (pjIdx < 0) return;
+                                const list = [...tableData.pjs];
+                                const currentPts = list[pjIdx].ptsCap || 0;
+                                const gifts = (list[pjIdx].ptsCapCadeaux || 0) + 1;
+                                list[pjIdx] = { ...list[pjIdx], ptsCap: currentPts + 1, ptsCapCadeaux: gifts };
+                                onUpdateTableData({ ...tableData, pjs: list });
+                                success(`🎁 +1 Point de Capacité Cadeau offert à ${p.name} (Total : ${currentPts + 1}) !`);
+                              }}
+                              className="px-2 py-0.5 rounded bg-gradient-to-r from-[#855325] to-[#593313] hover:brightness-110 text-[#f7e0b5] border border-[#a8743d] font-bold text-[10px] flex items-center gap-1 cursor-pointer shadow-xs"
+                              title="Offrir à distance +1 point de capacité pour récompenser un excellent RP"
                             >
-                              <Calculator className="w-3 h-3" />
+                              <Gift className="w-3 h-3 text-[#f3d48d]" />
+                              <span>+1 Pt Cadeau RP</span>
                             </button>
                           </div>
+
+                          {/* Bourse individuelle du héros (PO, PA, PC) visible et modifiable en direct par le MJ */}
+                          <div className="mt-2 bg-[#17110c] border border-[#d4a84a]/40 rounded-lg p-2 text-xs space-y-1.5 shadow-xs">
+                            <div className="flex items-center justify-between">
+                              <span className="font-bold text-[#f3d48d] flex items-center gap-1 text-[11px]">
+                                <Coins className="w-3.5 h-3.5 text-[#d4a84a]" /> Bourse :
+                              </span>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-[10px] text-[#ede3d1] font-mono font-bold">
+                                  ≈ {((((p.bourse?.po || 0) * 100) + ((p.bourse?.pa || 0) * 10) + (p.bourse?.pc || 0)) / 100).toFixed(2)} PO
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => pjIdx >= 0 && setMoneyCalcTarget({ type: 'pj', pjIndex: pjIdx })}
+                                  className="p-1 rounded bg-[#241a10] hover:bg-[#3d2c1c] text-[#f3d48d] border border-[#523d24] cursor-pointer"
+                                  title={`Ouvrir la Calculatrice Ancienne pour ${p.name}`}
+                                >
+                                  <Calculator className="w-3 h-3" />
+                                </button>
+                              </div>
+                            </div>
+
+                            <div className="grid grid-cols-3 gap-1.5 text-center">
+                              {/* PO */}
+                              <div className="bg-[#21160d] border border-[#523b24] rounded p-1 flex items-center justify-between">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (pjIdx < 0) return;
+                                    const cur = p.bourse || { po: 0, pa: 0, pc: 0 };
+                                    handleUpdatePjBourse(pjIdx, { ...cur, po: Math.max(0, (cur.po || 0) - 1) });
+                                  }}
+                                  className="w-4 h-4 rounded bg-[#120b06] hover:bg-[#2b170c] text-[#ede3d1] font-bold text-[10px] flex items-center justify-center cursor-pointer border border-[#3d2716]"
+                                  title="-1 PO"
+                                >
+                                  -
+                                </button>
+                                <span className="text-[11px] font-mono font-bold text-[#f3d48d]">
+                                  {p.bourse?.po || 0} <span className="text-[9px] text-[#9e907d]">PO</span>
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (pjIdx < 0) return;
+                                    const cur = p.bourse || { po: 0, pa: 0, pc: 0 };
+                                    handleUpdatePjBourse(pjIdx, { ...cur, po: (cur.po || 0) + 1 });
+                                  }}
+                                  className="w-4 h-4 rounded bg-[#120b06] hover:bg-[#2b170c] text-[#f3d48d] font-bold text-[10px] flex items-center justify-center cursor-pointer border border-[#3d2716]"
+                                  title="+1 PO"
+                                >
+                                  +
+                                </button>
+                              </div>
+
+                              {/* PA */}
+                              <div className="bg-[#171b22] border border-[#364254] rounded p-1 flex items-center justify-between">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (pjIdx < 0) return;
+                                    const cur = p.bourse || { po: 0, pa: 0, pc: 0 };
+                                    handleUpdatePjBourse(pjIdx, { ...cur, pa: Math.max(0, (cur.pa || 0) - 1) });
+                                  }}
+                                  className="w-4 h-4 rounded bg-[#0e1117] hover:bg-[#1d2633] text-[#ede3d1] font-bold text-[10px] flex items-center justify-center cursor-pointer border border-[#2a374a]"
+                                  title="-1 PA"
+                                >
+                                  -
+                                </button>
+                                <span className="text-[11px] font-mono font-bold text-[#cbd5e1]">
+                                  {p.bourse?.pa || 0} <span className="text-[9px] text-[#7d8c9e]">PA</span>
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (pjIdx < 0) return;
+                                    const cur = p.bourse || { po: 0, pa: 0, pc: 0 };
+                                    handleUpdatePjBourse(pjIdx, { ...cur, pa: (cur.pa || 0) + 1 });
+                                  }}
+                                  className="w-4 h-4 rounded bg-[#0e1117] hover:bg-[#1d2633] text-[#cbd5e1] font-bold text-[10px] flex items-center justify-center cursor-pointer border border-[#2a374a]"
+                                  title="+1 PA"
+                                >
+                                  +
+                                </button>
+                              </div>
+
+                              {/* PC */}
+                              <div className="bg-[#21140e] border border-[#522918] rounded p-1 flex items-center justify-between">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (pjIdx < 0) return;
+                                    const cur = p.bourse || { po: 0, pa: 0, pc: 0 };
+                                    handleUpdatePjBourse(pjIdx, { ...cur, pc: Math.max(0, (cur.pc || 0) - 1) });
+                                  }}
+                                  className="w-4 h-4 rounded bg-[#120a06] hover:bg-[#2e1509] text-[#ede3d1] font-bold text-[10px] flex items-center justify-center cursor-pointer border border-[#3d1c0e]"
+                                  title="-1 PC"
+                                >
+                                  -
+                                </button>
+                                <span className="text-[11px] font-mono font-bold text-[#f59e0b]">
+                                  {p.bourse?.pc || 0} <span className="text-[9px] text-[#9e6d42]">PC</span>
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (pjIdx < 0) return;
+                                    const cur = p.bourse || { po: 0, pa: 0, pc: 0 };
+                                    handleUpdatePjBourse(pjIdx, { ...cur, pc: (cur.pc || 0) + 1 });
+                                  }}
+                                  className="w-4 h-4 rounded bg-[#120a06] hover:bg-[#2e1509] text-[#f59e0b] font-bold text-[10px] flex items-center justify-center cursor-pointer border border-[#3d1c0e]"
+                                  title="+1 PC"
+                                >
+                                  +
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        </>
+                      )}
+
+                      {/* Aperçu Attaques & Capacités spéciales pour les Familiers */}
+                      {isFam && (
+                        <div className="mt-2 p-2 rounded-lg bg-[#0d1811] border border-[#274c30] space-y-1.5 text-[11px]">
+                          {p.armes && p.armes.length > 0 && (
+                            <div className="text-[#ede3d1]">
+                              <b className="text-[#86efac]">⚔️ Attaque :</b>{' '}
+                              {p.armes.map((w) => `${w.n} (${w.dm})`).join(' · ')}
+                            </div>
+                          )}
+                          {p.capacitesSpeciales && p.capacitesSpeciales.length > 0 && (
+                            <div className="flex flex-wrap gap-1">
+                              {p.capacitesSpeciales.map((cap, ci) => (
+                                <span
+                                  key={ci}
+                                  title={cap.t}
+                                  className="px-1.5 py-0.5 rounded bg-[#152d1c] border border-[#356b43] text-[10px] text-[#b7f7c7] font-semibold"
+                                >
+                                  ✦ {cap.n}
+                                </span>
+                              ))}
+                            </div>
+                          )}
                         </div>
+                      )}
 
-                        <div className="grid grid-cols-3 gap-1.5 text-center">
-                          {/* PO */}
-                          <div className="bg-[#21160d] border border-[#523b24] rounded p-1 flex items-center justify-between">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                if (pjIdx < 0) return;
-                                const cur = p.bourse || { po: 0, pa: 0, pc: 0 };
-                                handleUpdatePjBourse(pjIdx, { ...cur, po: Math.max(0, (cur.po || 0) - 1) });
-                              }}
-                              className="w-4 h-4 rounded bg-[#120b06] hover:bg-[#2b170c] text-[#ede3d1] font-bold text-[10px] flex items-center justify-center cursor-pointer border border-[#3d2716]"
-                              title="-1 PO"
-                            >
-                              -
-                            </button>
-                            <span className="text-[11px] font-mono font-bold text-[#f3d48d]">
-                              {p.bourse?.po || 0} <span className="text-[9px] text-[#9e907d]">PO</span>
+                      {/* Familiers liés sur les fiches PJ / PNJ */}
+                      {!isFam && (
+                        <div className="mt-2 p-2 rounded-lg bg-[#0f1912] border border-[#274c30]/80 space-y-1.5">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-[10px] uppercase font-bold text-[#9ff0b2] flex items-center gap-1">
+                              <span>🐾</span> Familiers liés ({ownedFamiliers.length})
                             </span>
                             <button
                               type="button"
                               onClick={() => {
-                                if (pjIdx < 0) return;
-                                const cur = p.bourse || { po: 0, pa: 0, pc: 0 };
-                                handleUpdatePjBourse(pjIdx, { ...cur, po: (cur.po || 0) + 1 });
+                                setEditingFamilier(null);
+                                setFamilierDefaultMaster({ id: p.id, name: p.name });
+                                setIsFamilierCreatorOpen(true);
                               }}
-                              className="w-4 h-4 rounded bg-[#120b06] hover:bg-[#2b170c] text-[#f3d48d] font-bold text-[10px] flex items-center justify-center cursor-pointer border border-[#3d2716]"
-                              title="+1 PO"
+                              className="px-2 py-0.5 rounded bg-[#1a3822] hover:bg-[#234d2d] border border-[#4a8556] text-[10px] font-bold text-[#d5fce0] flex items-center gap-1 cursor-pointer"
                             >
-                              +
+                              <Plus className="w-3 h-3" /> Familier
                             </button>
                           </div>
-
-                          {/* PA */}
-                          <div className="bg-[#171b22] border border-[#364254] rounded p-1 flex items-center justify-between">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                if (pjIdx < 0) return;
-                                const cur = p.bourse || { po: 0, pa: 0, pc: 0 };
-                                handleUpdatePjBourse(pjIdx, { ...cur, pa: Math.max(0, (cur.pa || 0) - 1) });
-                              }}
-                              className="w-4 h-4 rounded bg-[#0e1117] hover:bg-[#1d2633] text-[#ede3d1] font-bold text-[10px] flex items-center justify-center cursor-pointer border border-[#2a374a]"
-                              title="-1 PA"
-                            >
-                              -
-                            </button>
-                            <span className="text-[11px] font-mono font-bold text-[#cbd5e1]">
-                              {p.bourse?.pa || 0} <span className="text-[9px] text-[#7d8c9e]">PA</span>
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                if (pjIdx < 0) return;
-                                const cur = p.bourse || { po: 0, pa: 0, pc: 0 };
-                                handleUpdatePjBourse(pjIdx, { ...cur, pa: (cur.pa || 0) + 1 });
-                              }}
-                              className="w-4 h-4 rounded bg-[#0e1117] hover:bg-[#1d2633] text-[#cbd5e1] font-bold text-[10px] flex items-center justify-center cursor-pointer border border-[#2a374a]"
-                              title="+1 PA"
-                            >
-                              +
-                            </button>
-                          </div>
-
-                          {/* PC */}
-                          <div className="bg-[#21140e] border border-[#522918] rounded p-1 flex items-center justify-between">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                if (pjIdx < 0) return;
-                                const cur = p.bourse || { po: 0, pa: 0, pc: 0 };
-                                handleUpdatePjBourse(pjIdx, { ...cur, pc: Math.max(0, (cur.pc || 0) - 1) });
-                              }}
-                              className="w-4 h-4 rounded bg-[#120a06] hover:bg-[#2e1509] text-[#ede3d1] font-bold text-[10px] flex items-center justify-center cursor-pointer border border-[#3d1c0e]"
-                              title="-1 PC"
-                            >
-                              -
-                            </button>
-                            <span className="text-[11px] font-mono font-bold text-[#f59e0b]">
-                              {p.bourse?.pc || 0} <span className="text-[9px] text-[#9e6d42]">PC</span>
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                if (pjIdx < 0) return;
-                                const cur = p.bourse || { po: 0, pa: 0, pc: 0 };
-                                handleUpdatePjBourse(pjIdx, { ...cur, pc: (cur.pc || 0) + 1 });
-                              }}
-                              className="w-4 h-4 rounded bg-[#120a06] hover:bg-[#2e1509] text-[#f59e0b] font-bold text-[10px] flex items-center justify-center cursor-pointer border border-[#3d1c0e]"
-                              title="+1 PC"
-                            >
-                              +
-                            </button>
-                          </div>
+                          {ownedFamiliers.length > 0 ? (
+                            <div className="flex flex-wrap gap-1.5">
+                              {ownedFamiliers.map((fam) => {
+                                const famHpMax = fam.hpMaxManual || fam.hpMaxAuto || fam.hpBase || 8;
+                                return (
+                                  <button
+                                    key={fam.id || fam.name}
+                                    type="button"
+                                    onClick={() => setSelectedCharacterModal(fam)}
+                                    className="px-2 py-1 rounded-md bg-[#16291c] hover:bg-[#1e3a27] border border-[#3a7048] text-[11px] text-[#d5fce0] flex items-center gap-1.5 cursor-pointer"
+                                    title="Ouvrir la fiche du familier"
+                                  >
+                                    {fam.portrait && (
+                                      <img
+                                        src={fam.portrait}
+                                        alt={fam.name}
+                                        className="w-4 h-4 rounded object-cover"
+                                      />
+                                    )}
+                                    <span className="font-bold">{fam.name}</span>
+                                    <span className="text-[10px] text-[#86efac] font-mono">
+                                      {fam.hp}/{famHpMax} PV
+                                    </span>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          ) : (
+                            <p className="text-[10px] text-[#6d8c75] italic">
+                              Aucun familier lié à {p.name.split(' ')[0]}.
+                            </p>
+                          )}
                         </div>
-                      </div>
+                      )}
 
                       {/* ÉTATS PRÉJUDICIABLES */}
                       <div className="mt-2.5 pt-2 border-t border-[#261f18]">
@@ -4817,11 +5268,38 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
         onSave={handleSavePnj}
       />
 
+      {/* ==================== FAMILIER CREATOR / EDITOR MODAL (MJ) ==================== */}
+      <FamilierCreatorModal
+        isOpen={isFamilierCreatorOpen}
+        onClose={() => {
+          setIsFamilierCreatorOpen(false);
+          setEditingFamilier(null);
+          setFamilierDefaultMaster(null);
+        }}
+        onSave={handleSaveFamilier}
+        mastersList={tableData.pjs}
+        defaultMaster={familierDefaultMaster}
+        editingFamilier={editingFamilier}
+        isMj={true}
+      />
+
       {/* ==================== CHARACTER SHEET MODAL (POP-UP) ==================== */}
       <CharacterSheetModal
         pj={selectedCharacterModal}
         isOpen={!!selectedCharacterModal}
         onClose={() => setSelectedCharacterModal(null)}
+        allCharacters={tableData.pjs}
+        onSelectCharacter={(char) => setSelectedCharacterModal(char)}
+        onEditCharacter={(char) => {
+          if (char.isFamilier) {
+            setSelectedCharacterModal(null);
+            setEditingFamilier(char);
+            setFamilierDefaultMaster(
+              char.masterName ? { id: char.masterId, name: char.masterName } : null
+            );
+            setIsFamilierCreatorOpen(true);
+          }
+        }}
         onToggleState={(stName) => {
           if (!selectedCharacterModal) return;
           const list = tableData.pjs.map((p) => {
@@ -5180,12 +5658,14 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                     </div>
                     <span
                       className={`px-2 py-0.5 rounded font-bold text-[10px] shrink-0 ${
-                        p.isPnj
+                        p.isFamilier
+                          ? 'bg-[#152d1c] text-[#9ff0b2]'
+                          : p.isPnj
                           ? 'bg-[#1e3a5f] text-[#93c5fd]'
                           : 'bg-[#3b2a14] text-[#f3d48d]'
                       }`}
                     >
-                      {p.isPnj ? 'PNJ' : 'PJ'}
+                      {p.isFamilier ? '🐾 Familier' : p.isPnj ? 'PNJ' : 'PJ'}
                     </span>
                   </label>
                 );

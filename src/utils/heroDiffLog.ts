@@ -199,6 +199,23 @@ export function buildHeroDiffEvents(
     );
   }
 
+  // 9. Familiers liés
+  const prevFams = (prev.familiers || []).map((f) => f.name);
+  const nextFams = (next.familiers || []).map((f) => f.name);
+  const addedFams = nextFams.filter((n) => !prevFams.includes(n));
+  const removedFams = prevFams.filter((n) => !nextFams.includes(n));
+  if (addedFams.length > 0 || removedFams.length > 0) {
+    const parts: string[] = [];
+    if (addedFams.length > 0) parts.push(`+ ${addedFams.join(', ')}`);
+    if (removedFams.length > 0) parts.push(`- ${removedFams.join(', ')}`);
+    pushEvent(
+      'fam',
+      'fiche',
+      `Familiers : ${parts.join(' · ')}`,
+      actorRole === 'mj' ? 'Lié / modifié par le MJ' : 'Mis à jour par le PJ'
+    );
+  }
+
   return entries;
 }
 

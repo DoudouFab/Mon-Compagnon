@@ -337,12 +337,14 @@ export function calcStats(p: Character | null) {
               ARMURES_CATALOG.find((a) => a.n === p.bou);
 
   const def =
-    10 +
-    m.DEX +
-    (arm?.def || 0) +
-    (bou?.def || 0) +
-    (rc.defb || 0) +
-    (p.bonus?.def || 0);
+    p.defManual !== null && p.defManual !== undefined
+      ? p.defManual + (p.bonus?.def || 0)
+      : 10 +
+        m.DEX +
+        (arm?.def || 0) +
+        (bou?.def || 0) +
+        (rc.defb || 0) +
+        (p.bonus?.def || 0);
 
   const init = (p.base.DEX || 10) + (p.rb.DEX || 0) + (p.bonus?.init || 0);
   const ct = p.level + m.FOR;
