@@ -157,9 +157,13 @@ export const CharacterRosterHub: React.FC<CharacterRosterHubProps> = ({
               const hpMax = pj.hpMaxManual || pj.hpMaxAuto || pj.hpBase || 10;
               const isSelected = pj.id === activePjId;
 
-              const forMod = getMod((pj.base.FOR || 10) + (pj.rb.FOR || 0));
-              const dexMod = getMod((pj.base.DEX || 10) + (pj.rb.DEX || 0));
-              const conMod = getMod((pj.base.CON || 10) + (pj.rb.CON || 0));
+              const forMod = getMod((pj.base?.FOR || 10) + (pj.rb?.FOR || 0));
+              const dexMod = getMod((pj.base?.DEX || 10) + (pj.rb?.DEX || 0));
+              const conMod = getMod((pj.base?.CON || 10) + (pj.rb?.CON || 0));
+              const intMod = getMod((pj.base?.INT || 10) + (pj.rb?.INT || 0));
+              const sagMod = getMod((pj.base?.SAG || 10) + (pj.rb?.SAG || 0));
+              const chaMod = getMod((pj.base?.CHA || 10) + (pj.rb?.CHA || 0));
+              const safeLevel = pj.level || 1;
               const defVal = 10 + dexMod + (pj.bonus?.def || 0);
 
               return (
@@ -214,13 +218,13 @@ export const CharacterRosterHub: React.FC<CharacterRosterHubProps> = ({
                       <div>
                         <div className="text-[9px] uppercase text-[#9e907d] font-bold">Att. Contact</div>
                         <div className="text-xs font-bold text-[#ede3d1]">
-                          +{pj.level + forMod}
+                          +{safeLevel + forMod}
                         </div>
                       </div>
                       <div>
                         <div className="text-[9px] uppercase text-[#9e907d] font-bold">Att. Dist.</div>
                         <div className="text-xs font-bold text-[#ede3d1]">
-                          +{pj.level + dexMod}
+                          +{safeLevel + dexMod}
                         </div>
                       </div>
                     </div>
@@ -230,9 +234,9 @@ export const CharacterRosterHub: React.FC<CharacterRosterHubProps> = ({
                       <span>FOR <b>{forMod >= 0 ? `+${forMod}` : forMod}</b></span>
                       <span>DEX <b>{dexMod >= 0 ? `+${dexMod}` : dexMod}</b></span>
                       <span>CON <b>{conMod >= 0 ? `+${conMod}` : conMod}</b></span>
-                      <span>INT <b>{getMod((pj.base.INT || 10) + (pj.rb.INT || 0)) >= 0 ? `+${getMod((pj.base.INT || 10) + (pj.rb.INT || 0))}` : getMod((pj.base.INT || 10) + (pj.rb.INT || 0))}</b></span>
-                      <span>SAG <b>{getMod((pj.base.SAG || 10) + (pj.rb.SAG || 0)) >= 0 ? `+${getMod((pj.base.SAG || 10) + (pj.rb.SAG || 0))}` : getMod((pj.base.SAG || 10) + (pj.rb.SAG || 0))}</b></span>
-                      <span>CHA <b>{getMod((pj.base.CHA || 10) + (pj.rb.CHA || 0)) >= 0 ? `+${getMod((pj.base.CHA || 10) + (pj.rb.CHA || 0))}` : getMod((pj.base.CHA || 10) + (pj.rb.CHA || 0))}</b></span>
+                      <span>INT <b>{intMod >= 0 ? `+${intMod}` : intMod}</b></span>
+                      <span>SAG <b>{sagMod >= 0 ? `+${sagMod}` : sagMod}</b></span>
+                      <span>CHA <b>{chaMod >= 0 ? `+${chaMod}` : chaMod}</b></span>
                     </div>
                   </div>
 

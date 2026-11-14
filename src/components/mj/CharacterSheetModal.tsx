@@ -73,7 +73,7 @@ export const CharacterSheetModal: React.FC<CharacterSheetModalProps> = ({
         (c) =>
           !c.isFamilier &&
           ((pj.masterId && c.id === pj.masterId) ||
-            (pj.masterName && c.name.trim().toLowerCase() === pj.masterName.trim().toLowerCase()))
+            (pj.masterName && (c.name || '').trim().toLowerCase() === pj.masterName.trim().toLowerCase()))
       )
     : undefined;
 
@@ -289,8 +289,8 @@ export const CharacterSheetModal: React.FC<CharacterSheetModalProps> = ({
           </span>
           <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 text-center">
             {CARAC_LIST.map((c) => {
-              const baseVal = pj.base[c] || 10;
-              const racialMod = pj.rb[c] || 0;
+              const baseVal = pj.base?.[c] || 10;
+              const racialMod = pj.rb?.[c] || 0;
               const totalVal = baseVal + racialMod;
               const mod = st ? st.m[c] : 0;
               return (

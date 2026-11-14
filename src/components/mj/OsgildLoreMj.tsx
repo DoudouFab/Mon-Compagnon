@@ -34,10 +34,18 @@ export const OsgildLoreMj: React.FC = () => {
   const [copiedAscii, setCopiedAscii] = useState<string | null>(null);
 
   const copyAscii = (text: string, id: string) => {
-    if (navigator.clipboard) {
-      navigator.clipboard.writeText(text);
-      setCopiedAscii(id);
-      setTimeout(() => setCopiedAscii(null), 2000);
+    try {
+      if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+        navigator.clipboard.writeText(text).then(
+          () => {
+            setCopiedAscii(id);
+            setTimeout(() => setCopiedAscii(null), 2000);
+          },
+          () => {}
+        );
+      }
+    } catch {
+      // Clipboard API unavailable in restricted iframe
     }
   };
 

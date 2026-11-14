@@ -330,6 +330,13 @@ export function getMod(v: number): number {
 
 export function calcStats(p: Character | null) {
   if (!p) return null;
+  const safeBase = p.base && typeof p.base === 'object' ? p.base : ({} as Partial<Record<CaracName, number>>);
+  const safeRb = p.rb && typeof p.rb === 'object' ? p.rb : ({} as Partial<Record<CaracName, number>>);
+  const safeBonus = p.bonus && typeof p.bonus === 'object' ? p.bonus : { pv: 0, def: 0, init: 0 };
+  const safeLevel = typeof p.level === 'number' && Number.isFinite(p.level) ? p.level : Number(p.level) || 1;
+  const safeProfil = p.profil || 'guerrier';
+  const safeRace = p.race || 'humain';
+
   const m: Record<CaracName, number> = {
     FOR: 0,
     DEX: 0,
@@ -340,21 +347,21 @@ export function calcStats(p: Character | null) {
   };
 
   CARAC_LIST.forEach((c) => {
-    const total = (p.base[c] || 10) + (p.rb[c] || 0);
+    const total = (Number(safeBase[c]) || 10) + (Number(safeRb[c]) || 0);
     m[c] = getMod(total);
   });
 
-  const pr: ProfilData = PROFILS.find((x) => x.id === p.profil) || {
-    id: p.profil,
-    n: p.profil,
+  const pr: ProfilData = PROFILS.find((x) => x.id === safeProfil) || {
+    id: safeProfil,
+    n: safeProfil,
     dv: 8,
     traits: '',
     eq: '',
     ar: '',
   };
-  const rc: RaceData = RACES.find((x) => x.id === p.race) || {
-    id: p.race,
-    n: p.race,
+  const rc: RaceData = RACES.find((x) => x.id === safeRace) || {
+    id: safeRace,
+    n: safeRace,
     defb: 0,
     d: '',
     t: '',
@@ -369,31 +376,31 @@ export function calcStats(p: Character | null) {
 
   const def =
     p.defManual !== null && p.defManual !== undefined
-      ? p.defManual + (p.bonus?.def || 0)
+      ? p.defManual + (safeBonus.def || 0)
       : 10 +
         m.DEX +
         (arm?.def || 0) +
         (bou?.def || 0) +
         (rc.defb || 0) +
-        (p.bonus?.def || 0);
+        (safeBonus.def || 0);
 
-  const init = (p.base.DEX || 10) + (p.rb.DEX || 0) + (p.bonus?.init || 0);
-  const ct = p.level + m.FOR;
-  const di = p.level + m.DEX;
+  const init = (Number(safeBase.DEX) || 10) + (Number(safeRb.DEX) || 0) + (safeBonus.init || 0);
+  const ct = safeLevel + m.FOR;
+  const di = safeLevel + m.DEX;
   const prMag = pr.mag as CaracName | undefined;
-  const mg = prMag ? p.level + m[prMag] : null;
+  const mg = prMag ? safeLevel + m[prMag] : null;
 
   // Calcul Points de Mana Max selon règles officielles Chroniques Oubliées :
   // - Lanceurs profanes majeurs (Magicien, Ensorceleur, Nécromancien) : (2 x Niveau) + Mod. Magie
   // - Lanceurs divins et hybrides (Prêtre, Druide, Barde, Forgesort) : (1 x Niveau) + Mod. Magie
   // - Profils sans magie : 0 PM (ou selon règle optionnelle de table)
   let pmCalculated = 0;
-  if (['magicien', 'ensorceleur', 'necromancien'].includes(p.profil)) {
-    pmCalculated = Math.max(1, p.level * 2 + (prMag ? m[prMag] : 0));
-  } else if (['pretre', 'druide', 'barde', 'forgesort'].includes(p.profil)) {
-    pmCalculated = Math.max(1, p.level * 1 + (prMag ? m[prMag] : 0));
+  if (['magicien', 'ensorceleur', 'necromancien'].includes(safeProfil)) {
+    pmCalculated = Math.max(1, safeLevel * 2 + (prMag ? m[prMag] : 0));
+  } else if (['pretre', 'druide', 'barde', 'forgesort'].includes(safeProfil)) {
+    pmCalculated = Math.max(1, safeLevel * 1 + (prMag ? m[prMag] : 0));
   } else if (prMag) {
-    pmCalculated = Math.max(0, p.level + (m[prMag] || 0));
+    pmCalculated = Math.max(0, safeLevel + (m[prMag] || 0));
   }
 
   const pmMax =
@@ -403,11 +410,11 @@ export function calcStats(p: Character | null) {
 
   // Déplacement officiel : 10 mètres par action de mouvement (20 m au pas de course)
   let moveBase = 10;
-  if (p.profil === 'moine') moveBase += 5; // Bonus voie du vent moine
+  if (safeProfil === 'moine') moveBase += 5; // Bonus voie du vent moine
   const deplacement = (p.moveBonus || 0) + moveBase;
 
   const hpMax =
-    (p.hpMaxManual ?? p.hpMaxAuto ?? p.hpBase ?? 10) + (p.bonus?.pv || 0);
+    (p.hpMaxManual ?? p.hpMaxAuto ?? p.hpBase ?? 10) + (safeBonus.pv || 0);
 
   return {
     m,

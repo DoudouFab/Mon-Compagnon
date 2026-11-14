@@ -98,6 +98,12 @@ import {
 import { realtimeTable } from '../../services/realtimeSync';
 import { resolveActionRule } from '../../data/actionRules';
 import { getPjColor } from '../../utils/pjColors';
+import { ErrorBoundary } from '../common/ErrorBoundary';
+import {
+  sanitizeCharacter,
+  sanitizeCharacterList,
+  sanitizeCombatantList,
+} from '../../utils/characterSanitizer';
 
 interface MjTableData {
   pjs: Character[];
@@ -140,6 +146,12 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
     | 'voies'
     | 'grimoire'
   >('combat');
+
+  React.useEffect(() => {
+    if (!isTharneaActive && activeTab === 'tharnea') {
+      setActiveTab('combat');
+    }
+  }, [isTharneaActive, activeTab]);
 
   const [isImportCodeModalOpen, setIsImportCodeModalOpen] = useState(false);
   const [transferCodeInput, setTransferCodeInput] = useState('');
@@ -213,18 +225,19 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
 
   const resolvePjForCombatant = (c: Combatant): Character | undefined => {
     if (!c.isPj) return undefined;
+    const combatantName = (c.n || '').trim().toLowerCase();
     return tableData.pjs.find(
       (p) =>
         (c.pjRefId && p.id === c.pjRefId) ||
         p.id === c.id ||
-        (p.name && c.n.trim().toLowerCase() === p.name.trim().toLowerCase()) ||
-        (p.name && c.n.toLowerCase().startsWith(p.name.toLowerCase()))
+        (p.name && combatantName === p.name.trim().toLowerCase()) ||
+        (p.name && combatantName.startsWith(p.name.toLowerCase()))
     );
   };
 
   const resolveMonsterForCombatant = (c: Combatant): Monster => {
-    const baseName = (c.monsterRefName || c.n.replace(/\s+#\d+$/, '')).trim().toLowerCase();
-    const found = allMonstersCatalog.find((m) => m.n.trim().toLowerCase() === baseName);
+    const baseName = (c.monsterRefName || (c.n || '').replace(/\s+#\d+$/, '')).trim().toLowerCase();
+    const found = allMonstersCatalog.find((m) => (m.n || '').trim().toLowerCase() === baseName);
     if (found) return found;
     return {
       n: c.n,
@@ -1220,7 +1233,7 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
         !p.isFamilier &&
         ((famChar.masterId && p.id === famChar.masterId) ||
           (famChar.masterName &&
-            p.name.trim().toLowerCase() === famChar.masterName.trim().toLowerCase()))
+            (p.name || '').trim().toLowerCase() === famChar.masterName.trim().toLowerCase()))
       ) {
         return { ...p, dmPatchAt: now };
       }
@@ -1247,7 +1260,7 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
         hp: famChar.hp,
         hpMax: computedHpMax,
         def: computedDef,
-        baseInit: (famChar.base.DEX || 10) + (famChar.rb?.DEX || 0),
+        baseInit: (famChar.base?.DEX || 10) + (famChar.rb?.DEX || 0),
         etats: famChar.etats || [],
         isPnj: true,
         isFamilier: true,
@@ -1404,22 +1417,22 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
   const pushPjCombatant = (pj: Character) => {
     const hpMax = pj.hpMaxManual || pj.hpMaxAuto || pj.hpBase || 10;
     const st = calcStats(pj);
-    const defVal = st ? st.def : 10 + getMod((pj.base.DEX || 10) + (pj.rb.DEX || 0));
+    const defVal = st ? st.def : 10 + getMod((pj.base?.DEX || 10) + (pj.rb?.DEX || 0));
     const newC: Combatant = {
       id: 'pj_cmb_' + Date.now() + '_' + Math.random().toString(36).substring(2, 5),
-      n: pj.name,
+      n: pj.name || 'Héros',
       isPj: true,
       isPnj: Boolean(pj.isPnj),
       isFamilier: Boolean(pj.isFamilier),
       masterName: pj.masterName,
-      hp: pj.hp,
+      hp: pj.hp ?? hpMax,
       hpMax: hpMax,
       def: defVal,
-      baseInit: (pj.base.DEX || 10) + (pj.rb.DEX || 0),
+      baseInit: (pj.base?.DEX || 10) + (pj.rb?.DEX || 0),
       init: null,
       notes: pj.isFamilier
-        ? `${pj.familierEspece || 'Familier'} Niv. ${pj.level}${pj.masterName ? ` • Maître : ${pj.masterName}` : ''}`
-        : `${pj.profil} Niv. ${pj.level} (${pj.race})`,
+        ? `${pj.familierEspece || 'Familier'} Niv. ${pj.level || 1}${pj.masterName ? ` • Maître : ${pj.masterName}` : ''}`
+        : `${pj.profil || 'guerrier'} Niv. ${pj.level || 1} (${pj.race || 'humain'})`,
       pjRefId: pj.id,
       etats: pj.etats || [],
     };
@@ -1427,7 +1440,7 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
       ...tableData,
       combatants: [...tableData.combatants, newC],
     });
-    success(`"${pj.name}" envoyé au combat !`);
+    success(`"${pj.name || 'Héros'}" envoyé au combat !`);
   };
 
   // Send PJ to combat
@@ -1448,22 +1461,22 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
     const combatantsToAdd: Combatant[] = tableData.pjs.map((p, idx) => {
       const hpMax = p.hpMaxManual || p.hpMaxAuto || p.hpBase || 10;
       const st = calcStats(p);
-      const defVal = st ? st.def : 10 + getMod((p.base.DEX || 10) + (p.rb.DEX || 0));
+      const defVal = st ? st.def : 10 + getMod((p.base?.DEX || 10) + (p.rb?.DEX || 0));
       return {
         id: 'pj_cmb_' + (p.id || idx) + '_' + Date.now() + '_' + idx,
-        n: p.name,
+        n: p.name || `Héros ${idx + 1}`,
         isPj: true,
         isPnj: Boolean(p.isPnj),
         isFamilier: Boolean(p.isFamilier),
         masterName: p.masterName,
-        hp: p.hp,
+        hp: p.hp ?? hpMax,
         hpMax: hpMax,
         def: defVal,
-        baseInit: (p.base.DEX || 10) + (p.rb.DEX || 0),
+        baseInit: (p.base?.DEX || 10) + (p.rb?.DEX || 0),
         init: null,
         notes: p.isFamilier
-          ? `${p.familierEspece || 'Familier'} Niv. ${p.level}${p.masterName ? ` • Maître : ${p.masterName}` : ''}`
-          : `${p.profil} Niv. ${p.level} (${p.race})`,
+          ? `${p.familierEspece || 'Familier'} Niv. ${p.level || 1}${p.masterName ? ` • Maître : ${p.masterName}` : ''}`
+          : `${p.profil || 'guerrier'} Niv. ${p.level || 1} (${p.race || 'humain'})`,
         pjRefId: p.id,
         etats: p.etats || [],
       };
@@ -1493,10 +1506,12 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
     reader.onload = (ev) => {
       try {
         const parsed = JSON.parse(ev.target?.result as string);
-        if (typeof parsed === 'object') {
+        if (parsed && typeof parsed === 'object') {
           onUpdateTableData({
             ...tableData,
             ...parsed,
+            pjs: parsed.pjs ? sanitizeCharacterList(parsed.pjs) : tableData.pjs,
+            combatants: parsed.combatants ? sanitizeCombatantList(parsed.combatants) : tableData.combatants,
           });
           success('Campagne Master restaurée avec succès !');
         }
@@ -1520,10 +1535,11 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
       reader.onload = (ev) => {
         try {
           const data = JSON.parse(ev.target?.result as string);
-          if (data.name && data.base) {
-            const idx = pjs.findIndex((p) => p.name.toLowerCase() === data.name.toLowerCase());
-            if (idx >= 0) pjs[idx] = data;
-            else pjs.push(data);
+          if (data?.name && (data.base || data.profil || data.race)) {
+            const safeHero = sanitizeCharacter(data);
+            const idx = pjs.findIndex((p) => (p.name || '').toLowerCase() === safeHero.name.toLowerCase());
+            if (idx >= 0) pjs[idx] = safeHero;
+            else pjs.push(safeHero);
             count++;
           }
         } catch (e) {
@@ -1685,6 +1701,15 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
         })}
       </div>
 
+      {/* ==================== CONTENU DES ONGLETS MJ (PROTÉGÉ) ==================== */}
+      <ErrorBoundary
+        resetKey={activeTab}
+        fallbackTitle={`Erreur d'affichage sur l'onglet « ${activeTab} »`}
+        fallbackMessage="Un problème est survenu lors du rendu de cette section. Vous pouvez réessayer ou revenir à Combat & Init sans perdre votre table."
+        resetLabel="Réessayer cet onglet"
+        onSecondaryAction={() => setActiveTab('combat')}
+        secondaryLabel="Revenir à Combat & Init"
+      >
       {/* ==================== 1. COMBAT & INITIATIVE ==================== */}
       {activeTab === 'combat' && (
         <div className="space-y-4">
@@ -2412,7 +2437,7 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                     onClick={onImportActivePj}
                     className="px-2.5 py-1.5 bg-[#231c15] hover:bg-[#32271d] border border-[#d4a84a] text-[#f3d48d] text-xs font-bold rounded-lg flex items-center gap-1.5 shadow-xs"
                   >
-                    <Plus className="w-3.5 h-3.5 text-[#d4a84a]" /> Importer PJ Actif ({currentActivePj.name.split(' ')[0]})
+                    <Plus className="w-3.5 h-3.5 text-[#d4a84a]" /> Importer PJ Actif ({(currentActivePj.name || 'Héros').split(' ')[0]})
                   </button>
                 )}
 
@@ -2950,7 +2975,7 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                   ? eligibleMasters.find(
                       (m) =>
                         (p.masterId && m.id === p.masterId) ||
-                        (p.masterName && m.name.trim().toLowerCase() === p.masterName.trim().toLowerCase())
+                        (p.masterName && (m.name || '').trim().toLowerCase() === p.masterName.trim().toLowerCase())
                     )
                   : undefined;
                 const ownedFamiliers = !isFam ? getLinkedFamiliersForMaster(p, tableData.pjs) : [];
@@ -2967,7 +2992,7 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
 
                   // Sync also combatant if present in tableData.combatants
                   const updatedCombatants = tableData.combatants.map((c) => {
-                    if (c.pjRefId === p.id || c.n.startsWith(p.name)) {
+                    if (c.pjRefId === p.id || (p.name && (c.n || '').startsWith(p.name))) {
                       return { ...c, etats: newStates };
                     }
                     return c;
@@ -3546,7 +3571,7 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                             </div>
                           ) : (
                             <p className="text-[10px] text-[#6d8c75] italic">
-                              Aucun familier lié à {p.name.split(' ')[0]}.
+                              Aucun familier lié à {(p.name || 'ce héros').split(' ')[0]}.
                             </p>
                           )}
                         </div>
@@ -5589,6 +5614,7 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
           </div>
         </div>
       )}
+      </ErrorBoundary>
 
       {/* ==================== MODAL COMBATTANT SUR MESURE ==================== */}
       {isAddCombatantOpen && (
@@ -5825,14 +5851,15 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                       decodedStr = decodeURIComponent(escape(atob(raw)));
                     }
                     const parsed = JSON.parse(decodedStr);
-                    const hero = parsed.hero || parsed;
-                    if (!hero.name || !hero.profil) {
+                    const rawHero = parsed.hero || parsed;
+                    if (!rawHero?.name || !rawHero?.profil) {
                       error('Code invalide ou personnage incomplet.');
                       return;
                     }
+                    const hero = sanitizeCharacter(rawHero);
                     const list = [...tableData.pjs];
                     const existingIdx = list.findIndex(
-                      (p) => (p.id && p.id === hero.id) || p.name.toLowerCase() === hero.name.toLowerCase()
+                      (p) => (p.id && p.id === hero.id) || (p.name || '').toLowerCase() === hero.name.toLowerCase()
                     );
                     if (existingIdx >= 0) {
                       list[existingIdx] = hero;

@@ -34,6 +34,12 @@ import {
   mergeMasterFamiliersIntoTablePjs,
   syncMasterArraysFromTablePjs,
 } from './utils/familierSync';
+import {
+  sanitizeCharacter,
+  sanitizeCharacterList,
+  sanitizeCombatantList,
+} from './utils/characterSanitizer';
+import { ErrorBoundary } from './components/common/ErrorBoundary';
 
 export default function App() {
   const [isMjAuthorized, setIsMjAuthorized] = useState<boolean>(() => {
@@ -242,14 +248,14 @@ export default function App() {
       const saved = localStorage.getItem('co_player_roster');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) return parsed;
+        if (Array.isArray(parsed)) return sanitizeCharacterList(parsed);
       }
       // If legacy single character exists and is not the sample hero
       const legacy = localStorage.getItem('co_pj_local');
       if (legacy) {
         const parsedLegacy = JSON.parse(legacy);
         if (parsedLegacy && parsedLegacy.name && parsedLegacy.name !== SAMPLE_HERO.name) {
-          return [parsedLegacy];
+          return [sanitizeCharacter(parsedLegacy)];
         }
       }
     } catch (e) {
@@ -460,8 +466,8 @@ export default function App() {
         const data = JSON.parse(text);
 
         // Case 1: Array of characters
-        if (Array.isArray(data) && data[0]?.base && data[0]?.name) {
-          const formatted = data.map((c, i) => ({
+        if (Array.isArray(data) && data[0]?.name) {
+          const formatted = sanitizeCharacterList(data).map((c, i) => ({
             ...c,
             id: c.id || 'pj_imp_' + Date.now() + '_' + i,
           }));
@@ -472,18 +478,18 @@ export default function App() {
             } catch {}
             return merged;
           });
-          setActivePjId(formatted[0].id);
+          if (formatted[0]?.id) setActivePjId(formatted[0].id);
           setShowRosterHub(false);
           showToast(`${formatted.length} personnages importés avec succès !`);
           return;
         }
 
         // Case 2: Single character
-        if (data.name && data.base) {
-          const charWithId = {
+        if (data?.name && (data.base || data.profil || data.race)) {
+          const charWithId = sanitizeCharacter({
             ...data,
             id: data.id || 'pj_' + Date.now(),
-          };
+          });
           setPlayerRoster((prev) => {
             const exists = prev.findIndex((p) => p.id === charWithId.id || p.name === charWithId.name);
             let updated: Character[];
@@ -498,24 +504,25 @@ export default function App() {
             } catch {}
             return updated;
           });
-          setActivePjId(charWithId.id);
+          if (charWithId.id) setActivePjId(charWithId.id);
           setShowRosterHub(false);
           showToast(`Héros "${charWithId.name}" importé avec succès !`);
           return;
         }
 
         // Case 3: Master with pjs
-        if (data.pjs && Array.isArray(data.pjs)) {
+        if (data?.pjs && Array.isArray(data.pjs)) {
+          const sanitizedImported = sanitizeCharacterList(data.pjs);
           setPlayerRoster((prev) => {
-            const merged = [...prev, ...data.pjs];
+            const merged = [...prev, ...sanitizedImported];
             try {
               localStorage.setItem('co_player_roster', JSON.stringify(merged));
             } catch {}
             return merged;
           });
-          if (data.pjs[0]?.id) setActivePjId(data.pjs[0].id);
+          if (sanitizedImported[0]?.id) setActivePjId(sanitizedImported[0].id);
           setShowRosterHub(false);
-          showToast(`${data.pjs.length} personnages importés depuis la campagne !`);
+          showToast(`${sanitizedImported.length} personnages importés depuis la campagne !`);
           return;
         }
 
@@ -536,7 +543,7 @@ export default function App() {
         seededAlready = localStorage.getItem('cof_familiers_seeded_v1') === '1';
       } catch {}
 
-      let nextPjs = [...initialPjs];
+      let nextPjs = sanitizeCharacterList(initialPjs);
       const hasAnyFamilier = nextPjs.some((p) => p.isFamilier);
 
       if (!seededAlready && !hasAnyFamilier) {
@@ -558,7 +565,7 @@ export default function App() {
         const parsed = JSON.parse(saved);
         return {
           pjs: ensureInitialFamiliers(parsed.pjs || [SAMPLE_HERO]),
-          combatants: parsed.combatants || [],
+          combatants: sanitizeCombatantList(parsed.combatants || []),
           bestiaire: parsed.bestiaire?.length ? parsed.bestiaire : BESTIAIRE,
           equipements: parsed.equipements?.length ? parsed.equipements : EQUIPEMENTS,
           regles: parsed.regles?.length ? parsed.regles : REGLES,
@@ -1071,12 +1078,17 @@ export default function App() {
         reader.onload = (ev) => {
           try {
             const data = JSON.parse(ev.target?.result as string);
-            if (data.name && data.base) {
+            if (data?.name && (data.base || data.profil || data.race)) {
               // Character sheet JSON
-              handleAddCharacter(data);
-            } else if (data.combatants && data.pjs) {
+              handleAddCharacter(sanitizeCharacter(data));
+            } else if (data?.combatants && data?.pjs) {
               // Full MJ campaign master
-              setTableData((prev) => ({ ...prev, ...data }));
+              setTableData((prev) => ({
+                ...prev,
+                ...data,
+                pjs: sanitizeCharacterList(data.pjs),
+                combatants: sanitizeCombatantList(data.combatants),
+              }));
               showToast('Campagne Master MJ chargée avec succès !');
             } else if (Array.isArray(data) && data[0]?.nc !== undefined) {
               // Bestiary
@@ -1175,6 +1187,14 @@ export default function App() {
 
       {/* Main View Area */}
       <main className="flex-1 px-2 sm:px-3 py-2 max-w-[1400px] w-full mx-auto pb-5">
+        <ErrorBoundary
+          resetKey={appMode}
+          fallbackTitle={appMode === 'mj' ? 'Erreur dans la Console MJ' : 'Erreur dans la Vue Joueur'}
+          fallbackMessage="Une donnée invalide a interrompu l'affichage. Vous pouvez réessayer ou basculer de vue sans perdre vos données."
+          resetLabel="Recharger cette vue"
+          onSecondaryAction={() => setAppMode(appMode === 'mj' ? 'pj' : 'mj')}
+          secondaryLabel={appMode === 'mj' ? 'Passer en Vue PJ' : 'Passer en Console MJ'}
+        >
         {appMode === 'pj' ? (
           !currentPj || showRosterHub ? (
             <CharacterRosterHub
@@ -1209,7 +1229,7 @@ export default function App() {
               const isLive = liveStatusRef.current === 'connected' || Boolean(realtimeTable.room);
               const stripPatch = (h: Character) => ({ ...h, dmPatchAt: 0 });
 
-              const syncedPjs = syncMasterArraysFromTablePjs(updated.pjs);
+              const syncedPjs = syncMasterArraysFromTablePjs(sanitizeCharacterList(updated.pjs));
               const nextPjs = syncedPjs.map((p: Character) => {
                 const old = prevTable.pjs.find(
                   (o: Character) =>
@@ -1231,8 +1251,9 @@ export default function App() {
                 return p;
               });
 
-              if (isLive && JSON.stringify(updated.combatants) !== JSON.stringify(prevTable.combatants)) {
-                realtimeTable.syncCombat(updated.combatants);
+              const safeCombatants = sanitizeCombatantList(updated.combatants);
+              if (isLive && JSON.stringify(safeCombatants) !== JSON.stringify(prevTable.combatants)) {
+                realtimeTable.syncCombat(safeCombatants);
               }
 
               // Synchronise le roster des joueurs locaux pour répercussion immédiate en mode PJ
@@ -1245,14 +1266,14 @@ export default function App() {
                   );
                   if (match && JSON.stringify(match) !== JSON.stringify(p)) {
                     changed = true;
-                    return { ...p, ...match };
+                    return sanitizeCharacter({ ...p, ...match });
                   }
                   return p;
                 });
                 return changed ? newRoster : prevRoster;
               });
 
-              const nextTable = { ...updated, pjs: nextPjs };
+              const nextTable = { ...updated, pjs: nextPjs, combatants: safeCombatants };
               tableDataRef.current = nextTable;
               setTableData(nextTable);
             }}
@@ -1261,6 +1282,7 @@ export default function App() {
             isTharneaActive={isTharneaActive}
           />
         )}
+        </ErrorBoundary>
       </main>
 
       {/* Footer credits */}

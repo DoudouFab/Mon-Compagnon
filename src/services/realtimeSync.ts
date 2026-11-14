@@ -1,6 +1,7 @@
 import { initializeApp } from "firebase/app";
 import { getDatabase, ref, set, onValue, update, get, remove, onDisconnect } from "firebase/database";
 import { Character, Combatant, TableFeedEntry } from '../types/chroniques';
+import { sanitizeCharacter } from '../utils/characterSanitizer';
 
 export type LiveConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'error';
 
@@ -46,86 +47,10 @@ export const normalizeEtats = (etats: any): string[] => {
   return [];
 };
 
-// Normalise un héros pour s'assurer que etats, inventaire, armes, etc. sont toujours des tableaux valides
+// Normalise un héros pour s'assurer que base, rb, etats, inventaire, armes, etc. sont toujours valides
 export const normalizeHero = (h: any): Character => {
   if (!h || typeof h !== 'object') return h;
-  return {
-    ...h,
-    bourse: {
-      po: typeof h.bourse?.po === 'number' ? Math.max(0, h.bourse.po) : (h.po !== undefined ? Math.max(0, Number(h.po)) : 0),
-      pa: typeof h.bourse?.pa === 'number' ? Math.max(0, h.bourse.pa) : (h.pa !== undefined ? Math.max(0, Number(h.pa)) : 0),
-      pc: typeof h.bourse?.pc === 'number' ? Math.max(0, h.bourse.pc) : (h.pc !== undefined ? Math.max(0, Number(h.pc)) : 0),
-    },
-    etats: normalizeEtats(h.etats),
-    inventaire: Array.isArray(h.inventaire) ? h.inventaire : h.inventaire ? Object.values(h.inventaire) : [],
-    armes: Array.isArray(h.armes) ? h.armes : h.armes ? Object.values(h.armes) : [],
-    customSorts: Array.isArray(h.customSorts) ? h.customSorts : h.customSorts ? Object.values(h.customSorts) : [],
-    caps: Array.isArray(h.caps) ? h.caps : h.caps ? Object.values(h.caps) : [],
-    ...(h.familiers !== undefined
-      ? {
-          familiers: Array.isArray(h.familiers)
-            ? h.familiers.map((f: any) => normalizeHero(f))
-            : h.familiers && typeof h.familiers === 'object'
-            ? Object.values(h.familiers).map((f: any) => normalizeHero(f))
-            : [],
-        }
-      : {}),
-    ...(h.familierAccess && typeof h.familierAccess === 'object'
-      ? {
-          familierAccess: {
-            unlocked: Boolean(h.familierAccess.unlocked),
-            pendingRequest:
-              h.familierAccess.pendingRequest &&
-              typeof h.familierAccess.pendingRequest === 'object' &&
-              h.familierAccess.pendingRequest.requestedAt
-                ? {
-                    requestedAt: Number(h.familierAccess.pendingRequest.requestedAt) || Date.now(),
-                    ...(h.familierAccess.pendingRequest.presetId
-                      ? { presetId: String(h.familierAccess.pendingRequest.presetId) }
-                      : {}),
-                    ...(h.familierAccess.pendingRequest.presetName
-                      ? { presetName: String(h.familierAccess.pendingRequest.presetName) }
-                      : {}),
-                    ...(h.familierAccess.pendingRequest.note
-                      ? { note: String(h.familierAccess.pendingRequest.note) }
-                      : {}),
-                  }
-                : null,
-            rejectedAt: h.familierAccess.rejectedAt ? Number(h.familierAccess.rejectedAt) : null,
-          },
-        }
-      : {}),
-    ...(h.candyBox && typeof h.candyBox === 'object'
-      ? {
-          candyBox: {
-            unlocked: Boolean(h.candyBox.unlocked),
-            counts:
-              h.candyBox.counts && typeof h.candyBox.counts === 'object'
-                ? h.candyBox.counts
-                : {},
-            tasted: normalizeEtats(h.candyBox.tasted),
-            pendingTaste:
-              h.candyBox.pendingTaste &&
-              typeof h.candyBox.pendingTaste === 'object' &&
-              h.candyBox.pendingTaste.candyName
-                ? {
-                    candyName: String(h.candyBox.pendingTaste.candyName),
-                    requestedAt: Number(h.candyBox.pendingTaste.requestedAt) || Date.now(),
-                  }
-                : null,
-            rejectedTaste:
-              h.candyBox.rejectedTaste &&
-              typeof h.candyBox.rejectedTaste === 'object' &&
-              h.candyBox.rejectedTaste.candyName
-                ? {
-                    candyName: String(h.candyBox.rejectedTaste.candyName),
-                    rejectedAt: Number(h.candyBox.rejectedTaste.rejectedAt) || Date.now(),
-                  }
-                : null,
-          },
-        }
-      : {}),
-  };
+  return sanitizeCharacter(h);
 };
 
 class RealtimeTableManager {
