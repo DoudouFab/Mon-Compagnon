@@ -26,6 +26,14 @@ export interface SpellItem {
   rang: number;
   portee?: string;
   duree?: string;
+  cibles?: string;
+  test?: string;
+  degats?: string;
+  limites?: string;
+  actionCost?: string;
+  nature?: string;
+  composantes?: string;
+  natureDegats?: string;
   L?: number;
   S?: number;
   t: string;
@@ -36,6 +44,16 @@ export interface WayRank {
   t: string;
   L: number;
   S: number;
+  portee?: string;
+  duree?: string;
+  cibles?: string;
+  test?: string;
+  degats?: string;
+  limites?: string;
+  actionCost?: string;
+  nature?: string;
+  composantes?: string;
+  natureDegats?: string;
 }
 
 export interface ClassWay {
@@ -117,6 +135,8 @@ export interface Character {
     unlocked: boolean;
     counts: Record<string, number>;
     tasted: string[];
+    pendingTaste?: { candyName: string; requestedAt: number } | null;
+    rejectedTaste?: { candyName: string; rejectedAt: number } | null;
   };
 }
 

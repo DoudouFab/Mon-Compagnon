@@ -36,6 +36,7 @@ import {
   CheckCircle2,
   Lock,
   Unlock,
+  Shuffle,
 } from 'lucide-react';
 import {
   OSGILD_GEOGRAPHY_ASCII,
@@ -82,6 +83,7 @@ import {
   SpellItem,
 } from '../../types/chroniques';
 import { realtimeTable } from '../../services/realtimeSync';
+import { resolveActionRule } from '../../data/actionRules';
 import { getPjColor } from '../../utils/pjColors';
 
 interface MjTableData {
@@ -150,6 +152,7 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
   // Random Loot Table states
   const [lootSearch, setLootSearch] = useState('');
   const [lootCategoryFilter, setLootCategoryFilter] = useState<'all' | 'armes' | 'armures' | 'biens' | 'tharnea' | 'bonbons'>('all');
+  const [lootOrderIndices, setLootOrderIndices] = useState<number[] | null>(null);
   const [rolledLoot, setRolledLoot] = useState<{ item: Equipment; rollNumber: number; date: string } | null>(null);
   const [lootHistory, setLootHistory] = useState<{ item: Equipment; rollNumber: number; date: string }[]>([]);
   const [targetPjIdsForLoot, setTargetPjIdsForLoot] = useState<string[]>([]);
@@ -373,10 +376,120 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
     return list;
   }, []);
 
+  const orderedLootCatalog = React.useMemo(() => {
+    if (!lootOrderIndices) return masterLootCatalog;
+    const byIdx = new globalThis.Map(masterLootCatalog.map((it) => [it.lootIndex, it]));
+    const ordered = lootOrderIndices
+      .map((idx) => byIdx.get(idx))
+      .filter((it): it is (typeof masterLootCatalog)[number] => Boolean(it));
+    // Sécurité si le catalogue venait à changer
+    if (ordered.length !== masterLootCatalog.length) {
+      const seen = new Set(ordered.map((it) => it.lootIndex));
+      masterLootCatalog.forEach((it) => {
+        if (!seen.has(it.lootIndex)) ordered.push(it);
+      });
+    }
+    return ordered;
+  }, [masterLootCatalog, lootOrderIndices]);
+
+  const handleShuffleLootList = () => {
+    const indices = masterLootCatalog.map((it) => it.lootIndex);
+    for (let i = indices.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [indices[i], indices[j]] = [indices[j], indices[i]];
+    }
+    setLootOrderIndices(indices);
+    info('🔀 Liste de butin mélangée aléatoirement ! Les numéros de position (1, 2, 3...) ont été recalculés.');
+  };
+
+  const handleResetLootOrder = () => {
+    setLootOrderIndices(null);
+    info('↺ Ordre initial du catalogue restauré.');
+  };
+
+  // Catalogue des 12 bonbons & file d'attente de validation MJ (anti-triche 1er bonbon par couleur)
+  const candiesCatalog12 = React.useMemo(
+    () => THARNEA_ARTIFACTS.filter((a) => a.cat === 'Bonbon Alchimique'),
+    []
+  );
+
+  const pendingCandyRequests = React.useMemo(() => {
+    return tableData.pjs
+      .map((pj, pjIdx) => {
+        const pending = pj.candyBox?.pendingTaste;
+        if (!pending || !pending.candyName) return null;
+        const candyObj =
+          candiesCatalog12.find((c) => c.n === pending.candyName) ||
+          THARNEA_ARTIFACTS.find((a) => a.n === pending.candyName) ||
+          null;
+        return {
+          pj,
+          pjIdx,
+          candyName: pending.candyName,
+          requestedAt: pending.requestedAt || 0,
+          candyObj,
+        };
+      })
+      .filter((x): x is NonNullable<typeof x> => x !== null)
+      .sort((a, b) => a.requestedAt - b.requestedAt);
+  }, [tableData.pjs, candiesCatalog12]);
+
+  const handleResolveCandyRequest = (pjIdx: number, candyName: string, approve: boolean) => {
+    if (pjIdx < 0 || pjIdx >= tableData.pjs.length) return;
+    const target = tableData.pjs[pjIdx];
+    const cb = target.candyBox;
+    if (!cb) return;
+
+    const defaultCounts: Record<string, number> = {};
+    candiesCatalog12.forEach((c) => {
+      defaultCounts[c.n] = 4;
+    });
+
+    const currentCounts = { ...defaultCounts, ...(cb.counts || {}) };
+    const currentTasted = Array.isArray(cb.tasted) ? cb.tasted : [];
+
+    let nextBox;
+    if (approve) {
+      const prevCount = currentCounts[candyName] ?? 4;
+      const nextCount = Math.max(0, prevCount - 1);
+      const nextTasted = currentTasted.includes(candyName)
+        ? currentTasted
+        : [...currentTasted, candyName];
+      nextBox = {
+        ...cb,
+        unlocked: true,
+        counts: { ...currentCounts, [candyName]: nextCount },
+        tasted: nextTasted,
+        pendingTaste: null,
+        rejectedTaste: null,
+      };
+      success(
+        `✅ Dégustation validée pour ${target.name} : « ${candyName} » révélé (${nextCount}/4 restants).`
+      );
+    } else {
+      nextBox = {
+        ...cb,
+        pendingTaste: null,
+        rejectedTaste: { candyName, rejectedAt: Date.now() },
+      };
+      info(
+        `🔒 Dégustation refusée pour ${target.name} : « ${candyName} » reste bloqué et secret.`
+      );
+    }
+
+    const list = [...tableData.pjs];
+    list[pjIdx] = {
+      ...target,
+      candyBox: nextBox,
+      dmPatchAt: Date.now(),
+    };
+    onUpdateTableData({ ...tableData, pjs: list });
+  };
+
   const handleRollRandomLoot = () => {
-    const pool = masterLootCatalog.filter((it) => {
+    const pool = orderedLootCatalog.filter((it) => {
       if (lootCategoryFilter !== 'all' && it.lootCategoryGroup !== lootCategoryFilter) return false;
-      if (lootSearch && !(it.n + (it.desc || '') + (it.props || '')).toLowerCase().includes(lootSearch.toLowerCase())) return false;
+      if (lootSearch && !(it.n + (it.desc || '') + (it.props || '') + (it.cat || '')).toLowerCase().includes(lootSearch.toLowerCase())) return false;
       return true;
     });
 
@@ -389,7 +502,7 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
     const selectedItem = pool[randomIndex];
     const rollEntry = {
       item: selectedItem,
-      rollNumber: selectedItem.lootIndex,
+      rollNumber: randomIndex + 1,
       date: new Date().toLocaleTimeString(),
     };
 
@@ -1199,7 +1312,7 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
   };
 
   return (
-    <div className="max-w-7xl mx-auto space-y-3">
+    <div className="max-w-[1400px] mx-auto space-y-2.5">
       {/* MJ Console Sub-Header & Controls */}
       <div className="bg-gradient-to-r from-[#2e1313] via-[#1c1410] to-[#120f0d] border border-[#9c2a2b]/70 rounded-xl p-3 sm:p-3.5 shadow-xl">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -2573,17 +2686,72 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                           (acc, val) => acc + (Number(val) || 0),
                           0
                         );
-                        const candyTastedCount = (p.candyBox.tasted || []).length;
+                        const tastedList = Array.isArray(p.candyBox.tasted) ? p.candyBox.tasted : [];
+                        const candyTastedCount = tastedList.length;
+                        const pendingReq = p.candyBox.pendingTaste;
                         return (
-                          <div className="mt-2 bg-[#1c0c29] border border-[#7e22ce]/70 rounded-lg p-2 text-xs space-y-1.5">
+                          <div className="mt-2 bg-[#1c0c29] border border-[#7e22ce]/70 rounded-lg p-2.5 text-xs space-y-2">
                             <div className="flex items-center justify-between gap-2">
                               <span className="font-bold text-[#f5d0fe] text-[11px] flex items-center gap-1">
                                 <span>🍬</span> Boîte à Bonbons ({candyTotalLeft}/48)
                               </span>
                               <span className="text-[10px] font-mono text-[#d8b4fe]">
-                                {candyTastedCount}/12 révélés
+                                {candyTastedCount}/12 goûtés &amp; validés
                               </span>
                             </div>
+
+                            {/* Suivi visuel anti-triche des 12 couleurs */}
+                            <div className="flex flex-wrap items-center gap-1">
+                              {candiesCatalog12.map((candy) => {
+                                const isTasted = tastedList.includes(candy.n);
+                                const isPendingHere = pendingReq?.candyName === candy.n;
+                                const left = p.candyBox?.counts?.[candy.n] ?? 4;
+                                return (
+                                  <span
+                                    key={candy.n}
+                                    title={`${candy.n} : ${isTasted ? `Goûté (${left}/4 restants)` : isPendingHere ? 'Validation demandée' : `Non goûté (${left}/4)`}`}
+                                    className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold border ${
+                                      isPendingHere
+                                        ? 'bg-[#3b2809] border-[#fde047] text-[#fde047] animate-pulse'
+                                        : isTasted
+                                        ? 'bg-[#2a1542] border-[#a855f7] text-[#f5d0fe]'
+                                        : 'bg-[#12081c] border-[#3d2159] text-[#836c99]'
+                                    }`}
+                                  >
+                                    <span
+                                      className={`w-2 h-2 rounded-full border border-white/40 ${!isTasted && !isPendingHere ? 'opacity-45' : ''}`}
+                                      style={{ backgroundColor: candy.couleur || '#a855f7' }}
+                                    />
+                                    <span>{isTasted ? `${left}/4` : isPendingHere ? '⏳' : '🔒'}</span>
+                                  </span>
+                                );
+                              })}
+                            </div>
+
+                            {pendingReq && (
+                              <div className="p-2 rounded-lg bg-[#3b2809] border border-[#d4a84a] text-xs text-[#fde047] flex flex-wrap items-center justify-between gap-2">
+                                <span>
+                                  ⏳ Veut goûter : <b>{pendingReq.candyName}</b>
+                                </span>
+                                <div className="flex items-center gap-1.5 shrink-0">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleResolveCandyRequest(pjIdx, pendingReq.candyName, true)}
+                                    className="px-2.5 py-1 rounded-md bg-[#6fa85b] hover:bg-[#7ebd67] text-black text-xs font-bold cursor-pointer"
+                                  >
+                                    ✓ Valider
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleResolveCandyRequest(pjIdx, pendingReq.candyName, false)}
+                                    className="px-2.5 py-1 rounded-md bg-[#7a2222] hover:bg-[#9c2a2b] text-white text-xs font-bold cursor-pointer"
+                                  >
+                                    ✕ Refuser
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+
                             <div className="flex flex-wrap items-center gap-1.5">
                               {!p.candyBox.unlocked ? (
                                 <button
@@ -2593,13 +2761,17 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                                     const list = [...tableData.pjs];
                                     const cb = list[pjIdx].candyBox;
                                     if (!cb) return;
-                                    list[pjIdx] = { ...list[pjIdx], candyBox: { ...cb, unlocked: true } };
+                                    list[pjIdx] = {
+                                      ...list[pjIdx],
+                                      candyBox: { ...cb, unlocked: true },
+                                      dmPatchAt: Date.now(),
+                                    };
                                     onUpdateTableData({ ...tableData, pjs: list });
                                     success(`🔓 Boîte à Bonbons débloquée pour ${p.name} !`);
                                   }}
-                                  className="px-2 py-0.5 rounded bg-[#6fa85b] hover:bg-[#7ebd67] text-black font-bold text-[10px] flex items-center gap-1 cursor-pointer"
+                                  className="px-2.5 py-1.5 rounded-lg bg-[#6fa85b] hover:bg-[#7ebd67] text-black font-bold text-xs flex items-center gap-1 cursor-pointer"
                                 >
-                                  <Unlock className="w-3 h-3" /> Débloquer ouverture
+                                  <Unlock className="w-3.5 h-3.5" /> Débloquer ouverture
                                 </button>
                               ) : (
                                 <button
@@ -2609,14 +2781,18 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                                     const list = [...tableData.pjs];
                                     const cb = list[pjIdx].candyBox;
                                     if (!cb) return;
-                                    list[pjIdx] = { ...list[pjIdx], candyBox: { ...cb, unlocked: false } };
+                                    list[pjIdx] = {
+                                      ...list[pjIdx],
+                                      candyBox: { ...cb, unlocked: false },
+                                      dmPatchAt: Date.now(),
+                                    };
                                     onUpdateTableData({ ...tableData, pjs: list });
                                     info(`🔒 Boîte à Bonbons reverrouillée pour ${p.name}.`);
                                   }}
-                                  className="px-2 py-0.5 rounded bg-[#2a153d] hover:bg-[#3a1d54] text-[#d8b4fe] border border-[#7e22ce]/60 font-semibold text-[10px] flex items-center gap-1 cursor-pointer"
+                                  className="px-2.5 py-1.5 rounded-lg bg-[#2a153d] hover:bg-[#3a1d54] text-[#d8b4fe] border border-[#7e22ce]/60 font-semibold text-xs flex items-center gap-1 cursor-pointer"
                                   title="Reverrouiller le coffret"
                                 >
-                                  <Lock className="w-3 h-3" /> Ouverte (Verrouiller)
+                                  <Lock className="w-3.5 h-3.5" /> Ouverte (Verrouiller)
                                 </button>
                               )}
 
@@ -2628,19 +2804,18 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                                     const list = [...tableData.pjs];
                                     const cb = list[pjIdx].candyBox;
                                     if (!cb) return;
-                                    const all12 = THARNEA_ARTIFACTS.filter(
-                                      (a) => a.cat === 'Bonbon Alchimique'
-                                    ).map((c) => c.n);
+                                    const all12 = candiesCatalog12.map((c) => c.n);
                                     list[pjIdx] = {
                                       ...list[pjIdx],
-                                      candyBox: { ...cb, unlocked: true, tasted: all12 },
+                                      candyBox: { ...cb, unlocked: true, tasted: all12, pendingTaste: null },
+                                      dmPatchAt: Date.now(),
                                     };
                                     onUpdateTableData({ ...tableData, pjs: list });
                                     success(`✨ Tous les 12 effets de la Boîte révélés à ${p.name} !`);
                                   }}
-                                  className="px-2 py-0.5 rounded bg-[#d4a84a] hover:brightness-110 text-black font-bold text-[10px] flex items-center gap-1 cursor-pointer"
+                                  className="px-2.5 py-1.5 rounded-lg bg-[#d4a84a] hover:brightness-110 text-black font-bold text-xs flex items-center gap-1 cursor-pointer"
                                 >
-                                  <Sparkles className="w-3 h-3" /> Tout révéler (12/12)
+                                  <Sparkles className="w-3.5 h-3.5" /> Tout révéler (12/12)
                                 </button>
                               )}
                             </div>
@@ -3499,36 +3674,69 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
 
       {/* ==================== TABLE DE BUTIN ALÉATOIRE (D100) ==================== */}
       {activeTab === 'loot' && (() => {
-        const filteredLoot = masterLootCatalog.filter((it) => {
+        const filteredLoot = orderedLootCatalog.filter((it) => {
           if (lootCategoryFilter !== 'all' && it.lootCategoryGroup !== lootCategoryFilter) return false;
           if (lootSearch && !(it.n + (it.desc || '') + (it.props || '') + (it.cat || '')).toLowerCase().includes(lootSearch.toLowerCase())) return false;
           return true;
         });
 
+        const bonbonsCount = masterLootCatalog.filter((x) => x.lootCategoryGroup === 'bonbons').length;
+
         return (
-          <div className="space-y-4">
+          <div className="space-y-3">
             {/* Header & Roll Action */}
-            <div className="bg-gradient-to-r from-[#291712] via-[#1e130f] to-[#120f0c] border border-[#d4a84a]/60 rounded-xl p-5 shadow-xl space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="bg-gradient-to-r from-[#291712] via-[#1e130f] to-[#120f0c] border border-[#d4a84a]/60 rounded-xl p-3.5 sm:p-4 shadow-xl space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
                 <div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <span className="text-2xl">🎲</span>
                     <h3 className="font-serif-co text-xl font-bold text-[#f3d48d]">
                       Table de Butin Aléatoire (d100)
                     </h3>
+                    <span
+                      className={`text-xs font-bold px-2.5 py-0.5 rounded-full border ${
+                        lootOrderIndices
+                          ? 'bg-[#1a3320] text-[#86efac] border-[#3b7a4a]'
+                          : 'bg-[#231c15] text-[#cbb8a7] border-[#3d3023]'
+                      }`}
+                    >
+                      {lootOrderIndices ? '🔀 Liste mélangée aléatoirement' : 'Ordre standard du catalogue'}
+                    </span>
                   </div>
                   <p className="text-xs text-[#9e907d] mt-1">
-                    Générez instantanément des trésors parmi l'intégralité des armes, armures, matériel, reliques de Tharnéa et les 12 bonbons alchimiques.
+                    Générez instantanément des trésors ou mélangez toute la liste aléatoirement : la colonne <b>Pos.</b> démarre toujours à 1.
                   </p>
                 </div>
 
-                <button
-                  onClick={handleRollRandomLoot}
-                  className="px-6 py-3 bg-gradient-to-r from-[#d4a84a] via-[#f3d48d] to-[#ab8230] hover:brightness-110 text-black font-extrabold text-sm rounded-xl shadow-lg flex items-center justify-center gap-2.5 transition-all transform hover:-translate-y-0.5 active:translate-y-0"
-                >
-                  <Dices className="w-5 h-5 text-black" />
-                  🎲 Tirer un Butin Aléatoire ({filteredLoot.length} objets)
-                </button>
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleShuffleLootList}
+                    className="px-4 py-2.5 bg-[#2a1d13] hover:bg-[#3a281a] border border-[#d4a84a]/70 text-[#f3d48d] font-bold text-xs sm:text-sm rounded-xl shadow flex items-center gap-2 cursor-pointer transition-all"
+                    title="Réorganiser toute la table dans un ordre aléatoire"
+                  >
+                    <Shuffle className="w-4 h-4 text-[#d4a84a]" />
+                    <span>{lootOrderIndices ? 'Remélanger aléatoirement' : 'Mélanger aléatoirement'}</span>
+                  </button>
+                  {lootOrderIndices && (
+                    <button
+                      type="button"
+                      onClick={handleResetLootOrder}
+                      className="px-3.5 py-2.5 bg-[#1b1510] hover:bg-[#2a2119] border border-[#3d3023] text-[#cbb8a7] font-semibold text-xs sm:text-sm rounded-xl flex items-center gap-1.5 cursor-pointer"
+                      title="Revenir à l'ordre initial"
+                    >
+                      <RotateCcw className="w-4 h-4" />
+                      <span>Ordre initial</span>
+                    </button>
+                  )}
+                  <button
+                    onClick={handleRollRandomLoot}
+                    className="px-5 py-2.5 bg-gradient-to-r from-[#d4a84a] via-[#f3d48d] to-[#ab8230] hover:brightness-110 text-black font-extrabold text-sm rounded-xl shadow-lg flex items-center justify-center gap-2 transition-all transform hover:-translate-y-0.5 active:translate-y-0 cursor-pointer"
+                  >
+                    <Dices className="w-5 h-5 text-black" />
+                    🎲 Tirer un Butin Aléatoire ({filteredLoot.length} objets)
+                  </button>
+                </div>
               </div>
 
               {/* Résultat du tirage en cours */}
@@ -3537,7 +3745,7 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                   <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#42321e] pb-2.5">
                     <div className="flex items-center gap-2.5">
                       <span className="px-2.5 py-1 bg-[#d4a84a] text-black font-mono font-black text-sm rounded-lg shadow-sm">
-                        N° #{rolledLoot.rollNumber}
+                        Pos. #{rolledLoot.rollNumber}
                       </span>
                       <b className="font-serif-co text-lg text-[#f3d48d]">
                         {rolledLoot.item.n}
@@ -3579,7 +3787,7 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                     )}
                   </div>
 
-                  <p className="text-xs sm:text-sm text-[#ede3d1] leading-relaxed">
+                  <p className="text-xs sm:text-sm text-[#ede3d1] leading-snug">
                     {rolledLoot.item.desc || rolledLoot.item.props}
                   </p>
 
@@ -3634,8 +3842,8 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
             </div>
 
             {/* Barre de Filtres et Recherche de la Table */}
-            <div className="bg-[#181410] border border-[#3d3023] rounded-xl p-4 space-y-3">
-              <div className="flex flex-col sm:flex-row items-center gap-3">
+            <div className="bg-[#181410] border border-[#3d3023] rounded-xl p-3 sm:p-3.5 space-y-2.5">
+              <div className="flex flex-col sm:flex-row items-center gap-2.5">
                 <div className="relative flex-1 w-full">
                   <Search className="w-4 h-4 text-[#9e907d] absolute left-3 top-3" />
                   <input
@@ -3648,18 +3856,26 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                 </div>
 
                 <div className="flex flex-wrap items-center gap-1.5 w-full sm:w-auto">
+                  <button
+                    type="button"
+                    onClick={handleShuffleLootList}
+                    className="px-3 py-2 rounded-lg text-xs font-bold bg-[#2c2116] hover:bg-[#3d2e1e] text-[#f3d48d] border border-[#d4a84a]/60 inline-flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <Shuffle className="w-3.5 h-3.5 text-[#d4a84a]" />
+                    <span>Mélanger la liste</span>
+                  </button>
                   {[
                     { id: 'all', label: `Tous (${masterLootCatalog.length})` },
                     { id: 'armes', label: 'Armes' },
                     { id: 'armures', label: 'Protections' },
                     { id: 'biens', label: 'Biens & Matériel' },
                     { id: 'tharnea', label: 'Artéfacts Tharnéa' },
-                    { id: 'bonbons', label: '🍬 Bonbons & Boîte (36)' },
+                    { id: 'bonbons', label: `🍬 Bonbons & Boîte (${bonbonsCount})` },
                   ].map((cat) => (
                     <button
                       key={cat.id}
                       onClick={() => setLootCategoryFilter(cat.id as any)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                      className={`px-3 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                         lootCategoryFilter === cat.id
                           ? 'bg-[#d4a84a] text-black shadow-sm'
                           : 'bg-[#231c15] text-[#9e907d] hover:text-[#ede3d1] border border-[#30251a]'
@@ -3679,7 +3895,8 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                 <table className="w-full text-left text-xs border-collapse">
                   <thead>
                     <tr className="bg-[#231c15] text-[#d4a84a] border-b border-[#30251a]">
-                      <th className="p-2.5 font-bold font-mono text-center w-12">N°</th>
+                      <th className="p-2.5 font-bold font-mono text-center w-14 text-[#86efac]">Pos.</th>
+                      <th className="p-2.5 font-bold font-mono text-center w-14">ID</th>
                       <th className="p-2.5 font-bold">Objet &amp; Description</th>
                       <th className="p-2.5 font-bold">Catégorie</th>
                       <th className="p-2.5 font-bold">Dégâts / DEF / Effet</th>
@@ -3688,12 +3905,15 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#261c14]">
-                    {filteredLoot.map((it) => (
+                    {filteredLoot.map((it, rowIdx) => (
                       <tr
                         key={it.lootIndex}
                         className="hover:bg-[#231c15]/70 transition-colors group"
                       >
-                        <td className="p-2.5 text-center font-mono font-bold text-[#d4a84a]">
+                        <td className="p-2.5 text-center font-mono font-extrabold text-[#86efac] bg-[#141a14]/50">
+                          {rowIdx + 1}
+                        </td>
+                        <td className="p-2.5 text-center font-mono text-[#d4a84a]/80">
                           #{it.lootIndex}
                         </td>
                         <td className="p-2.5">
@@ -3722,19 +3942,19 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                         <td className="p-2.5 text-center font-mono text-xs font-bold text-[#f3d48d]">
                           {it.prix || 'Sur mesure'}
                         </td>
-                        <td className="p-2.5 text-right space-x-1.5 whitespace-nowrap">
+                        <td className="p-2 text-right space-x-1.5 whitespace-nowrap">
                           <button
                             onClick={() => setDetailItem({ type: 'equipment', data: it })}
-                            className="p-1.5 rounded bg-[#231c15] hover:bg-[#32271d] border border-[#3d3023] text-[#f3d48d] inline-flex items-center cursor-pointer"
+                            className="p-2 rounded-lg bg-[#231c15] hover:bg-[#32271d] border border-[#3d3023] text-[#f3d48d] inline-flex items-center cursor-pointer"
                             title="Voir la fiche détaillée"
                           >
-                            <Info className="w-3.5 h-3.5" />
+                            <Info className="w-4 h-4" />
                           </button>
                           {tableData.pjs.length > 0 && (
                             <button
                               type="button"
                               onClick={() => requestGiveEquipmentToPj(it)}
-                              className="px-2 py-1 rounded bg-[#6fa85b] hover:bg-[#7ebd67] text-black text-[10px] font-bold inline-flex items-center gap-1 cursor-pointer"
+                              className="px-3 py-1.5 rounded-lg bg-[#6fa85b] hover:bg-[#7ebd67] text-black text-xs font-bold inline-flex items-center gap-1 cursor-pointer"
                               title={
                                 selectedLootRecipients.length > 0
                                   ? `Octroyer aux ${selectedLootRecipients.length} sélectionné(s)`
@@ -4342,22 +4562,21 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                     </span>
                   </summary>
 
-                  <div className="p-4 pt-1 border-t border-[#30251a] space-y-2">
-                    {way.r.map((rk, idx) => (
+                  <div className="p-3 pt-1 border-t border-[#30251a] space-y-2">
+                    {way.r.map((rk, idx) => {
+                      const ar = resolveActionRule(rk.actionCost, rk.L === 1, rk.S === 1);
+                      return (
                       <div
                         key={idx}
                         onClick={() =>
                           setDetailItem({
                             type: 'wayRank',
                             data: {
+                              ...rk,
                               wayName: way.nom,
                               className: way.profil,
                               profile: way.profil,
                               rankNum: idx + 1,
-                              n: rk.n,
-                              t: rk.t,
-                              L: rk.L,
-                              S: rk.S,
                               rank: {
                                 rang: idx + 1,
                                 nom: rk.n,
@@ -4368,30 +4587,45 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                             },
                           })
                         }
-                        className="p-2.5 bg-[#231c15] hover:bg-[#2d2319] border border-[#3d3023] hover:border-[#d4a84a] rounded-lg text-xs cursor-pointer transition-colors group"
+                        className="p-3 bg-[#231c15] hover:bg-[#2d2319] border border-[#3d3023] hover:border-[#d4a84a] rounded-lg text-xs cursor-pointer transition-colors group"
                         title="Cliquez pour ouvrir la fiche détaillée du rang"
                       >
-                        <div className="flex items-center justify-between mb-1">
-                          <b className="text-[#f3d48d] group-hover:text-[#ffe099] flex items-center gap-1.5">
+                        <div className="flex flex-wrap items-center justify-between gap-2 mb-1">
+                          <b className="text-[#f3d48d] group-hover:text-[#ffe099] flex items-center gap-1.5 text-xs sm:text-sm">
                             Rang {idx + 1} : {rk.n}{' '}
-                            <Info className="w-3.5 h-3.5 opacity-60 group-hover:opacity-100 text-[#d4a84a]" />
+                            <Info className="w-4 h-4 opacity-60 group-hover:opacity-100 text-[#d4a84a]" />
                           </b>
-                          <div className="flex items-center gap-1">
-                            {rk.L ? (
-                              <span className="text-[9px] bg-[#4a1c1d] text-[#ffb8b8] px-1.5 py-0.2 rounded font-bold">
-                                Limitée
-                              </span>
-                            ) : null}
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDetailItem({
+                                  type: 'actionRule',
+                                  data: {
+                                    actionCost: rk.actionCost,
+                                    isLimited: rk.L === 1,
+                                    isSpell: rk.S === 1,
+                                    sourceTitle: rk.n,
+                                  },
+                                });
+                              }}
+                              className={`text-[11px] px-2.5 py-0.5 rounded-md border font-bold cursor-pointer transition-all ${ar.badgeStyle}`}
+                              title="Cliquer pour comprendre ce type d'action en COF"
+                            >
+                              {ar.shortLabel}
+                            </button>
                             {rk.S ? (
-                              <span className="text-[9px] bg-[#1e2f47] text-[#b0d7ff] px-1.5 py-0.2 rounded font-bold">
-                                Sort
+                              <span className="text-[11px] bg-[#1e2f47] text-[#b0d7ff] px-2 py-0.5 rounded-md font-bold border border-[#2d4973]">
+                                Sort ({idx + 1} PM)
                               </span>
                             ) : null}
                           </div>
                         </div>
-                        <p className="text-[#ede3d1]">{rk.t}</p>
+                        <p className="text-[#ede3d1] leading-snug">{rk.t}</p>
                       </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </details>
               ))}
@@ -4401,47 +4635,71 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
 
       {/* ==================== 9. GRIMOIRE DRS ==================== */}
       {activeTab === 'grimoire' && (
-        <div className="space-y-4">
-          <div className="bg-[#181410] border border-[#3d3023] rounded-xl p-4 space-y-3">
+        <div className="space-y-3">
+          <div className="bg-[#181410] border border-[#3d3023] rounded-xl p-3.5 space-y-2.5">
             <h3 className="font-serif-co text-lg font-bold text-[#cbafff]">
               Grimoire Global du DRS
             </h3>
             <div className="relative">
-              <Search className="w-3.5 h-3.5 text-[#9e907d] absolute left-3 top-2.5" />
+              <Search className="w-4 h-4 text-[#9e907d] absolute left-3 top-2.5" />
               <input
                 type="text"
                 placeholder="Rechercher sortilège, dégâts, rayon, projectile..."
                 value={grimSearch}
                 onChange={(e) => setGrimSearch(e.target.value)}
-                className="w-full pl-9 pr-3 py-1.5 bg-[#231c15] border border-[#3d3023] rounded-lg text-xs text-[#ede3d1] outline-none"
+                className="w-full pl-9 pr-3 py-2 bg-[#231c15] border border-[#3d3023] rounded-lg text-xs text-[#ede3d1] outline-none"
               />
             </div>
           </div>
 
-          <div className="space-y-2.5">
+          <div className="space-y-2">
             {SORTS_CATALOG.filter((s) =>
               (s.n + s.t + (s.voie || '')).toLowerCase().includes(grimSearch.toLowerCase())
-            ).map((s, idx) => (
+            ).map((s, idx) => {
+              const ar = resolveActionRule(s.actionCost, s.L === 1, true);
+              return (
               <div
                 key={idx}
                 onClick={() => setDetailItem({ type: 'spell', data: s })}
-                className="p-3.5 bg-[#181410] hover:bg-[#201824] border-l-4 border-l-[#3a69a1] border border-[#3d3023] hover:border-[#cbafff] rounded-lg space-y-1 cursor-pointer transition-colors group"
+                className="p-3 bg-[#181410] hover:bg-[#201824] border-l-4 border-l-[#3a69a1] border border-[#3d3023] hover:border-[#cbafff] rounded-lg space-y-1 cursor-pointer transition-colors group"
                 title="Cliquez pour ouvrir la fiche du sort en Pop-up"
               >
-                <div className="flex items-center justify-between">
+                <div className="flex flex-wrap items-center justify-between gap-2">
                   <b className="text-[#cbafff] group-hover:text-[#e4d4ff] text-sm flex items-center gap-1.5">
-                    {s.n} <Info className="w-3.5 h-3.5 opacity-60 group-hover:opacity-100 text-[#cbafff]" />
+                    {s.n} <Info className="w-4 h-4 opacity-60 group-hover:opacity-100 text-[#cbafff]" />
                   </b>
-                  <span className="text-[10px] bg-[#291b3b] text-[#dccbff] px-2 py-0.5 rounded font-bold border border-[#492d6e]">
-                    Rang {s.rang} • {s.portee}
-                  </span>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setDetailItem({
+                          type: 'actionRule',
+                          data: {
+                            actionCost: s.actionCost,
+                            isLimited: s.L === 1,
+                            isSpell: true,
+                            sourceTitle: s.n,
+                          },
+                        });
+                      }}
+                      className={`text-[11px] px-2.5 py-0.5 rounded-md border font-bold cursor-pointer transition-all ${ar.badgeStyle}`}
+                      title="Cliquer pour comprendre ce type d'action"
+                    >
+                      {ar.shortLabel}
+                    </button>
+                    <span className="text-[11px] bg-[#291b3b] text-[#dccbff] px-2.5 py-0.5 rounded-md font-bold border border-[#492d6e]">
+                      Rang {s.rang} ({s.rang} PM) • {s.portee}
+                    </span>
+                  </div>
                 </div>
-                <div className="text-[11px] text-[#9e907d]">
+                <div className="text-xs text-[#9e907d]">
                   Voie : {s.voie || 'Magie'} • Durée : {s.duree || 'Instantané'}
                 </div>
-                <p className="text-xs text-[#ede3d1]">{s.t}</p>
+                <p className="text-xs text-[#ede3d1] leading-snug">{s.t}</p>
               </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
@@ -4966,6 +5224,106 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
           </div>
         </div>
       )}
+
+      {/* POP-UP VALIDATION MJ : 1ER BONBON DE CHAQUE COULEUR (BOÎTE À BONBONS ANTI-TRICHE) */}
+      {pendingCandyRequests.length > 0 && (() => {
+        const req = pendingCandyRequests[0];
+        const candyObj = req.candyObj;
+        const currentCount = req.pj.candyBox?.counts?.[req.candyName] ?? 4;
+        return (
+          <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/85 backdrop-blur-xs p-3 sm:p-5 animate-fadeIn">
+            <div className="bg-[#181410] border-2 border-[#d4a84a] rounded-2xl w-full max-w-lg shadow-2xl p-5 space-y-4">
+              <div className="flex items-start justify-between gap-3 border-b border-[#3d3023] pb-3">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-2xl">🍬</span>
+                    <h4 className="font-serif-co text-lg font-bold text-[#fde047]">
+                      Validation MJ · Dégustation de Bonbon
+                    </h4>
+                  </div>
+                  <p className="text-xs text-[#cbb8a7]">
+                    Le joueur <b className="text-[#f3d48d]">{req.pj.name}</b> souhaite goûter le <b>1er bonbon</b> de cette couleur pour découvrir son effet :
+                  </p>
+                </div>
+                {pendingCandyRequests.length > 1 && (
+                  <span className="px-2 py-0.5 rounded bg-[#3b2809] border border-[#d4a84a] text-[10px] font-bold text-[#fde047] shrink-0">
+                    1 / {pendingCandyRequests.length}
+                  </span>
+                )}
+              </div>
+
+              {/* Détail complet du bonbon (visible uniquement chez le MJ dans cette pop-up) */}
+              <div className="p-4 rounded-xl bg-gradient-to-br from-[#280c3d] via-[#1c092b] to-[#14071f] border border-[#a855f7]/70 space-y-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <span
+                      className="w-8 h-8 rounded-full border-2 border-white/70 shadow-md shrink-0"
+                      style={{ backgroundColor: candyObj?.couleur || '#a855f7' }}
+                    />
+                    <div className="min-w-0">
+                      <b className="font-serif-co text-base text-[#f5d0fe] block truncate">
+                        {req.candyName}
+                      </b>
+                      <span className="text-[11px] text-[#d8b4fe]">
+                        Stock actuel chez {req.pj.name} : <b>{currentCount}/4</b> {candyObj?.prix ? `· Prix : ${candyObj.prix}` : ''}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {candyObj?.desc && (
+                  <div className="p-3 rounded-lg bg-[#14071f]/90 border border-[#581c87]/70 space-y-1">
+                    <b className="text-[11px] uppercase tracking-wider text-[#fde047] block">
+                      Effet Principal :
+                    </b>
+                    <p className="text-xs sm:text-sm text-[#ede3d1] leading-snug">
+                      {candyObj.desc}
+                    </p>
+                  </div>
+                )}
+
+                {candyObj?.effetSecondaire && (
+                  <div className="p-2.5 rounded-lg bg-[#2d1f11] border border-[#734b1a] space-y-1">
+                    <b className="text-[11px] text-[#f3d48d] block">
+                      ⚠️ Effet Secondaire Imprévisible :
+                    </b>
+                    <p className="text-xs text-[#ede3d1] leading-snug">
+                      {candyObj.effetSecondaire}
+                    </p>
+                  </div>
+                )}
+
+                {candyObj?.limite && (
+                  <div className="p-2.5 rounded-lg bg-[#241313] border border-[#522424] text-xs text-[#ffb0b0]">
+                    <b>Contraintes :</b> {candyObj.limite}
+                  </div>
+                )}
+              </div>
+
+              <div className="text-[11px] text-[#9e907d] bg-[#120f0c] border border-[#30251a] rounded-lg p-2.5 leading-snug">
+                🔒 Tant que vous ne validez pas, le bonbon reste <b>verrouillé et secret</b> sur la fiche du joueur. Si vous validez, le 1er bonbon est consommé ({Math.max(0, currentCount - 1)}/4 restants) et l&apos;effet lui est révélé.
+              </div>
+
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2 pt-2 border-t border-[#30251a]">
+                <button
+                  type="button"
+                  onClick={() => handleResolveCandyRequest(req.pjIdx, req.candyName, false)}
+                  className="px-4 py-2.5 rounded-xl bg-[#4a1818] hover:bg-[#612020] border border-[#a33939] text-xs font-bold text-[#ffd4d4] cursor-pointer"
+                >
+                  🚫 Refuser &amp; Maintenir le blocage
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleResolveCandyRequest(req.pjIdx, req.candyName, true)}
+                  className="px-4 py-2.5 rounded-xl bg-[#6fa85b] hover:bg-[#7ebd67] text-black text-xs font-extrabold shadow-md cursor-pointer"
+                >
+                  ✅ Valider la dégustation (Révéler)
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Discreet Signature */}
       <div className="text-right text-[10px] text-[#4d3d2e] font-mono tracking-wider pt-2 select-none">

@@ -44,7 +44,7 @@ function buildFullSpellsCatalog(): SpellItem[] {
     map.set(s.n.toLowerCase().trim(), s);
   });
 
-  // 2. Extraire toutes les capacités de rangs magiques ou profils magiques
+  // 2. Extraire et fusionner toutes les capacités de rangs magiques ou profils magiques (priorité aux données enrichies de VOIES_CATALOG)
   const magicProfiles = [
     'magicien',
     'ensorceleur',
@@ -61,33 +61,50 @@ function buildFullSpellsCatalog(): SpellItem[] {
       const isSpell = rank.S === 1 || isMagicProf;
       if (isSpell) {
         const key = rank.n.toLowerCase().trim();
-        if (!map.has(key)) {
-          map.set(key, {
-            n: rank.n,
-            voie: voie.nom,
-            rang: idx + 1,
-            portee: rank.t.includes('mètre') ? 'Portée' : 'Vue / Contact',
-            duree: rank.t.includes('tour') ? '1 combat' : 'Instantané',
-            L: rank.L || 0,
-            S: 1,
-            t: rank.t,
-          });
-        }
+        const existing = map.get(key);
+        const merged: SpellItem = {
+          ...(existing || {}),
+          n: rank.n,
+          voie: existing?.voie || voie.nom,
+          rang: existing?.rang || idx + 1,
+          portee: rank.portee || existing?.portee || (rank.t.includes('mètre') || rank.t.includes(' m ') || rank.t.includes(' m.') ? 'À distance' : 'Vue / Contact'),
+          duree: rank.duree || existing?.duree || (rank.t.includes('tour') ? '1d4 à 1d6 tours' : rank.t.includes('combat') ? '1 combat' : 'Instantané'),
+          ...(rank.cibles ? { cibles: rank.cibles } : {}),
+          ...(rank.test ? { test: rank.test } : {}),
+          ...(rank.degats ? { degats: rank.degats } : {}),
+          ...(rank.limites ? { limites: rank.limites } : {}),
+          ...(rank.actionCost ? { actionCost: rank.actionCost } : {}),
+          ...(rank.nature ? { nature: rank.nature } : {}),
+          ...(rank.composantes ? { composantes: rank.composantes } : {}),
+          ...(rank.natureDegats ? { natureDegats: rank.natureDegats } : {}),
+          L: rank.L ?? existing?.L ?? 0,
+          S: 1,
+          t: rank.t && rank.t.length >= (existing?.t || '').length ? rank.t : existing?.t || rank.t,
+        };
+        map.set(key, merged);
       }
     });
   }
 
-  // 3. Sorts emblématiques supplémentaires
+  // 3. Sorts emblématiques supplémentaires (si absents)
   const extras: SpellItem[] = [
     {
       n: 'Hâte',
       voie: 'Magie des arcanes',
       rang: 3,
-      portee: 'Personnelle',
+      portee: 'Contact ou 10 m',
       duree: '1d6 tours',
+      actionCost: 'Action Limitée (L)',
+      nature: 'Magie profane — Transmutation temporelle (INT)',
+      composantes: 'Verbale (V) + Somatique (S)',
+      natureDegats: 'Aucun dégât direct (Buff de vitesse et d’actions)',
+      cibles: '1 créature volontaire',
+      test: 'Réussite automatique sur soi ou allié consentant.',
+      degats: '+1 action supplémentaire par tour (Attaque ou Mouvement)',
+      limites: 'Coûte 3 PM ; ne confère pas de 2e Action Limitée.',
       L: 1,
       S: 1,
-      t: 'Accélère le métabolisme : octroie une action supplémentaire par tour (attaque ou mouvement).',
+      t: 'Accélère le métabolisme : octroie une action supplémentaire par tour (attaque ou mouvement) pendant 1d6 tours.',
     },
     {
       n: 'Désintégration',
@@ -95,9 +112,17 @@ function buildFullSpellsCatalog(): SpellItem[] {
       rang: 5,
       portee: '20 m',
       duree: 'Instantané',
+      actionCost: 'Action Limitée (L)',
+      nature: 'Magie profane — Évocation destructrice (INT)',
+      composantes: 'Verbale (V) + Somatique (S) + Focalisateur arcanique',
+      natureDegats: 'Magique — Désintégration / Force pure (ignore armure non-magique)',
+      cibles: '1 créature ou objet (jusqu’à 3 m³)',
+      test: 'Jet d’Attaque magique [d20 + Niveau + Mod. INT] vs DEF.',
+      degats: '[5d6 + Mod. INT] DM bruts',
+      limites: 'Coûte 5 PM ; réduit la cible en cendres si ses PV tombent à 0.',
       L: 1,
       S: 1,
-      t: 'Rayon mortel infligeant [5d6 + INT] DM bruts. Réduit en poussière si la cible tombe à 0 PV.',
+      t: 'Rayon mortel infligeant [5d6 + Mod. INT] DM bruts. Réduit en poussière si la cible tombe à 0 PV.',
     },
   ];
 

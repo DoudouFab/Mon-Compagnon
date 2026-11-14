@@ -70,6 +70,24 @@ export const normalizeHero = (h: any): Character => {
                 ? h.candyBox.counts
                 : {},
             tasted: normalizeEtats(h.candyBox.tasted),
+            pendingTaste:
+              h.candyBox.pendingTaste &&
+              typeof h.candyBox.pendingTaste === 'object' &&
+              h.candyBox.pendingTaste.candyName
+                ? {
+                    candyName: String(h.candyBox.pendingTaste.candyName),
+                    requestedAt: Number(h.candyBox.pendingTaste.requestedAt) || Date.now(),
+                  }
+                : null,
+            rejectedTaste:
+              h.candyBox.rejectedTaste &&
+              typeof h.candyBox.rejectedTaste === 'object' &&
+              h.candyBox.rejectedTaste.candyName
+                ? {
+                    candyName: String(h.candyBox.rejectedTaste.candyName),
+                    rejectedAt: Number(h.candyBox.rejectedTaste.rejectedAt) || Date.now(),
+                  }
+                : null,
           },
         }
       : {}),

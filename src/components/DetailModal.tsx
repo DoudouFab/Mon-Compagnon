@@ -14,6 +14,7 @@ import {
   Heart,
   Skull,
   Plus,
+  HelpCircle,
 } from 'lucide-react';
 import {
   Equipment,
@@ -26,6 +27,12 @@ import {
   WayRank,
 } from '../types/chroniques';
 import { useToast } from './common/ToastContext';
+import { SORTS_CATALOG, VOIES_CATALOG } from '../data/coDatabase';
+import {
+  ActionRuleInfo,
+  COF_ACTION_RULES,
+  resolveActionRule,
+} from '../data/actionRules';
 
 export type DetailItem =
   | { type: 'monster' | 'monstre'; data: Monster }
@@ -42,6 +49,16 @@ export type DetailItem =
         S?: number;
         isLimited?: number;
         isSpell?: number;
+        portee?: string;
+        duree?: string;
+        cibles?: string;
+        test?: string;
+        degats?: string;
+        limites?: string;
+        actionCost?: string;
+        nature?: string;
+        composantes?: string;
+        natureDegats?: string;
         wayName: string;
         profile?: string;
         className?: string;
@@ -55,10 +72,33 @@ export type DetailItem =
         };
       };
     }
+  | {
+      type: 'actionRule';
+      data: {
+        actionCost?: string;
+        isLimited?: boolean;
+        isSpell?: boolean;
+        sourceTitle?: string;
+      };
+    }
   | { type: 'rule' | 'regle'; data: RuleChapter }
   | { type: 'state' | 'etat'; data: PrejudicialState }
   | { type: 'race'; data: RaceData }
   | { type: 'profil'; data: ProfilData };
+
+function findWayRankByName(name?: string): (WayRank & { wayName: string; profil: string; rang: number }) | undefined {
+  const target = (name || '').toLowerCase().trim();
+  if (!target) return undefined;
+  for (const way of Object.values(VOIES_CATALOG)) {
+    for (let i = 0; i < way.r.length; i++) {
+      const rk = way.r[i];
+      if (rk.n.toLowerCase().trim() === target) {
+        return { ...rk, wayName: way.nom, profil: way.profil, rang: i + 1 };
+      }
+    }
+  }
+  return undefined;
+}
 
 export interface DetailPjRecipient {
   id?: string;
@@ -91,26 +131,88 @@ export const DetailModal: React.FC<DetailModalProps> = ({
 }) => {
   const { warning } = useToast();
   const [localSelectedIds, setLocalSelectedIds] = useState<string[]>(selectedPjIds);
+  const [activeActionHelp, setActiveActionHelp] = useState<ActionRuleInfo | null>(null);
   const selectedPjIdsKey = selectedPjIds.join('|');
 
   useEffect(() => {
     setLocalSelectedIds((prev) =>
       prev.join('|') === selectedPjIdsKey ? prev : [...selectedPjIds]
     );
+    setActiveActionHelp(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedPjIdsKey, item]);
 
   if (!item) return null;
 
+  const renderActionEconomyPanel = (rule: ActionRuleInfo, inlineClosable = true) => (
+    <div className="p-3 bg-[#14111c] border-2 border-[#7c5cba] rounded-xl space-y-2.5 text-xs animate-fadeIn">
+      <div className="flex items-center justify-between gap-2 border-b border-[#3a2954] pb-2">
+        <div className="flex items-center gap-2">
+          <HelpCircle className="w-4 h-4 text-[#d8b4fe] shrink-0" />
+          <b className="text-sm text-[#f3d48d]">
+            Règle d’Action : {rule.label}
+          </b>
+        </div>
+        {inlineClosable && (
+          <button
+            type="button"
+            onClick={() => setActiveActionHelp(null)}
+            className="px-2.5 py-1 rounded-lg bg-[#231c15] hover:bg-[#32271d] border border-[#3d3023] text-xs font-semibold text-[#ede3d1] cursor-pointer"
+          >
+            Masquer
+          </button>
+        )}
+      </div>
+
+      <div className="space-y-1.5 leading-snug">
+        <p className="text-[#ede3d1]">
+          <b className="text-[#cbafff]">Qu’est-ce que c’est ?</b> {rule.definition}
+        </p>
+        <p className="text-[#cde7ff] bg-[#162030] border border-[#2a4263] p-2 rounded-lg">
+          <b className="text-[#8dbbff]">Ce qu’il reste dans votre tour :</b> {rule.ceQuIlResteDansLeTour}
+        </p>
+        <p className="text-[#cbbba6]">
+          <b className="text-[#f3d48d]">Exemples :</b> {rule.exemples}
+        </p>
+      </div>
+
+      <div className="pt-2 border-t border-[#30251a] space-y-1.5">
+        <b className="text-[11px] uppercase tracking-wider text-[#9e907d] block">
+          Économie d’un tour en Chroniques Oubliées Fantasy (cliquer pour comparer) :
+        </b>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+          {Object.values(COF_ACTION_RULES).map((ar) => {
+            const selected = ar.id === rule.id;
+            return (
+              <button
+                key={ar.id}
+                type="button"
+                onClick={() => setActiveActionHelp(ar)}
+                className={`text-left p-2 rounded-lg border transition-all cursor-pointer ${
+                  selected
+                    ? 'bg-[#2a1f3d] border-[#cbafff] text-white shadow-sm'
+                    : 'bg-[#1a1612] border-[#30251a] text-[#cbbba6] hover:border-[#6a518c]'
+                }`}
+              >
+                <b className="text-xs block text-[#f3d48d]">{ar.shortLabel}</b>
+                <span className="text-[11px] leading-snug block opacity-90">{ar.resume}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-xs p-3 sm:p-5 animate-fadeIn">
-      <div className="bg-[#181410] border-2 border-[#d4a84a] rounded-2xl w-full max-w-2xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden text-[#ede3d1]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-xs p-2 sm:p-4 animate-fadeIn">
+      <div className="bg-[#181410] border-2 border-[#d4a84a] rounded-2xl w-full max-w-3xl shadow-2xl flex flex-col max-h-[92vh] overflow-hidden text-[#ede3d1]">
         {/* Modal Top Header with Entity Type Color */}
         <div
-          className={`px-5 py-4 border-b border-[#3d3023] flex items-center justify-between ${
+          className={`px-4 py-3 border-b border-[#3d3023] flex items-center justify-between ${
             item.type === 'monster' || item.type === 'monstre'
               ? 'bg-gradient-to-r from-[#3d1a1c] to-[#1a120e]'
-              : item.type === 'spell' || item.type === 'sort'
+              : item.type === 'spell' || item.type === 'sort' || item.type === 'actionRule'
               ? 'bg-gradient-to-r from-[#311b47] to-[#1a120e]'
               : item.type === 'equipment' || item.type === 'equipement'
               ? 'bg-gradient-to-r from-[#3b2a15] to-[#1a120e]'
@@ -123,12 +225,13 @@ export const DetailModal: React.FC<DetailModalProps> = ({
               : 'bg-gradient-to-r from-[#291e12] to-[#1a120e]'
           }`}
         >
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-black/40 border border-[#d4a84a]/40 flex items-center justify-center shrink-0">
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl bg-black/40 border border-[#d4a84a]/40 flex items-center justify-center shrink-0">
               {(item.type === 'monster' || item.type === 'monstre') && <Skull className="w-5 h-5 text-[#ff9d9d]" />}
               {(item.type === 'spell' || item.type === 'sort') && <Zap className="w-5 h-5 text-[#cbafff]" />}
               {(item.type === 'equipment' || item.type === 'equipement') && <Coins className="w-5 h-5 text-[#f3d48d]" />}
               {item.type === 'wayRank' && <Sparkles className="w-5 h-5 text-[#f3d48d]" />}
+              {item.type === 'actionRule' && <HelpCircle className="w-5 h-5 text-[#cbafff]" />}
               {(item.type === 'rule' || item.type === 'regle') && <BookOpen className="w-5 h-5 text-[#8dbbff]" />}
               {(item.type === 'state' || item.type === 'etat') && <Activity className="w-5 h-5 text-[#ff9d9d]" />}
               {item.type === 'race' && <Shield className="w-5 h-5 text-[#8ed476]" />}
@@ -144,17 +247,21 @@ export const DetailModal: React.FC<DetailModalProps> = ({
                   `Capacité · ${item.data.wayName} (Rang ${
                     item.data.rankNum || item.data.rank?.rang || 1
                   })`}
+                {item.type === 'actionRule' &&
+                  `Économie d’Action COF${item.data.sourceTitle ? ` · ${item.data.sourceTitle}` : ''}`}
                 {(item.type === 'rule' || item.type === 'regle') && `Règle Officielle · ${item.data.cat}`}
                 {(item.type === 'state' || item.type === 'etat') && 'État Préjudiciable (COF)'}
                 {item.type === 'race' && `Race Jouable du DRS · ${item.data.n}`}
                 {item.type === 'profil' && `Vocation & Profil de Classe · ${item.data.n}`}
               </span>
-              <h3 className="font-serif-co text-xl font-bold text-[#f3d48d]">
+              <h3 className="font-serif-co text-lg sm:text-xl font-bold text-[#f3d48d]">
                 {(item.type === 'monster' || item.type === 'monstre') && item.data.n}
                 {(item.type === 'spell' || item.type === 'sort') && item.data.n}
                 {(item.type === 'equipment' || item.type === 'equipement') && (item.data.n || item.data.nom)}
                 {item.type === 'wayRank' &&
                   (item.data.n || item.data.nom || item.data.rank?.nom)}
+                {item.type === 'actionRule' &&
+                  resolveActionRule(item.data.actionCost, item.data.isLimited, item.data.isSpell).label}
                 {(item.type === 'rule' || item.type === 'regle') && item.data.t}
                 {(item.type === 'state' || item.type === 'etat') && `${item.data.icon ? item.data.icon + ' ' : ''}${item.data.name || item.data.n}`}
                 {item.type === 'race' && item.data.n}
@@ -165,14 +272,21 @@ export const DetailModal: React.FC<DetailModalProps> = ({
 
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-[#9e907d] hover:text-[#ede3d1] hover:bg-[#231c15] transition-colors"
+            className="p-2 rounded-lg text-[#9e907d] hover:text-[#ede3d1] hover:bg-[#231c15] transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Modal Scrollable Body */}
-        <div className="p-5 sm:p-6 overflow-y-auto space-y-4">
+        <div className="p-3.5 sm:p-4 overflow-y-auto space-y-3">
+          {/* ==================== 0. ACTION RULE EXPLANATION ==================== */}
+          {item.type === 'actionRule' && (() => {
+            const currentRule =
+              activeActionHelp ||
+              resolveActionRule(item.data.actionCost, item.data.isLimited, item.data.isSpell);
+            return renderActionEconomyPanel(currentRule, false);
+          })()}
           {/* ==================== 1. MONSTER DETAILS ==================== */}
           {(item.type === 'monster' || item.type === 'monstre') && (
             <div className="space-y-4">
@@ -281,7 +395,7 @@ export const DetailModal: React.FC<DetailModalProps> = ({
                   <Swords className="w-4 h-4 text-[#d4a84a]" />
                   <span>Attaques &amp; Dégâts en Combat</span>
                 </div>
-                <p className="text-sm font-semibold text-[#ede3d1] leading-relaxed">
+                <p className="text-sm font-semibold text-[#ede3d1] leading-snug">
                   {item.data.att}
                 </p>
               </div>
@@ -293,7 +407,7 @@ export const DetailModal: React.FC<DetailModalProps> = ({
                     <BookOpen className="w-4 h-4 text-[#d4a84a]" />
                     <span>Apparence Physique (Description rapide MJ)</span>
                   </div>
-                  <p className="text-xs sm:text-sm text-[#ede3d1] leading-relaxed italic">
+                  <p className="text-xs sm:text-sm text-[#ede3d1] leading-snug italic">
                     {item.data.descPhysique}
                   </p>
                 </div>
@@ -305,7 +419,7 @@ export const DetailModal: React.FC<DetailModalProps> = ({
                   <Sparkles className="w-4 h-4 text-[#d4a84a]" />
                   <span>Capacités, Traits &amp; Tempérament</span>
                 </div>
-                <p className="text-xs text-[#ede3d1] leading-relaxed whitespace-pre-line">
+                <p className="text-xs text-[#ede3d1] leading-snug whitespace-pre-line">
                   {item.data.traits}
                 </p>
               </div>
@@ -324,7 +438,7 @@ export const DetailModal: React.FC<DetailModalProps> = ({
                         className="p-3 bg-[#1d1424] border border-[#442859] rounded-xl text-xs space-y-0.5"
                       >
                         <b className="text-[#f3d48d] block">• {p.n}</b>
-                        <p className="text-[#ede3d1] leading-relaxed">{p.t}</p>
+                        <p className="text-[#ede3d1] leading-snug">{p.t}</p>
                       </div>
                     ))}
                   </div>
@@ -338,7 +452,7 @@ export const DetailModal: React.FC<DetailModalProps> = ({
                     <AlertTriangle className="w-3.5 h-3.5 text-[#d4a84a]" />
                     Directives Tactiques pour le Meneur de Jeu :
                   </b>
-                  <p className="leading-relaxed text-[#c7bcac]">{item.data.tactique}</p>
+                  <p className="leading-snug text-[#c7bcac]">{item.data.tactique}</p>
                 </div>
               ) : (
                 <div className="p-3 bg-[#120f0c] border border-[#30251a] rounded-xl text-xs text-[#9e907d]">
@@ -366,7 +480,7 @@ export const DetailModal: React.FC<DetailModalProps> = ({
                     <BookOpen className="w-3.5 h-3.5 text-[#cbafff]" />
                     Origine &amp; Rôle Narratif :
                   </b>
-                  <p className="text-[#ede3d1] leading-relaxed whitespace-pre-line">{item.data.origineNarratif}</p>
+                  <p className="text-[#ede3d1] leading-snug whitespace-pre-line">{item.data.origineNarratif}</p>
                 </div>
               )}
 
@@ -377,7 +491,7 @@ export const DetailModal: React.FC<DetailModalProps> = ({
                     <Flame className="w-3.5 h-3.5 text-[#ffad99]" />
                     Liens Personnels avec les PJ :
                   </b>
-                  <p className="text-[#ede3d1] leading-relaxed whitespace-pre-line">{item.data.liensPj}</p>
+                  <p className="text-[#ede3d1] leading-snug whitespace-pre-line">{item.data.liensPj}</p>
                 </div>
               )}
 
@@ -388,7 +502,7 @@ export const DetailModal: React.FC<DetailModalProps> = ({
                     <Activity className="w-3.5 h-3.5 text-[#8dbbff]" />
                     Secret Caché (Réservé au MJ) :
                   </b>
-                  <p className="text-[#ede3d1] leading-relaxed whitespace-pre-line">{item.data.secret}</p>
+                  <p className="text-[#ede3d1] leading-snug whitespace-pre-line">{item.data.secret}</p>
                 </div>
               )}
             </div>
@@ -480,7 +594,7 @@ export const DetailModal: React.FC<DetailModalProps> = ({
                 <b className="text-xs font-bold text-[#f3d48d] uppercase tracking-wider block">
                   Description &amp; Effets Principaux
                 </b>
-                <p className="text-xs text-[#ede3d1] leading-relaxed">
+                <p className="text-xs text-[#ede3d1] leading-snug">
                   {item.data.desc || item.data.props || "Aucune restriction particulière pour cet équipement."}
                 </p>
               </div>
@@ -492,7 +606,7 @@ export const DetailModal: React.FC<DetailModalProps> = ({
                     <AlertTriangle className="w-3.5 h-3.5 text-[#f3d48d]" />
                     Effet Secondaire Imprévisible :
                   </b>
-                  <p className="text-[#ede3d1] leading-relaxed">{item.data.effetSecondaire}</p>
+                  <p className="text-[#ede3d1] leading-snug">{item.data.effetSecondaire}</p>
                 </div>
               )}
 
@@ -605,90 +719,294 @@ export const DetailModal: React.FC<DetailModalProps> = ({
           )}
 
           {/* ==================== 3. SPELL DETAILS ==================== */}
-          {(item.type === 'spell' || item.type === 'sort') && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                <div className="bg-[#231c15] border border-[#3a2954] rounded-xl p-3 text-center">
-                  <small className="text-[10px] text-[#cbafff] uppercase font-bold block">Rang</small>
-                  <b className="font-serif-co text-xl text-[#f3d48d]">Rang {item.data.rang}</b>
+          {(item.type === 'spell' || item.type === 'sort') && (() => {
+            const matchedCatalog = SORTS_CATALOG.find(
+              (s) => s.n.toLowerCase().trim() === (item.data.n || '').toLowerCase().trim()
+            );
+            const matchedWayRank = findWayRankByName(item.data.n);
+            const rawText = matchedWayRank?.t && matchedWayRank.t.length >= (item.data.t || '').length
+              ? matchedWayRank.t
+              : matchedCatalog?.t && matchedCatalog.t.length > (item.data.t || '').length
+              ? matchedCatalog.t
+              : item.data.t || matchedCatalog?.t || '';
+            const portee = item.data.portee || matchedWayRank?.portee || matchedCatalog?.portee || (rawText.match(/\b(\d+\s*m(?:ètres?)?)\b/i)?.[1] || 'À vue / Contact');
+            const duree = item.data.duree || matchedWayRank?.duree || matchedCatalog?.duree || (rawText.toLowerCase().includes('tour') ? '1d4 à 1d6 tours' : rawText.toLowerCase().includes('combat') ? '1 combat' : 'Instantané');
+            const cibles = item.data.cibles || matchedWayRank?.cibles || matchedCatalog?.cibles;
+            const testInfo = item.data.test || matchedWayRank?.test || matchedCatalog?.test || (
+              rawText.toLowerCase().includes('test de') || rawText.toLowerCase().includes('dd ')
+                ? 'Jet / Résistance précisé dans l’énoncé ci-dessus (SINON Attaque magique [d20 + Niveau + Mod. Magie] vs DEF).'
+                : rawText.toLowerCase().includes('attaque') || rawText.toLowerCase().includes('dm')
+                ? 'Jet d’Attaque magique [d20 + Niveau + Mod. Magie] contre la DEF de la cible (sauf mention « infaillible »).'
+                : 'Aucun jet si la cible est volontaire ou consentante ; test d’Attaque magique / SAG opposé contre un ennemi.'
+            );
+            const degats = item.data.degats || matchedWayRank?.degats || matchedCatalog?.degats || (rawText.match(/(\[?[\dd+\s]+(?:Mod\.\s*\w+)?\]?\s*DM[^.,;]*)/i)?.[1] || undefined);
+            const limites = item.data.limites || matchedWayRank?.limites || matchedCatalog?.limites;
+            const isLimited = (item.data.L ?? matchedWayRank?.L ?? matchedCatalog?.L) === 1;
+            const actionCost = item.data.actionCost || matchedWayRank?.actionCost || matchedCatalog?.actionCost || (isLimited ? 'Action Limitée (L)' : 'Action d’Attaque (A)');
+            const nature = item.data.nature || matchedWayRank?.nature || matchedCatalog?.nature || 'Sortilège arcanique / divin';
+            const composantes = item.data.composantes || matchedWayRank?.composantes || matchedCatalog?.composantes || 'Verbale (V : incantation audible) + Somatique (S : gestes visibles)';
+            const natureDegats = item.data.natureDegats || matchedWayRank?.natureDegats || matchedCatalog?.natureDegats || 'Magique';
+            const actionRule = resolveActionRule(actionCost, isLimited, true);
+
+            return (
+              <div className="space-y-2.5">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  <div className="bg-[#231c15] border border-[#3a2954] rounded-xl p-2 text-center">
+                    <small className="text-[10px] text-[#cbafff] uppercase font-bold block">Rang</small>
+                    <b className="font-serif-co text-base sm:text-lg text-[#f3d48d]">Rang {item.data.rang}</b>
+                  </div>
+                  <div className="bg-[#231c15] border border-[#3a2954] rounded-xl p-2 text-center">
+                    <small className="text-[10px] text-[#cbafff] uppercase font-bold block">Coût en Mana</small>
+                    <b className="font-serif-co text-base sm:text-lg text-[#8dbbff]">{item.data.rang} PM</b>
+                  </div>
+                  <div className="bg-[#231c15] border border-[#3a2954] rounded-xl p-2 text-center">
+                    <small className="text-[10px] text-[#cbafff] uppercase font-bold block">Portée</small>
+                    <b className="text-xs sm:text-sm text-[#ede3d1]">{portee}</b>
+                  </div>
+                  <div className="bg-[#231c15] border border-[#3a2954] rounded-xl p-2 text-center">
+                    <small className="text-[10px] text-[#cbafff] uppercase font-bold block">Durée</small>
+                    <b className="text-xs sm:text-sm text-[#ede3d1]">{duree}</b>
+                  </div>
                 </div>
-                <div className="bg-[#231c15] border border-[#3a2954] rounded-xl p-3 text-center">
-                  <small className="text-[10px] text-[#cbafff] uppercase font-bold block">Coût en Mana</small>
-                  <b className="font-serif-co text-xl text-[#8dbbff]">{item.data.rang} PM</b>
+
+                <div className="flex flex-wrap items-center gap-2 text-xs">
+                  {item.data.voie && (
+                    <span className="text-[#9e907d] bg-[#181410] px-2.5 py-1.5 rounded-lg border border-[#30251a]">
+                      Voie : <b className="text-[#cbafff]">{item.data.voie}</b>
+                    </span>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setActiveActionHelp((prev) =>
+                        prev?.id === actionRule.id ? null : actionRule
+                      )
+                    }
+                    className={`px-3 py-1.5 rounded-lg font-bold border inline-flex items-center gap-1.5 cursor-pointer transition-all shadow-xs ${actionRule.badgeStyle}`}
+                    title="Cliquez pour afficher l'explication complète de ce type d'action en COF"
+                  >
+                    <HelpCircle className="w-3.5 h-3.5 shrink-0" />
+                    <span>{actionCost}</span>
+                    <span className="text-[10px] opacity-85 underline ml-0.5">
+                      {activeActionHelp?.id === actionRule.id ? 'Masquer règle' : 'C’est quoi ?'}
+                    </span>
+                  </button>
                 </div>
-                <div className="bg-[#231c15] border border-[#3a2954] rounded-xl p-3 text-center">
-                  <small className="text-[10px] text-[#cbafff] uppercase font-bold block">Portée</small>
-                  <b className="font-serif-co text-sm text-[#ede3d1]">{item.data.portee || 'Contact'}</b>
+
+                {activeActionHelp && renderActionEconomyPanel(activeActionHelp, true)}
+
+                <div className="bg-[#231c15] border border-[#3a2954] rounded-xl p-3 space-y-1">
+                  <b className="text-xs font-bold text-[#cbafff] uppercase tracking-wider block">
+                    Description &amp; Effets Magiques
+                  </b>
+                  <p className="text-sm text-[#ede3d1] leading-snug">
+                    {rawText}
+                  </p>
                 </div>
-                <div className="bg-[#231c15] border border-[#3a2954] rounded-xl p-3 text-center">
-                  <small className="text-[10px] text-[#cbafff] uppercase font-bold block">Durée</small>
-                  <b className="font-serif-co text-sm text-[#ede3d1]">{item.data.duree || 'Instantané'}</b>
+
+                {/* Nature, Composantes & Nature des dégâts */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                  <div className="p-2.5 bg-[#1b1526] border border-[#432d63] rounded-xl space-y-0.5">
+                    <b className="text-[#d8b4fe] block">✨ Nature du sort :</b>
+                    <p className="text-[#ede3d1] leading-snug">{nature}</p>
+                  </div>
+                  <div className="p-2.5 bg-[#291519] border border-[#612832] rounded-xl space-y-0.5">
+                    <b className="text-[#fda4af] block">🩸 Nature des dégâts / Effet :</b>
+                    <p className="text-[#ede3d1] leading-snug">{natureDegats}</p>
+                  </div>
+                  <div className="p-2.5 bg-[#142029] border border-[#294c66] rounded-xl space-y-0.5 sm:col-span-2">
+                    <b className="text-[#7dd3fc] block">🖐️ Composantes &amp; Visibilité (à voir / à entendre) :</b>
+                    <p className="text-[#ede3d1] leading-snug">{composantes}</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                  {cibles && (
+                    <div className="p-2.5 bg-[#171d29] border border-[#2d4063] rounded-xl space-y-0.5">
+                      <b className="text-[#93c5fd] block">🎯 Cibles &amp; Zone :</b>
+                      <p className="text-[#ede3d1] leading-snug">{cibles}</p>
+                    </div>
+                  )}
+                  {degats && (
+                    <div className="p-2.5 bg-[#281515] border border-[#612828] rounded-xl space-y-0.5">
+                      <b className="text-[#fca5a5] block">💥 Dégâts / Effet chiffré :</b>
+                      <p className="text-[#ede3d1] leading-snug">{degats}</p>
+                    </div>
+                  )}
+                  <div className="p-2.5 bg-[#1d1729] border border-[#443166] rounded-xl space-y-0.5 sm:col-span-2">
+                    <b className="text-[#d8b4fe] block">🎲 Test &amp; Jet de Résistance :</b>
+                    <p className="text-[#ede3d1] leading-snug">{testInfo}</p>
+                  </div>
+                  {limites && (
+                    <div className="p-2.5 bg-[#241a10] border border-[#664620] rounded-xl space-y-0.5 sm:col-span-2">
+                      <b className="text-[#fcd34d] block">⚠️ Limites &amp; Précisions de jeu :</b>
+                      <p className="text-[#ede3d1] leading-snug">{limites}</p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="p-2.5 bg-[#181320] border border-[#3d2757] rounded-xl text-xs text-[#cbafff] leading-snug">
+                  ⚡ <b>Règle de lancement COF :</b> Lancer un sort coûte <b>{item.data.rang} PM</b> (1 PM par Rang) et consomme l’action indiquée ci-dessus (cliquez dessus pour voir le détail). Attaque magique = <b>d20 + Niveau + Mod. Magie</b> (INT, SAG ou CHA selon le profil).
                 </div>
               </div>
-
-              {item.data.voie && (
-                <div className="text-xs text-[#9e907d]">
-                  Voie associée : <b className="text-[#cbafff]">{item.data.voie}</b>
-                </div>
-              )}
-
-              <div className="bg-[#231c15] border border-[#3a2954] rounded-xl p-4 space-y-1.5">
-                <b className="text-xs font-bold text-[#cbafff] uppercase tracking-wider block">
-                  Description &amp; Effets Magiques
-                </b>
-                <p className="text-xs sm:text-sm text-[#ede3d1] leading-relaxed">
-                  {item.data.t}
-                </p>
-              </div>
-
-              <div className="p-3 bg-[#181320] border border-[#3d2757] rounded-xl text-xs text-[#cbafff]">
-                ⚡ <b>Règle de lancement :</b> Lancer un sortilège consomme une action d'attaque (ou action limitée si spécifié) et coûte 1 PM par Rang du sort. Il peut être lancé plusieurs fois par jour tant que le héros possède des Points de Mana suffisants.
-              </div>
-            </div>
-          )}
+            );
+          })()}
 
           {/* ==================== 4. WAY RANK DETAILS ==================== */}
-          {item.type === 'wayRank' && (
-            <div className="space-y-4">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="text-xs font-bold bg-[#3b2a1a] text-[#f3d48d] px-3 py-1 rounded-lg border border-[#d4a84a]/40">
-                  {item.data.wayName} · Rang {item.data.rankNum || item.data.rank?.rang || 1}
-                </span>
-                <span className="text-xs text-[#9e907d] bg-[#231c15] px-2.5 py-1 rounded-lg border border-[#3d3023]">
-                  Profil : {item.data.profile || item.data.className || 'Héroïque'}
-                </span>
-                {item.data.L || item.data.isLimited || item.data.rank?.isLimited ? (
-                  <span className="text-xs font-bold bg-[#4a1c1d] text-[#ffb8b8] px-2 py-1 rounded">
-                    Action Limitée (L)
-                  </span>
-                ) : null}
-                {item.data.S || item.data.isSpell || item.data.rank?.isSpell ? (
-                  <span className="text-xs font-bold bg-[#1e2f47] text-[#b0d7ff] px-2 py-1 rounded">
-                    Sort Arcanique (*)
-                  </span>
-                ) : null}
-              </div>
+          {item.type === 'wayRank' && (() => {
+            const rankNum = item.data.rankNum || item.data.rank?.rang || 1;
+            const rankName = item.data.n || item.data.nom || item.data.rank?.nom || '';
+            const matchedWayRank = findWayRankByName(rankName);
+            const matchedSpell = SORTS_CATALOG.find(
+              (s) => s.n.toLowerCase().trim() === rankName.toLowerCase().trim()
+            );
+            const rawEffect =
+              item.data.t ||
+              item.data.description ||
+              item.data.rank?.description ||
+              matchedWayRank?.t ||
+              matchedSpell?.t ||
+              'Aucun texte descriptif.';
+            const displayEffect =
+              matchedWayRank?.t && matchedWayRank.t.length >= rawEffect.length
+                ? matchedWayRank.t
+                : matchedSpell?.t && matchedSpell.t.length > rawEffect.length
+                ? matchedSpell.t
+                : rawEffect;
+            const isLimited = Boolean(item.data.L ?? item.data.isLimited ?? item.data.rank?.isLimited ?? matchedWayRank?.L);
+            const isSpell = Boolean(item.data.S ?? item.data.isSpell ?? item.data.rank?.isSpell ?? matchedWayRank?.S);
+            const portee = item.data.portee || matchedWayRank?.portee || matchedSpell?.portee || (isSpell ? (displayEffect.match(/\b(\d+\s*m(?:ètres?)?)\b/i)?.[1] || 'À vue / Contact') : 'Personnelle / Contact');
+            const duree = item.data.duree || matchedWayRank?.duree || matchedSpell?.duree || (isSpell ? (displayEffect.toLowerCase().includes('tour') ? '1d4 à 1d6 tours' : displayEffect.toLowerCase().includes('combat') ? '1 combat' : 'Instantané') : 'Selon effet');
+            const cibles = item.data.cibles || matchedWayRank?.cibles || matchedSpell?.cibles;
+            const testInfo = item.data.test || matchedWayRank?.test || matchedSpell?.test || (
+              isSpell
+                ? (displayEffect.toLowerCase().includes('test') || displayEffect.toLowerCase().includes('dd ')
+                    ? 'Test précisé dans l’effet ci-dessus (ou Attaque magique [d20 + Niveau + Mod. Magie] vs DEF).'
+                    : 'Jet d’Attaque magique [d20 + Niveau + Mod. Magie] vs DEF contre un adversaire ; réussite automatique sur soi ou cible consentante.')
+                : undefined
+            );
+            const degats = item.data.degats || matchedWayRank?.degats || matchedSpell?.degats || (displayEffect.match(/(\[?[\dd+\s]+(?:Mod\.\s*\w+)?\]?\s*DM[^.,;]*)/i)?.[1] || undefined);
+            const limites = item.data.limites || matchedWayRank?.limites || matchedSpell?.limites;
+            const actionCost = item.data.actionCost || matchedWayRank?.actionCost || matchedSpell?.actionCost || (isLimited ? 'Action Limitée (L)' : isSpell ? 'Action d’Attaque (A)' : 'Passif (0 action)');
+            const nature = item.data.nature || matchedWayRank?.nature || matchedSpell?.nature || (isSpell ? 'Sortilège de profil' : 'Capacité / Technique de profil');
+            const composantes = item.data.composantes || matchedWayRank?.composantes || matchedSpell?.composantes || (isSpell ? 'Verbale (V) + Somatique (S)' : 'Aucune composante magique');
+            const natureDegats = item.data.natureDegats || matchedWayRank?.natureDegats || matchedSpell?.natureDegats || 'Selon capacité';
+            const actionRule = resolveActionRule(actionCost, isLimited, isSpell);
 
-              <div className="bg-[#231c15] border border-[#3d3023] rounded-xl p-4 space-y-2">
-                <b className="text-xs font-bold text-[#f3d48d] uppercase tracking-wider block">
-                  Effet Mécanique Officiel
-                </b>
-                <p className="text-sm text-[#ede3d1] leading-relaxed">
-                  {item.data.t ||
-                    item.data.description ||
-                    item.data.rank?.description ||
-                    'Aucun texte descriptif.'}
-                </p>
-              </div>
+            return (
+              <div className="space-y-2.5">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-xs font-bold bg-[#3b2a1a] text-[#f3d48d] px-3 py-1.5 rounded-lg border border-[#d4a84a]/40">
+                    {item.data.wayName} · Rang {rankNum}
+                  </span>
+                  <span className="text-xs text-[#9e907d] bg-[#231c15] px-2.5 py-1.5 rounded-lg border border-[#3d3023]">
+                    Profil : {item.data.profile || item.data.className || matchedWayRank?.profil || 'Héroïque'}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setActiveActionHelp((prev) =>
+                        prev?.id === actionRule.id ? null : actionRule
+                      )
+                    }
+                    className={`text-xs font-bold px-3 py-1.5 rounded-lg border inline-flex items-center gap-1.5 cursor-pointer transition-all shadow-xs ${actionRule.badgeStyle}`}
+                    title="Cliquez pour afficher l'explication complète de ce type d'action en COF"
+                  >
+                    <HelpCircle className="w-3.5 h-3.5 shrink-0" />
+                    <span>{actionCost}</span>
+                    <span className="text-[10px] opacity-85 underline ml-0.5">
+                      {activeActionHelp?.id === actionRule.id ? 'Masquer règle' : 'C’est quoi ?'}
+                    </span>
+                  </button>
+                  {isSpell && (
+                    <span className="text-xs font-bold bg-[#1e2f47] text-[#b0d7ff] px-2.5 py-1.5 rounded-lg border border-[#2e4b73]">
+                      Sortilège ({rankNum} PM)
+                    </span>
+                  )}
+                </div>
 
-              <div className="p-3 bg-[#120f0c] border border-[#30251a] rounded-xl text-xs text-[#9e907d] space-y-1">
-                <b className="text-[#f3d48d]">Règle d'acquisition :</b>
-                <p>
-                  Les rangs 1 et 2 coûtent <b>1 point de capacité</b> chacun. Les rangs 3, 4 et 5 coûtent <b>2 points de capacité</b> chacun. Vous devez acquérir les rangs dans l'ordre croissant au sein de la même voie.
-                </p>
+                {activeActionHelp && renderActionEconomyPanel(activeActionHelp, true)}
+
+                <div className={`grid grid-cols-2 ${isSpell ? 'sm:grid-cols-3' : ''} gap-2`}>
+                  <div className="bg-[#1b1612] border border-[#3d3023] rounded-xl p-2 text-center">
+                    <small className="text-[10px] text-[#9e907d] uppercase font-bold block">Portée</small>
+                    <b className="text-xs sm:text-sm text-[#ede3d1]">{portee}</b>
+                  </div>
+                  <div className="bg-[#1b1612] border border-[#3d3023] rounded-xl p-2 text-center">
+                    <small className="text-[10px] text-[#9e907d] uppercase font-bold block">Durée</small>
+                    <b className="text-xs sm:text-sm text-[#ede3d1]">{duree}</b>
+                  </div>
+                  {isSpell && (
+                    <div className="bg-[#1b1612] border border-[#3a2954] rounded-xl p-2 text-center col-span-2 sm:col-span-1">
+                      <small className="text-[10px] text-[#cbafff] uppercase font-bold block">Coût Mana</small>
+                      <b className="text-xs sm:text-sm text-[#8dbbff]">{rankNum} PM</b>
+                    </div>
+                  )}
+                </div>
+
+                <div className="bg-[#231c15] border border-[#3d3023] rounded-xl p-3 space-y-1">
+                  <b className="text-xs font-bold text-[#f3d48d] uppercase tracking-wider block">
+                    Effet Mécanique Officiel
+                  </b>
+                  <p className="text-sm text-[#ede3d1] leading-snug">
+                    {displayEffect}
+                  </p>
+                </div>
+
+                {/* Nature, Composantes & Nature des dégâts */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                  <div className="p-2.5 bg-[#1b1526] border border-[#432d63] rounded-xl space-y-0.5">
+                    <b className="text-[#d8b4fe] block">✨ Nature de la capacité / sort :</b>
+                    <p className="text-[#ede3d1] leading-snug">{nature}</p>
+                  </div>
+                  <div className="p-2.5 bg-[#291519] border border-[#612832] rounded-xl space-y-0.5">
+                    <b className="text-[#fda4af] block">🩸 Nature des dégâts / Effet :</b>
+                    <p className="text-[#ede3d1] leading-snug">{natureDegats}</p>
+                  </div>
+                  <div className="p-2.5 bg-[#142029] border border-[#294c66] rounded-xl space-y-0.5 sm:col-span-2">
+                    <b className="text-[#7dd3fc] block">🖐️ Composantes &amp; Visibilité (à voir / à entendre) :</b>
+                    <p className="text-[#ede3d1] leading-snug">{composantes}</p>
+                  </div>
+                </div>
+
+                {(cibles || testInfo || degats || limites) && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                    {cibles && (
+                      <div className="p-2.5 bg-[#171d29] border border-[#2d4063] rounded-xl space-y-0.5">
+                        <b className="text-[#93c5fd] block">🎯 Cibles &amp; Zone :</b>
+                        <p className="text-[#ede3d1] leading-snug">{cibles}</p>
+                      </div>
+                    )}
+                    {degats && (
+                      <div className="p-2.5 bg-[#281515] border border-[#612828] rounded-xl space-y-0.5">
+                        <b className="text-[#fca5a5] block">💥 Dégâts / Effet chiffré :</b>
+                        <p className="text-[#ede3d1] leading-snug">{degats}</p>
+                      </div>
+                    )}
+                    {testInfo && (
+                      <div className="p-2.5 bg-[#1d1729] border border-[#443166] rounded-xl space-y-0.5 sm:col-span-2">
+                        <b className="text-[#d8b4fe] block">🎲 Test &amp; Jet de Résistance :</b>
+                        <p className="text-[#ede3d1] leading-snug">{testInfo}</p>
+                      </div>
+                    )}
+                    {limites && (
+                      <div className="p-2.5 bg-[#241a10] border border-[#664620] rounded-xl space-y-0.5 sm:col-span-2">
+                        <b className="text-[#fcd34d] block">⚠️ Limites &amp; Précisions de jeu :</b>
+                        <p className="text-[#ede3d1] leading-snug">{limites}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <div className="p-2.5 bg-[#120f0c] border border-[#30251a] rounded-xl text-xs text-[#9e907d] space-y-0.5 leading-snug">
+                  <b className="text-[#f3d48d]">Règle d&apos;acquisition :</b>
+                  <p>
+                    Les rangs 1 et 2 coûtent <b>1 point de capacité</b> chacun. Les rangs 3, 4 et 5 coûtent <b>2 points de capacité</b> chacun (pour les PJ, progression dans l&apos;ordre croissant ; pour les PNJ du MJ, sélection libre sans blocage de rang).
+                  </p>
+                </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           {/* ==================== 5. RULE DETAILS ==================== */}
           {(item.type === 'rule' || item.type === 'regle') && (
@@ -701,7 +1019,7 @@ export const DetailModal: React.FC<DetailModalProps> = ({
                 <b className="text-xs font-bold text-[#f3d48d] uppercase tracking-wider block">
                   Énoncé Officiel des Règles du DRS
                 </b>
-                <p className="text-xs sm:text-sm text-[#ede3d1] leading-relaxed whitespace-pre-line">
+                <p className="text-xs sm:text-sm text-[#ede3d1] leading-snug whitespace-pre-line">
                   {item.data.c}
                 </p>
               </div>
@@ -728,7 +1046,7 @@ export const DetailModal: React.FC<DetailModalProps> = ({
                   </div>
                 )}
 
-                <div className="text-xs sm:text-sm text-[#ede3d1] leading-relaxed pt-1 bg-[#181410] border border-[#30251a] p-3 rounded-lg">
+                <div className="text-xs sm:text-sm text-[#ede3d1] leading-snug pt-1 bg-[#181410] border border-[#30251a] p-3 rounded-lg">
                   <b className="text-[#f3d48d] block text-xs uppercase mb-1">Énoncé Officiel DRS :</b>
                   {item.data.desc || item.data.t}
                 </div>
@@ -741,7 +1059,7 @@ export const DetailModal: React.FC<DetailModalProps> = ({
                   <b className="text-[#f3d48d] flex items-center gap-1.5 font-bold">
                     <span>🕒</span> Quand s'applique-t-il ?
                   </b>
-                  <p className="text-[#ede3d1] leading-relaxed">
+                  <p className="text-[#ede3d1] leading-snug">
                     {item.data.quand || "Lors d'une attaque spéciale, sortilège néfaste, échec critique ou piège de zone."}
                   </p>
                 </div>
@@ -751,7 +1069,7 @@ export const DetailModal: React.FC<DetailModalProps> = ({
                   <b className="text-[#9bb8ff] flex items-center gap-1.5 font-bold">
                     <span>🎲</span> Comment s'applique-t-il ? (Mécanique)
                   </b>
-                  <p className="text-[#ede3d1] leading-relaxed">
+                  <p className="text-[#ede3d1] leading-snug">
                     {item.data.comment || (item.data.impactCourt || item.data.t)}
                   </p>
                 </div>
@@ -761,7 +1079,7 @@ export const DetailModal: React.FC<DetailModalProps> = ({
                   <b className="text-[#f0a6f0] flex items-center gap-1.5 font-bold">
                     <span>🧬</span> Pourquoi ? (Justification en jeu)
                   </b>
-                  <p className="text-[#ede3d1] leading-relaxed">
+                  <p className="text-[#ede3d1] leading-snug">
                     {item.data.pourquoi || "Perte de repères biologiques, sidération psychique, choc traumatique ou entrave physique."}
                   </p>
                 </div>
@@ -771,7 +1089,7 @@ export const DetailModal: React.FC<DetailModalProps> = ({
                   <b className="text-[#8be391] flex items-center gap-1.5 font-bold">
                     <span>🌿</span> Comment en guérir / s'en libérer ?
                   </b>
-                  <p className="text-[#ede3d1] leading-relaxed">
+                  <p className="text-[#ede3d1] leading-snug">
                     {item.data.guerison || "Test de sauvegarde à la fin du tour, soin divin, potion de délivrance ou fin de combat."}
                   </p>
                 </div>
@@ -798,7 +1116,7 @@ export const DetailModal: React.FC<DetailModalProps> = ({
                     </span>
                   )}
                 </div>
-                <p className="text-xs sm:text-sm text-[#ede3d1] leading-relaxed whitespace-pre-line">
+                <p className="text-xs sm:text-sm text-[#ede3d1] leading-snug whitespace-pre-line">
                   {item.data.descriptionComplete || item.data.d}
                 </p>
               </div>
@@ -888,7 +1206,7 @@ export const DetailModal: React.FC<DetailModalProps> = ({
                         <Sparkles className="w-3.5 h-3.5 text-[#d4a84a]" />
                         <b className="text-sm text-[#f3d48d]">{cp.n}</b>
                       </div>
-                      <p className="text-xs text-[#ede3d1] leading-relaxed">{cp.t}</p>
+                      <p className="text-xs text-[#ede3d1] leading-snug">{cp.t}</p>
                     </div>
                   ))}
 
@@ -907,7 +1225,7 @@ export const DetailModal: React.FC<DetailModalProps> = ({
                           <b className="text-[#f3d48d] block font-serif-co text-xs">
                             Option {oIdx + 1} : {opt.n}
                           </b>
-                          <p className="text-[#ede3d1] leading-relaxed">{opt.t}</p>
+                          <p className="text-[#ede3d1] leading-snug">{opt.t}</p>
                         </div>
                       ))}
                     </div>
@@ -923,7 +1241,7 @@ export const DetailModal: React.FC<DetailModalProps> = ({
                       <b className="text-xs font-bold text-[#9e907d] uppercase tracking-wider block mb-1">
                         Relations avec les autres peuples
                       </b>
-                      <p className="text-xs text-[#ede3d1] leading-relaxed">
+                      <p className="text-xs text-[#ede3d1] leading-snug">
                         {item.data.relations}
                       </p>
                     </div>
@@ -933,7 +1251,7 @@ export const DetailModal: React.FC<DetailModalProps> = ({
                       <b className="text-xs font-bold text-[#9e907d] uppercase tracking-wider block mb-1">
                         Traditions &amp; Exemples de noms
                       </b>
-                      <p className="text-xs text-[#d4a84a] whitespace-pre-line leading-relaxed font-mono">
+                      <p className="text-xs text-[#d4a84a] whitespace-pre-line leading-snug font-mono">
                         {item.data.nomsExemples}
                       </p>
                     </div>
@@ -958,7 +1276,7 @@ export const DetailModal: React.FC<DetailModalProps> = ({
                     </span>
                   )}
                 </div>
-                <p className="text-xs sm:text-sm text-[#ede3d1] leading-relaxed whitespace-pre-line">
+                <p className="text-xs sm:text-sm text-[#ede3d1] leading-snug whitespace-pre-line">
                   {item.data.descriptionComplete || item.data.traits}
                 </p>
               </div>

@@ -36,27 +36,32 @@ export const BbeOfficialSheetModal: React.FC<BbeOfficialSheetModalProps> = ({
     b: {},
   };
 
-  // Get active class ways for this hero
-  const activeWays: { wayKey: string; way: ClassWay; currentRank: number }[] = [];
-  const knownWayKeys = new Set<string>();
+  // Get active class ways for this hero (supports non-sequential PNJ ranks)
+  const activeWays: { wayKey: string; way: ClassWay; ranks: number[] }[] = [];
+  const wayIndexMap = new Map<string, number>();
 
   pj.caps.forEach((c) => {
-    if (!knownWayKeys.has(c.wayKey) && VOIES_CATALOG[c.wayKey]) {
-      knownWayKeys.add(c.wayKey);
+    const way = VOIES_CATALOG[c.wayKey];
+    if (!way) return;
+    const existingIdx = wayIndexMap.get(c.wayKey);
+    if (existingIdx === undefined) {
+      wayIndexMap.set(c.wayKey, activeWays.length);
       activeWays.push({
         wayKey: c.wayKey,
-        way: VOIES_CATALOG[c.wayKey],
-        currentRank: c.rank,
+        way,
+        ranks: [c.rank],
       });
+    } else if (!activeWays[existingIdx].ranks.includes(c.rank)) {
+      activeWays[existingIdx].ranks.push(c.rank);
     }
   });
 
   // If less than 5, complete with class ways
   if (activeWays.length < 5) {
     Object.entries(VOIES_CATALOG).forEach(([k, w]) => {
-      if (activeWays.length < 5 && w.profil === pj.profil && !knownWayKeys.has(k)) {
-        knownWayKeys.add(k);
-        activeWays.push({ wayKey: k, way: w, currentRank: 0 });
+      if (activeWays.length < 5 && w.profil === pj.profil && !wayIndexMap.has(k)) {
+        wayIndexMap.set(k, activeWays.length);
+        activeWays.push({ wayKey: k, way: w, ranks: [] });
       }
     });
   }
@@ -314,14 +319,20 @@ export const BbeOfficialSheetModal: React.FC<BbeOfficialSheetModalProps> = ({
                           {wIdx + 1}. {aw.way.nom}
                         </span>
                         <span className="text-[10px] font-mono text-gray-600 font-normal">
-                          Rang {aw.currentRank} / 5
+                          {aw.ranks.length > 0
+                            ? aw.ranks
+                                .slice()
+                                .sort((a, b) => a - b)
+                                .map((r) => `R${r}`)
+                                .join(', ')
+                            : 'Rang 0 / 5'}
                         </span>
                       </div>
 
                       <div className="grid grid-cols-1 gap-1">
                         {aw.way.r.map((rk, rIdx) => {
                           const rankNum = rIdx + 1;
-                          const isAcquired = aw.currentRank >= rankNum;
+                          const isAcquired = aw.ranks.includes(rankNum);
                           return (
                             <div
                               key={rankNum}

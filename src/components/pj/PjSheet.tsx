@@ -44,6 +44,7 @@ import { THARNEA_ARTIFACTS } from '../../data/tharneaSupplement';
 import { MoneyCalculatorModal } from '../common/MoneyCalculatorModal';
 import { useToast } from '../common/ToastContext';
 import { PortraitPicker } from '../common/PortraitPicker';
+import { resolveActionRule } from '../../data/actionRules';
 import {
   ARMES_CATALOG,
   ARMURES_CATALOG,
@@ -562,7 +563,7 @@ export const PjSheet: React.FC<PjSheetProps> = ({
   };
 
   return (
-    <div className="max-w-7xl mx-auto space-y-3">
+    <div className="max-w-[1400px] mx-auto space-y-2.5">
       {/* Hero Banner (Always on top) */}
       <div className="print-card bg-gradient-to-r from-[#361917] via-[#241712] to-[#181410] border border-[#d4a84a]/60 rounded-xl p-3 sm:p-4 shadow-xl">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-2.5">
@@ -846,10 +847,10 @@ export const PjSheet: React.FC<PjSheetProps> = ({
                   <button
                     type="button"
                     onClick={() => setIsHpRecoveryInfoOpen(true)}
-                    className="px-2 py-0.5 rounded bg-[#2a1717] hover:bg-[#3d1f1f] text-[#ffb3b3] border border-[#a83232]/60 text-[10px] font-bold flex items-center gap-1 transition-all cursor-pointer shadow-xs"
+                    className="px-2.5 py-1 rounded-lg bg-[#2a1717] hover:bg-[#3d1f1f] text-[#ffb3b3] border border-[#a83232]/60 text-xs font-bold flex items-center gap-1 transition-all cursor-pointer shadow-xs"
                     title="Cliquer pour afficher les règles officielles de récupération des PV (repos court, nuit, auberge)"
                   >
-                    <Info className="w-3 h-3 text-[#ff8080]" />
+                    <Info className="w-3.5 h-3.5 text-[#ff8080]" />
                     <span>Récupération</span>
                   </button>
                 </div>
@@ -1188,10 +1189,10 @@ export const PjSheet: React.FC<PjSheetProps> = ({
                       <button
                         type="button"
                         onClick={() => setActiveCaracInfo(c)}
-                        className="p-0.5 rounded text-[#9e907d] hover:text-[#f3d48d] hover:bg-[#3d3023] transition-colors"
+                        className="p-1.5 rounded text-[#9e907d] hover:text-[#f3d48d] hover:bg-[#3d3023] transition-colors cursor-pointer"
                         title={`Afficher les actions et tests types pour ${c}`}
                       >
-                        <Info className="w-3 h-3 text-[#d4a84a]" />
+                        <Info className="w-3.5 h-3.5 text-[#d4a84a]" />
                       </button>
                     </div>
 
@@ -1620,11 +1621,35 @@ export const PjSheet: React.FC<PjSheetProps> = ({
                         className="p-3 bg-[#231c15] hover:bg-[#261833] border-l-4 border-l-[#3a69a1] border border-[#3d3023] hover:border-[#cbafff] rounded-lg flex flex-col sm:flex-row sm:items-center justify-between gap-2 cursor-pointer transition-all group"
                       >
                         <div>
-                          <div className="flex items-center gap-2">
+                          <div className="flex flex-wrap items-center gap-1.5">
                             <b className="text-[#cbafff] text-sm group-hover:underline">{s.n}</b>
-                            <span className="text-[10px] text-[#9e907d]">
+                            <span className="text-[11px] text-[#9e907d]">
                               Rang {cost} • Portée : {s.portee}
                             </span>
+                            {(() => {
+                              const ar = resolveActionRule(s.actionCost, s.L === 1, true);
+                              return (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setDetailItem({
+                                      type: 'actionRule',
+                                      data: {
+                                        actionCost: s.actionCost,
+                                        isLimited: s.L === 1,
+                                        isSpell: true,
+                                        sourceTitle: s.n,
+                                      },
+                                    });
+                                  }}
+                                  className={`px-2 py-0.5 rounded border text-[11px] font-bold cursor-pointer transition-all ${ar.badgeStyle}`}
+                                  title="Cliquer pour comprendre ce type d'action"
+                                >
+                                  {ar.shortLabel}
+                                </button>
+                              );
+                            })()}
                           </div>
                           <p className="text-xs text-[#ede3d1] mt-0.5">{s.t}</p>
                         </div>
@@ -1711,11 +1736,11 @@ export const PjSheet: React.FC<PjSheetProps> = ({
                 <button
                   type="button"
                   onClick={() => setIsPtsCapInfoOpen(true)}
-                  className="p-1.5 rounded-lg bg-[#2e1f13] hover:bg-[#422c1b] border border-[#d4a84a] text-[#f3d48d] transition-all cursor-pointer shadow-xs flex items-center gap-1 text-xs font-bold"
+                  className="px-2.5 py-1.5 rounded-lg bg-[#2e1f13] hover:bg-[#422c1b] border border-[#d4a84a] text-[#f3d48d] transition-all cursor-pointer shadow-xs flex items-center gap-1.5 text-xs font-bold"
                   title="Point d'attention sur les points de capacité et règle officielle"
                 >
                   <AlertCircle className="w-4 h-4 text-[#e5a93c]" />
-                  <span className="text-[10px]">Règle &amp; RP</span>
+                  <span>Règle &amp; RP</span>
                 </button>
               </div>
             </div>
@@ -1787,10 +1812,8 @@ export const PjSheet: React.FC<PjSheetProps> = ({
               })
               .map(([wKey, way]) => {
               const isAcc = isWayAccessible(way.profil);
-              const myRank = pj.caps.reduce(
-                (max, c) => (c.wayKey === wKey ? Math.max(max, c.rank) : max),
-                0
-              );
+              const ranksInWay = pj.caps.filter((c) => c.wayKey === wKey).map((c) => c.rank);
+              const myRank = ranksInWay.reduce((max, r) => Math.max(max, r), 0);
 
               return (
                 <details
@@ -1816,7 +1839,7 @@ export const PjSheet: React.FC<PjSheetProps> = ({
                       <span className="text-base text-[#f3d48d]">{way.nom}</span>
                     </div>
                     <span className="text-xs font-sans font-bold text-[#d4a84a] bg-[#291e12] px-3 py-1 rounded-full border border-[#d4a84a]/40">
-                      Rang actuel : {myRank} / 5
+                      {ranksInWay.length} / 5 acquis {myRank > 0 ? `(Max R${myRank})` : ''}
                     </span>
                   </summary>
 
@@ -1828,8 +1851,8 @@ export const PjSheet: React.FC<PjSheetProps> = ({
                     </div>
                     {way.r.map((rk, idx) => {
                       const rankNum = idx + 1;
-                      const hasRank = myRank >= rankNum;
-                      const isNext = myRank === rankNum - 1;
+                      const hasRank = ranksInWay.includes(rankNum);
+                      const isNext = !hasRank && (rankNum === 1 || ranksInWay.includes(rankNum - 1));
                       const cost = rankNum <= 2 ? 1 : 2;
                       const canAfford = (pj.ptsCap || 0) >= cost;
 
@@ -1887,25 +1910,44 @@ export const PjSheet: React.FC<PjSheetProps> = ({
                                 </span>
                                 <b className="text-[#f3d48d] text-sm group-hover:underline">{rk.n}</b>
                               </div>
-                              <div className="flex items-center gap-1.5">
-                                {rk.L ? (
-                                  <span className="text-[10px] font-bold bg-[#4a1c1d] text-[#ffb8b8] px-1.5 py-0.5 rounded border border-[#6b2224]">
-                                    Action Limitée
-                                  </span>
-                                ) : null}
+                              <div className="flex flex-wrap items-center gap-1.5">
+                                {(() => {
+                                  const ar = resolveActionRule(rk.actionCost, rk.L === 1, rk.S === 1);
+                                  return (
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setDetailItem({
+                                          type: 'actionRule',
+                                          data: {
+                                            actionCost: rk.actionCost,
+                                            isLimited: rk.L === 1,
+                                            isSpell: rk.S === 1,
+                                            sourceTitle: rk.n,
+                                          },
+                                        });
+                                      }}
+                                      className={`text-[11px] font-bold px-2.5 py-1 rounded-md border cursor-pointer transition-all ${ar.badgeStyle}`}
+                                      title="Cliquer pour comprendre ce type d'action en COF"
+                                    >
+                                      {ar.shortLabel}
+                                    </button>
+                                  );
+                                })()}
                                 {rk.S ? (
-                                  <span className="text-[10px] font-bold bg-[#1e2f47] text-[#b0d7ff] px-1.5 py-0.5 rounded border border-[#2b4c6f]">
-                                    Sortilège
+                                  <span className="text-[11px] font-bold bg-[#1e2f47] text-[#b0d7ff] px-2 py-0.5 rounded-md border border-[#2b4c6f]">
+                                    Sort ({rankNum} PM)
                                   </span>
                                 ) : null}
-                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${
+                                <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-md ${
                                   !isAcc ? 'bg-[#1e1712] text-[#807263]' : hasRank ? 'bg-[#183615] text-[#95e683]' : isNext ? 'bg-[#402f18] text-[#ffd67a]' : 'bg-[#1e1711] text-[#9e907d]'
                                 }`}>
                                   {badge}
                                 </span>
                               </div>
                             </div>
-                            <p className="text-xs text-[#ede3d1] leading-relaxed">{rk.t}</p>
+                            <p className="text-xs text-[#ede3d1] leading-snug">{rk.t}</p>
 
                             {isAcc && isNext && canAfford && (
                               <button
@@ -1983,18 +2025,39 @@ export const PjSheet: React.FC<PjSheetProps> = ({
                     className="p-3.5 bg-[#181410] hover:bg-[#221630] border-l-4 border-l-[#3a69a1] border border-[#3d3023] hover:border-[#cbafff] rounded-lg flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 cursor-pointer transition-all group"
                   >
                     <div className="space-y-1">
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-2">
                         <b className="text-[#cbafff] text-sm font-serif-co group-hover:underline">{s.n}</b>
-                        <span className="text-[10px] bg-[#291b3b] text-[#dccbff] px-2 py-0.5 rounded border border-[#492d6e]">
+                        <span className="text-[11px] bg-[#291b3b] text-[#dccbff] px-2 py-0.5 rounded border border-[#492d6e]">
                           Rang {cost} ({cost} PM)
                         </span>
-                        <span className="text-[10px] text-[#9e907d]">Portée : {s.portee}</span>
+                        {(() => {
+                          const ar = resolveActionRule(s.actionCost, s.L === 1, true);
+                          return (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDetailItem({
+                                  type: 'actionRule',
+                                  data: {
+                                    actionCost: s.actionCost,
+                                    isLimited: s.L === 1,
+                                    isSpell: true,
+                                    sourceTitle: s.n,
+                                  },
+                                });
+                              }}
+                              className={`text-[11px] px-2 py-0.5 rounded border font-bold cursor-pointer transition-all ${ar.badgeStyle}`}
+                              title="Cliquer pour comprendre ce type d'action"
+                            >
+                              {ar.shortLabel}
+                            </button>
+                          );
+                        })()}
+                        <span className="text-[11px] text-[#9e907d]">Portée : {s.portee}</span>
                         {s.voie && (
-                          <span className="text-[10px] text-[#9e907d]">• Voie : {s.voie}</span>
+                          <span className="text-[11px] text-[#9e907d]">• Voie : {s.voie}</span>
                         )}
-                        <span className="text-[10px] text-[#9e907d] group-hover:text-[#cbafff]">
-                          (Cliquer pour détails)
-                        </span>
                       </div>
                       <p className="text-xs text-[#ede3d1]">{s.t}</p>
                     </div>
@@ -2154,6 +2217,8 @@ export const PjSheet: React.FC<PjSheetProps> = ({
               unlocked: false,
               counts: defaultCounts,
               tasted: [],
+              pendingTaste: null,
+              rejectedTaste: null,
             };
             const boxCounts = rawBox.counts && typeof rawBox.counts === 'object' ? rawBox.counts : defaultCounts;
             const boxTasted = Array.isArray(rawBox.tasted) ? rawBox.tasted : [];
@@ -2161,6 +2226,8 @@ export const PjSheet: React.FC<PjSheetProps> = ({
               unlocked: Boolean(rawBox.unlocked),
               counts: boxCounts,
               tasted: boxTasted,
+              pendingTaste: rawBox.pendingTaste || null,
+              rejectedTaste: rawBox.rejectedTaste || null,
             };
             const totalLeft = CANDIES_12.reduce(
               (acc, c) => acc + (box.counts[c.n] ?? 4),
@@ -2176,31 +2243,64 @@ export const PjSheet: React.FC<PjSheetProps> = ({
                 warning(`Il ne reste plus aucun ${getAnonymousCandyName(candyName)} dans votre boîte.`);
                 return;
               }
-              const wasTasted = box.tasted.includes(candyName);
+              const wasTasted = box.tasted.includes(candyName) || isItemOwnedByPj(candyName);
+
+              // Le 1er bonbon de chaque couleur doit être validé par pop-up chez le MJ !
+              if (!wasTasted) {
+                if (box.pendingTaste?.candyName === candyName) {
+                  info(`⏳ Demande déjà envoyée au MJ pour ${getAnonymousCandyName(candyName)}. Patientez jusqu'à sa validation.`);
+                  return;
+                }
+                onUpdatePj({
+                  ...pj,
+                  candyBox: {
+                    unlocked: box.unlocked,
+                    counts: { ...defaultCounts, ...box.counts },
+                    tasted: box.tasted,
+                    pendingTaste: { candyName, requestedAt: Date.now() },
+                    rejectedTaste: null,
+                  },
+                });
+                info(
+                  `📩 Demande envoyée au MJ pour goûter le 1er ${getAnonymousCandyName(candyName)}. En attente de sa validation...`
+                );
+                return;
+              }
+
+              // Déjà goûté & validé : consommation libre des 3 bonbons restants
               const nextCounts: Record<string, number> = {
                 ...defaultCounts,
                 ...box.counts,
                 [candyName]: currentCount - 1,
               };
-              const nextTasted = wasTasted ? box.tasted : [...box.tasted, candyName];
               onUpdatePj({
                 ...pj,
                 candyBox: {
                   unlocked: box.unlocked,
                   counts: nextCounts,
-                  tasted: nextTasted,
+                  tasted: box.tasted.includes(candyName) ? box.tasted : [...box.tasted, candyName],
+                  pendingTaste: box.pendingTaste || null,
+                  rejectedTaste: null,
                 },
               });
-              const candyObj = CANDIES_12.find((c) => c.n === candyName);
-              if (!wasTasted) {
-                success(
-                  `🍬 Dégustation ! Le ${getAnonymousCandyName(candyName)} révèle son secret : « ${candyName} » ! ${candyObj?.desc || ''}`
-                );
-              } else {
-                success(
-                  `🍬 1 × ${candyName} consommé (reste ${currentCount - 1}/4 dans la boîte).`
-                );
-              }
+              success(
+                `🍬 1 × ${candyName} consommé (reste ${currentCount - 1}/4 dans la boîte).`
+              );
+            };
+
+            const handleCancelPendingTaste = () => {
+              if (!box.pendingTaste) return;
+              onUpdatePj({
+                ...pj,
+                candyBox: {
+                  unlocked: box.unlocked,
+                  counts: { ...defaultCounts, ...box.counts },
+                  tasted: box.tasted,
+                  pendingTaste: null,
+                  rejectedTaste: box.rejectedTaste || null,
+                },
+              });
+              info('Demande de dégustation annulée.');
             };
 
             return (
@@ -2213,7 +2313,7 @@ export const PjSheet: React.FC<PjSheetProps> = ({
                     </h4>
                     <p className="text-[11px] text-[#e9d5ff]">
                       {box.unlocked
-                        ? `${totalLeft}/48 bonbons restants • ${tastedCount}/12 couleurs identifiées (1er test pour découvrir l'effet + 3 pour le jeu)`
+                        ? `${totalLeft}/48 bonbons restants • ${tastedCount}/12 couleurs validées (1er test validé par le MJ + 3 pour le jeu)`
                         : "Coffret d'ébène scellé — Réussissez à l'ouvrir en jeu et attendez le déblocage du MJ."}
                     </p>
                   </div>
@@ -2244,98 +2344,135 @@ export const PjSheet: React.FC<PjSheetProps> = ({
                     </span>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
-                    {CANDIES_12.map((candy) => {
-                      const count = box.counts[candy.n] ?? 4;
-                      const revealed = box.tasted.includes(candy.n) || isItemOwnedByPj(candy.n);
-                      const anonName = getAnonymousCandyName(candy.n);
-                      const swatchClass = CANDY_COLOR_SWATCH[candy.n] || 'bg-[#9333ea]';
-                      return (
-                        <div
-                          key={candy.n}
-                          className={`p-3 rounded-lg border flex flex-col justify-between gap-2 ${
-                            count <= 0
-                              ? 'bg-[#120b17]/60 border-[#2d1e38] opacity-60'
-                              : revealed
-                              ? 'bg-[#221030] border-[#a855f7]/70'
-                              : 'bg-[#170c21] border-[#4c1d95]'
-                          }`}
+                  <div className="space-y-2.5">
+                    {box.pendingTaste && (
+                      <div className="p-2.5 rounded-lg bg-[#3b2809] border border-[#d4a84a] text-xs text-[#fde047] flex flex-wrap items-center justify-between gap-2">
+                        <span>
+                          ⏳ Demande envoyée au MJ pour goûter <b>{getAnonymousCandyName(box.pendingTaste.candyName)}</b> — en attente de sa validation...
+                        </span>
+                        <button
+                          type="button"
+                          onClick={handleCancelPendingTaste}
+                          className="px-2 py-0.5 rounded bg-[#231808] hover:bg-[#33230d] border border-[#785923] text-[10px] text-[#f3d48d] font-bold cursor-pointer"
                         >
-                          <div className="space-y-1.5">
-                            <div className="flex items-center justify-between gap-2">
-                              <div className="flex items-center gap-2 min-w-0">
-                                <span
-                                  className={`w-3.5 h-3.5 rounded-full border border-white/40 shrink-0 ${swatchClass}`}
-                                  aria-hidden="true"
-                                />
-                                {revealed ? (
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      setDetailItem({ type: 'equipment', data: candy })
-                                    }
-                                    className="font-serif-co text-xs font-bold text-[#f5d0fe] hover:text-white hover:underline text-left truncate cursor-pointer flex items-center gap-1"
-                                  >
-                                    <span className="truncate">{candy.n}</span>
-                                    <Info className="w-3 h-3 text-[#d4a84a] shrink-0" />
-                                  </button>
-                                ) : (
-                                  <span className="font-serif-co text-xs font-bold text-[#e9d5ff] truncate">
-                                    {anonName}
-                                  </span>
-                                )}
-                              </div>
-                              <span
-                                className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded shrink-0 ${
-                                  count > 0
-                                    ? 'bg-[#2e1047] text-[#fde047] border border-[#7e22ce]'
-                                    : 'bg-[#1f1726] text-[#8c7a99]'
-                                }`}
-                              >
-                                {count}/4
-                              </span>
-                            </div>
+                          Annuler la demande
+                        </button>
+                      </div>
+                    )}
 
-                            {revealed ? (
-                              <div className="space-y-1">
-                                <p className="text-[11px] text-[#ede3d1] leading-snug">
-                                  {candy.desc}
-                                </p>
-                                {candy.effetSecondaire && (
-                                  <p className="text-[10px] text-[#f5b7ff] italic leading-snug">
-                                    {candy.effetSecondaire}
-                                  </p>
-                                )}
-                              </div>
-                            ) : (
-                              <p className="text-[11px] text-[#a78bfa] italic flex items-center gap-1">
-                                <Lock className="w-3 h-3 shrink-0" />
-                                Effet secret : goûtez 1 bonbon pour le découvrir.
-                              </p>
-                            )}
-                          </div>
-
-                          <button
-                            type="button"
-                            disabled={count <= 0}
-                            onClick={() => handleTasteOrTakeCandy(candy.n)}
-                            className={`w-full py-1.5 px-2.5 rounded-lg text-[11px] font-bold flex items-center justify-center gap-1 transition-colors ${
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+                      {CANDIES_12.map((candy) => {
+                        const count = box.counts[candy.n] ?? 4;
+                        const revealed = box.tasted.includes(candy.n) || isItemOwnedByPj(candy.n);
+                        const isPending = !revealed && box.pendingTaste?.candyName === candy.n;
+                        const wasRejected = !revealed && !isPending && box.rejectedTaste?.candyName === candy.n;
+                        const anonName = getAnonymousCandyName(candy.n);
+                        const swatchClass = CANDY_COLOR_SWATCH[candy.n] || 'bg-[#9333ea]';
+                        return (
+                          <div
+                            key={candy.n}
+                            className={`p-3 rounded-lg border flex flex-col justify-between gap-2 ${
                               count <= 0
-                                ? 'bg-[#1c1424] text-[#6d5c7a] cursor-not-allowed'
+                                ? 'bg-[#120b17]/60 border-[#2d1e38] opacity-60'
                                 : revealed
-                                ? 'bg-[#3b1c54] hover:bg-[#4c246e] text-[#f5d0fe] border border-[#a855f7]/60 cursor-pointer'
-                                : 'bg-gradient-to-r from-[#d4a84a] to-[#ab8230] hover:brightness-110 text-[#1a1208] cursor-pointer'
+                                ? 'bg-[#221030] border-[#a855f7]/70'
+                                : isPending
+                                ? 'bg-[#2e200a] border-[#d4a84a]'
+                                : 'bg-[#170c21] border-[#4c1d95]'
                             }`}
                           >
-                            {count <= 0
-                              ? 'Épuisé (0/4)'
-                              : revealed
-                              ? '🍬 Prendre 1 bonbon'
-                              : '👅 Goûter (1er test)'}
-                          </button>
-                        </div>
-                      );
-                    })}
+                            <div className="space-y-1.5">
+                              <div className="flex items-center justify-between gap-2">
+                                <div className="flex items-center gap-2 min-w-0">
+                                  <span
+                                    className={`w-3.5 h-3.5 rounded-full border border-white/40 shrink-0 ${swatchClass}`}
+                                    aria-hidden="true"
+                                  />
+                                  {revealed ? (
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        setDetailItem({ type: 'equipment', data: candy })
+                                      }
+                                      className="font-serif-co text-xs font-bold text-[#f5d0fe] hover:text-white hover:underline text-left truncate cursor-pointer flex items-center gap-1"
+                                    >
+                                      <span className="truncate">{candy.n}</span>
+                                      <Info className="w-3 h-3 text-[#d4a84a] shrink-0" />
+                                    </button>
+                                  ) : (
+                                    <span className="font-serif-co text-xs font-bold text-[#e9d5ff] truncate">
+                                      {anonName}
+                                    </span>
+                                  )}
+                                </div>
+                                <span
+                                  className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded shrink-0 ${
+                                    count > 0
+                                      ? 'bg-[#2e1047] text-[#fde047] border border-[#7e22ce]'
+                                      : 'bg-[#1f1726] text-[#8c7a99]'
+                                  }`}
+                                >
+                                  {count}/4
+                                </span>
+                              </div>
+
+                              {revealed ? (
+                                <div className="space-y-1">
+                                  <p className="text-[11px] text-[#ede3d1] leading-snug">
+                                    {candy.desc}
+                                  </p>
+                                  {candy.effetSecondaire && (
+                                    <p className="text-[10px] text-[#f5b7ff] italic leading-snug">
+                                      {candy.effetSecondaire}
+                                    </p>
+                                  )}
+                                </div>
+                              ) : isPending ? (
+                                <p className="text-[11px] text-[#fde047] italic flex items-center gap-1">
+                                  <span>⏳</span>
+                                  En attente de validation du MJ...
+                                </p>
+                              ) : (
+                                <div className="space-y-1">
+                                  <p className="text-[11px] text-[#a78bfa] italic flex items-center gap-1">
+                                    <Lock className="w-3 h-3 shrink-0" />
+                                    Effet secret : goûter le 1er nécessite l&apos;accord du MJ.
+                                  </p>
+                                  {wasRejected && (
+                                    <p className="text-[10px] text-[#fca5a5] font-semibold">
+                                      🚫 Refusé par le MJ — blocage maintenu.
+                                    </p>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+
+                            <button
+                              type="button"
+                              disabled={count <= 0 || isPending}
+                              onClick={() => handleTasteOrTakeCandy(candy.n)}
+                              className={`w-full py-1.5 px-2.5 rounded-lg text-[11px] font-bold flex items-center justify-center gap-1 transition-colors ${
+                                count <= 0
+                                  ? 'bg-[#1c1424] text-[#6d5c7a] cursor-not-allowed'
+                                  : isPending
+                                  ? 'bg-[#45310f] text-[#fde047] border border-[#d4a84a]/60 cursor-wait'
+                                  : revealed
+                                  ? 'bg-[#3b1c54] hover:bg-[#4c246e] text-[#f5d0fe] border border-[#a855f7]/60 cursor-pointer'
+                                  : 'bg-gradient-to-r from-[#d4a84a] to-[#ab8230] hover:brightness-110 text-[#1a1208] cursor-pointer'
+                              }`}
+                            >
+                              {count <= 0
+                                ? 'Épuisé (0/4)'
+                                : isPending
+                                ? '⏳ Validation MJ attendue'
+                                : revealed
+                                ? '🍬 Prendre 1 bonbon'
+                                : '👅 Demander à goûter (MJ)'}
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 )}
               </div>
@@ -2595,25 +2732,47 @@ export const PjSheet: React.FC<PjSheetProps> = ({
                     key={idx}
                     className="p-3 bg-[#231c15] border border-[#3d3023] rounded-lg flex flex-col gap-1.5"
                   >
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between gap-2">
                       <button
                         type="button"
                         onClick={() => setDetailItem({ type: 'spell', data: s })}
                         className="text-left group cursor-pointer"
                       >
                         <b className="text-[#cbafff] text-sm group-hover:text-[#e4d4ff] flex items-center gap-1.5 underline-offset-2 hover:underline">
-                          {s.n} <Info className="w-3.5 h-3.5 opacity-60 group-hover:opacity-100 text-[#cbafff]" />
+                          {s.n} <Info className="w-4 h-4 opacity-60 group-hover:opacity-100 text-[#cbafff]" />
                         </b>
                       </button>
                       <button
                         onClick={() => handleSelectFromDrawer(s)}
-                        className="px-2.5 py-1 bg-[#3a2954] hover:bg-[#4d3670] border border-[#654a93] text-[#dccbff] text-xs font-bold rounded"
+                        className="px-3 py-1.5 bg-[#3a2954] hover:bg-[#4d3670] border border-[#654a93] text-[#dccbff] text-xs font-bold rounded-lg cursor-pointer"
                       >
                         + Apprendre
                       </button>
                     </div>
-                    <div className="text-[11px] text-[#9e907d]">
-                      Rang {s.rang} • Voie : {s.voie || 'Générale'} • Portée : {s.portee}
+                    <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-[#9e907d]">
+                      <span>Rang {s.rang} • Voie : {s.voie || 'Générale'} • Portée : {s.portee}</span>
+                      {(() => {
+                        const ar = resolveActionRule(s.actionCost, s.L === 1, true);
+                        return (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setDetailItem({
+                                type: 'actionRule',
+                                data: {
+                                  actionCost: s.actionCost,
+                                  isLimited: s.L === 1,
+                                  isSpell: true,
+                                  sourceTitle: s.n,
+                                },
+                              })
+                            }
+                            className={`px-2 py-0.5 rounded border text-[11px] font-bold cursor-pointer ${ar.badgeStyle}`}
+                          >
+                            {ar.shortLabel}
+                          </button>
+                        );
+                      })()}
                     </div>
                     <p className="text-xs text-[#ede3d1]">{s.t}</p>
                   </div>

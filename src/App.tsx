@@ -726,6 +726,11 @@ export default function App() {
             (h) => (h.id && h.id === curPj.id) || (h.name && h.name.toLowerCase() === curPj.name.toLowerCase())
           );
           if (remote && (remote.dmPatchAt || 0) > (curPj.dmPatchAt || 0)) {
+            const prevTastedLen = curPj.candyBox?.tasted?.length || 0;
+            const nextTastedLen = remote.candyBox?.tasted?.length || 0;
+            const newRejectedAt = remote.candyBox?.rejectedTaste?.rejectedAt || 0;
+            const oldRejectedAt = curPj.candyBox?.rejectedTaste?.rejectedAt || 0;
+
             applyLocalPjUpdate(
               {
                 ...curPj,
@@ -744,7 +749,14 @@ export default function App() {
               },
               false
             );
-            showToast('✨ Le Meneur de Jeu a mis à jour ta fiche en direct !');
+
+            if (nextTastedLen > prevTastedLen) {
+              showToast('🍬 Le MJ a validé votre dégustation ! Nouvel effet de bonbon révélé !');
+            } else if (newRejectedAt > oldRejectedAt) {
+              showToast('🔒 Le MJ a refusé la dégustation de ce bonbon pour le moment.');
+            } else {
+              showToast('✨ Le Meneur de Jeu a mis à jour ta fiche en direct !');
+            }
           }
         }
 
@@ -770,10 +782,16 @@ export default function App() {
 
                 if (idx >= 0) {
                   const existing = pjs[idx];
+                  const mjCandyNewer =
+                    existing.candyBox &&
+                    (existing.dmPatchAt || 0) > (remoteHero.dmPatchAt || 0) &&
+                    (!remoteHero.candyBox?.pendingTaste ||
+                      remoteHero.candyBox.pendingTaste.requestedAt <= (existing.dmPatchAt || 0));
                   const merged: Character = {
                     ...existing,
                     ...remoteHero,
                     etats: remoteHero.etats || [],
+                    ...(mjCandyNewer ? { candyBox: existing.candyBox, dmPatchAt: existing.dmPatchAt } : {}),
                   };
                   if (JSON.stringify(existing) !== JSON.stringify(merged)) {
                     pjs[idx] = merged;
@@ -1084,7 +1102,7 @@ export default function App() {
       )}
 
       {/* Main View Area */}
-      <main className="flex-1 p-2 sm:p-3.5 max-w-7xl w-full mx-auto pb-8">
+      <main className="flex-1 px-2 sm:px-3 py-2 max-w-[1400px] w-full mx-auto pb-5">
         {appMode === 'pj' ? (
           !currentPj || showRosterHub ? (
             <CharacterRosterHub

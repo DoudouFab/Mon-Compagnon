@@ -13,12 +13,22 @@
     --mana-bright: #8dbbff;
   }
 
+  html {
+    font-size: 17px;
+  }
+
   body {
     font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    line-height: 1.32;
+  }
+
+  p, li, dd, td, th {
+    line-height: 1.32;
   }
 
   h1, h2, h3, h4, .font-serif-co {
     font-family: 'Cinzel', Georgia, serif;
+    line-height: 1.22;
   }
 }
 
