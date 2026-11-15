@@ -711,34 +711,36 @@ export const FamilierCreatorModal: React.FC<FamilierCreatorModalProps> = ({
               </div>
             </div>
 
-            <div className="md:col-span-7 bg-[#14100c] border border-[#3d3023] rounded-xl p-3">
+            <div className="md:col-span-7 bg-[#14100c] border border-[#3d3023] rounded-xl px-3 py-2">
               <span className="text-[10px] font-bold uppercase text-[#d4a84a] block mb-1.5">
                 6 Caractéristiques &amp; Modificateurs
               </span>
-              <div className="grid grid-cols-6 gap-1.5">
+              <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5">
                 {CARAC_LIST.map((c) => {
                   const val = caracs[c] ?? 10;
                   const mod = getMod(val);
                   return (
-                    <div key={c} className="bg-[#231c15] border border-[#30251a] rounded-lg p-1.5 text-center">
-                      <span className="text-[9px] font-bold text-[#9e907d] block">{c}</span>
-                      <input
-                        type="number"
-                        min={1}
-                        max={26}
-                        value={val}
-                        onChange={(e) =>
-                          setCaracs((prev) => ({ ...prev, [c]: parseInt(e.target.value, 10) || 10 }))
-                        }
-                        className="w-full text-center font-serif-co font-bold text-sm text-[#ede3d1] bg-transparent outline-none"
-                      />
-                      <span
-                        className={`text-[10px] font-mono font-bold ${
-                          mod >= 0 ? 'text-[#6fa85b]' : 'text-[#cf5544]'
-                        }`}
-                      >
-                        {mod >= 0 ? `+${mod}` : mod}
-                      </span>
+                    <div key={c} className="bg-[#231c15] border border-[#30251a] rounded-lg px-1.5 py-1 text-center flex flex-col items-center gap-0.5">
+                      <span className="text-[9px] font-bold text-[#9e907d]">{c}</span>
+                      <div className="flex items-center justify-center gap-1">
+                        <input
+                          type="number"
+                          min={1}
+                          max={26}
+                          value={val}
+                          onChange={(e) =>
+                            setCaracs((prev) => ({ ...prev, [c]: parseInt(e.target.value, 10) || 10 }))
+                          }
+                          className="w-8 text-center font-serif-co font-bold text-sm text-[#ede3d1] bg-[#14100c]/80 border border-[#30251a] rounded py-0.5 outline-none"
+                        />
+                        <span
+                          className={`text-[10px] font-mono font-bold ${
+                            mod >= 0 ? 'text-[#6fa85b]' : 'text-[#cf5544]'
+                          }`}
+                        >
+                          {mod >= 0 ? `+${mod}` : mod}
+                        </span>
+                      </div>
                     </div>
                   );
                 })}

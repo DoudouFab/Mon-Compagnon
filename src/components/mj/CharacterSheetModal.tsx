@@ -283,26 +283,28 @@ export const CharacterSheetModal: React.FC<CharacterSheetModalProps> = ({
         </div>
 
         {/* Bloc 6 Caractéristiques (FOR, DEX, CON, INT, SAG, CHA) */}
-        <div className="bg-[#231c15] border border-[#3d3023] rounded-xl p-3.5 space-y-2">
+        <div className="bg-[#231c15] border border-[#3d3023] rounded-xl px-3 py-2 space-y-1.5">
           <span className="text-[10px] font-bold text-[#d4a84a] uppercase tracking-wider block">
             Caractéristiques &amp; Modificateurs
           </span>
-          <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 text-center">
+          <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5 text-center">
             {CARAC_LIST.map((c) => {
               const baseVal = pj.base?.[c] || 10;
               const racialMod = pj.rb?.[c] || 0;
               const totalVal = baseVal + racialMod;
               const mod = st ? st.m[c] : 0;
               return (
-                <div key={c} className="p-2 bg-[#181410] border border-[#30251a] rounded-lg">
-                  <span className="text-[10px] text-[#9e907d] uppercase font-bold block">{c}</span>
-                  <b className="font-serif-co text-lg text-[#ede3d1]">{totalVal}</b>
-                  <div
-                    className={`text-xs font-bold font-mono ${
-                      mod >= 0 ? 'text-[#6fa85b]' : 'text-[#cf5544]'
-                    }`}
-                  >
-                    {mod >= 0 ? `+${mod}` : mod}
+                <div key={c} className="px-2 py-1.5 bg-[#181410] border border-[#30251a] rounded-lg flex flex-col items-center gap-0.5">
+                  <span className="text-[10px] text-[#9e907d] uppercase font-bold">{c}</span>
+                  <div className="flex items-baseline justify-center gap-1.5">
+                    <b className="font-serif-co text-base text-[#ede3d1]">{totalVal}</b>
+                    <span
+                      className={`text-xs font-bold font-mono ${
+                        mod >= 0 ? 'text-[#6fa85b]' : 'text-[#cf5544]'
+                      }`}
+                    >
+                      {mod >= 0 ? `+${mod}` : mod}
+                    </span>
                   </div>
                 </div>
               );

@@ -1186,23 +1186,23 @@ export const PjSheet: React.FC<PjSheetProps> = ({
           </div>
 
           {/* 6 CARACTÉRISTIQUES */}
-          <div className="print-card bg-[#181410] border border-[#3d3023] rounded-xl p-4">
-            <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-              <h3 className="font-serif-co text-base font-bold text-[#f3d48d]">
+          <div className="print-card bg-[#181410] border border-[#3d3023] rounded-xl px-3 py-2.5">
+            <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
+              <h3 className="font-serif-co text-sm font-bold text-[#f3d48d]">
                 Caractéristiques &amp; Modificateurs
               </h3>
               <button
                 type="button"
                 onClick={() => setActiveCaracInfo('ALL')}
-                className="px-2.5 py-1 rounded-lg bg-[#231c15] hover:bg-[#32271d] border border-[#d4a84a]/50 text-[#f3d48d] text-xs font-semibold flex items-center gap-1.5 transition-all shadow-xs"
+                className="px-2 py-0.5 rounded bg-[#231c15] hover:bg-[#32271d] border border-[#d4a84a]/40 text-[#f3d48d] text-[11px] font-semibold flex items-center gap-1 transition-all"
                 title="Afficher le tableau officiel des actions et caractéristiques associées"
               >
-                <Info className="w-3.5 h-3.5 text-[#d4a84a]" />
-                <span>Guide des Actions (exemples &amp; tests)</span>
+                <Info className="w-3 h-3 text-[#d4a84a]" />
+                <span>Guide des Actions</span>
               </button>
             </div>
 
-            <div className="grid grid-cols-3 sm:grid-cols-6 gap-2.5">
+            <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5">
               {CARAC_LIST.map((c) => {
                 const total = (pj.base[c] || 10) + (pj.rb[c] || 0);
                 const mod = getMod(total);
@@ -1211,36 +1211,47 @@ export const PjSheet: React.FC<PjSheetProps> = ({
                 return (
                   <div
                     key={c}
-                    className="bg-[#231c15] border border-[#3d3023] hover:border-[#d4a84a]/60 rounded-lg p-2.5 text-center flex flex-col items-center justify-between relative group transition-all"
+                    className="bg-[#231c15] border border-[#3d3023] hover:border-[#d4a84a]/60 rounded-lg px-2 py-1.5 flex flex-col justify-between gap-1 transition-all"
                   >
-                    <div className="w-full flex items-center justify-between pb-1">
-                      <small className="text-[11px] font-bold uppercase tracking-wider text-[#9e907d]">
-                        {c}
-                      </small>
+                    <div className="flex items-center justify-between gap-1">
+                      <div className="flex items-baseline gap-1 min-w-0">
+                        <small className="text-[11px] font-bold uppercase tracking-wider text-[#9e907d]">
+                          {c}
+                        </small>
+                        {rb !== 0 && (
+                          <span
+                            className="text-[9px] text-[#9e907d] font-mono"
+                            title={`Bonus racial : ${rb > 0 ? `+${rb}` : rb}`}
+                          >
+                            ({rb > 0 ? `+${rb}` : rb})
+                          </span>
+                        )}
+                      </div>
                       <button
                         type="button"
                         onClick={() => setActiveCaracInfo(c)}
-                        className="p-1.5 rounded text-[#9e907d] hover:text-[#f3d48d] hover:bg-[#3d3023] transition-colors cursor-pointer"
-                        title={`Afficher les actions et tests types pour ${c}`}
+                        className="p-0.5 rounded text-[#9e907d] hover:text-[#f3d48d] hover:bg-[#3d3023] transition-colors cursor-pointer shrink-0"
+                        title={`Actions et tests types pour ${c}`}
                       >
-                        <Info className="w-3.5 h-3.5 text-[#d4a84a]" />
+                        <Info className="w-3 h-3 text-[#d4a84a]" />
                       </button>
                     </div>
 
-                    <input
-                      type="number"
-                      value={total}
-                      onChange={(e) => updateCarac(c, parseInt(e.target.value) || 10)}
-                      className="w-full text-center font-serif-co font-bold text-xl text-[#f3d48d] bg-transparent my-1 outline-none"
-                    />
-                    <div className="text-sm font-bold text-[#6fa85b]">
-                      {mod >= 0 ? `+${mod}` : mod}
-                    </div>
-                    {rb !== 0 && (
-                      <span className="text-[9px] text-[#9e907d]">
-                        race {rb > 0 ? `+${rb}` : rb}
+                    <div className="flex items-center justify-center gap-1.5">
+                      <input
+                        type="number"
+                        value={total}
+                        onChange={(e) => updateCarac(c, parseInt(e.target.value) || 10)}
+                        className="w-10 text-center font-serif-co font-bold text-base text-[#f3d48d] bg-[#181410] border border-[#3d3023]/70 focus:border-[#d4a84a] rounded py-0.5 outline-none"
+                      />
+                      <span
+                        className={`text-xs font-bold font-mono px-1.5 py-0.5 rounded bg-[#181410]/80 ${
+                          mod >= 0 ? 'text-[#6fa85b]' : 'text-[#cf5544]'
+                        }`}
+                      >
+                        {mod >= 0 ? `+${mod}` : mod}
                       </span>
-                    )}
+                    </div>
                   </div>
                 );
               })}

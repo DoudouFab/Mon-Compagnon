@@ -177,13 +177,13 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* 3. Actions principales alignées */}
         <div className="flex items-center gap-1.5 shrink-0">
-          {isMjAuthorized && (
+          {isMjAuthorized && appMode === 'mj' && (
             <a
               href="https://doudoufab.github.io/grimoire-jdr-ok-/"
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold bg-gradient-to-r from-[#2c1d12] to-[#1e130a] hover:from-[#3a2718] hover:to-[#2a1b0e] border border-[#d4a84a]/70 hover:border-[#f3d48d] text-[#f3d48d] hover:text-white transition-all shadow-xs whitespace-nowrap shrink-0"
-              title="Ouvrir le Grimoire interactif des Sorts (doudoufab) dans un nouvel onglet (MJ uniquement)"
+              title="Ouvrir le Grimoire JdR dans un nouvel onglet (Console MJ uniquement)"
             >
               <BookOpen className="w-3.5 h-3.5 text-[#d4a84a]" />
               <span>Grimoire JdR</span>
