@@ -535,9 +535,6 @@ export const CharacterSheetModal: React.FC<CharacterSheetModalProps> = ({
               <b className="font-serif-co text-lg text-[#f59e0b]">{pj.bourse?.pc || 0}</b>
             </div>
           </div>
-          <p className="text-[11px] text-[#9e907d] italic text-right">
-            1 PO = 10 PA • 1 PA = 10 PC (1 PO = 100 PC)
-          </p>
         </div>
         )}
 

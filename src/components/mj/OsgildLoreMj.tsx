@@ -1,13 +1,10 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Map,
   MapPin,
   Shield,
   Crown,
-  BookOpen,
   Sparkles,
-  ExternalLink,
-  Flame,
   Search,
   Copy,
   Check,
@@ -29,6 +26,12 @@ export const OsgildLoreMj: React.FC = () => {
   const [osgildTab, setOsgildTab] = useState<
     'geographie' | 'geopolitique' | 'institutions' | 'theologie'
   >('geographie');
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, behavior: 'auto' });
+    }
+  }, [osgildTab]);
 
   const [institutionSearch, setInstitutionSearch] = useState('');
   const [copiedAscii, setCopiedAscii] = useState<string | null>(null);
@@ -58,95 +61,66 @@ export const OsgildLoreMj: React.FC = () => {
 
   return (
     <div className="space-y-5 animate-fadeIn">
-      {/* Bannière d'en-tête Espace MJ Terres d'Osgild */}
-      <div className="bg-gradient-to-r from-[#2c1a11] via-[#1c130d] to-[#120f0d] border-2 border-[#d4a84a] rounded-2xl p-5 sm:p-6 shadow-2xl flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex items-start sm:items-center gap-3.5">
-          <div className="p-3 rounded-2xl bg-[#d4a84a]/20 text-[#f3d48d] border border-[#d4a84a]/50 shadow-md shrink-0">
-            <Map className="w-7 h-7 text-[#f3d48d]" />
-          </div>
-          <div>
-            <div className="flex flex-wrap items-center gap-2">
-              <h3 className="font-serif-co text-xl sm:text-2xl font-bold text-[#f3d48d]">
-                Les Terres d&apos;Osgild · Guide Officiel du Meneur de Jeu
-              </h3>
-              <span className="text-[10px] uppercase font-bold tracking-widest px-2.5 py-0.5 rounded bg-[#4d2417] text-[#ffd699] border border-[#d4a84a]/60">
-                🔒 Espace Réservé MJ
-              </span>
-            </div>
-            <p className="text-xs text-[#a0907d] mt-1 max-w-2xl leading-relaxed">
-              Panorama complet et détaillé de la <b>géographie, géopolitique, institutions, théologie, magie et forces en présence</b> dans le monde officiel de Chroniques Oubliées Fantasy.
-            </p>
-          </div>
-        </div>
-
-        {/* Bouton vers Grimoire JdR externe */}
-        <div className="shrink-0 flex items-center">
-          <a
-            href="https://doudoufab.github.io/grimoire-jdr-ok-/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#3d2415] to-[#26150b] border-2 border-[#d4a84a] text-[#f3d48d] hover:text-white hover:border-[#f3d48d] hover:shadow-[0_0_15px_rgba(212,168,74,0.4)] text-xs font-bold transition-all transform hover:scale-[1.02] cursor-pointer"
-            title="Consulter le Grimoire complet des Sorts Chroniques Oubliées dans un nouvel onglet"
-          >
-            <BookOpen className="w-4 h-4 text-[#d4a84a]" />
-            <span>📖 Grimoire JdR (Sorts)</span>
-            <ExternalLink className="w-3.5 h-3.5 text-[#a0907d]" />
-          </a>
-        </div>
+      {/* En-tête compact Terres d'Osgild */}
+      <div className="bg-[#181410] border border-[#3d3023] rounded-xl px-4 py-3 flex items-center gap-3">
+        <Map className="w-5 h-5 text-[#f3d48d] shrink-0" />
+        <h3 className="font-serif-co text-lg sm:text-xl font-bold text-[#f3d48d]">
+          Les Terres d&apos;Osgild · Guide MJ
+        </h3>
       </div>
 
       {/* Navigation par onglets dédiés pour le MJ */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 bg-[#120e0b] p-1.5 rounded-2xl border border-[#3d3023]">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 bg-[#120e0b] p-1.5 rounded-xl border border-[#3d3023]">
         <button
           type="button"
           onClick={() => setOsgildTab('geographie')}
-          className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+          className={`flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-bold transition-all cursor-pointer ${
             osgildTab === 'geographie'
               ? 'bg-[#d4a84a] text-[#120e0b] shadow-md'
               : 'text-[#cbb8a7] hover:text-[#f3d48d] hover:bg-[#201710]'
           }`}
         >
           <MapPin className="w-4 h-4" />
-          <span>1. Cartographie &amp; Géographie</span>
+          <span>Cartographie &amp; Géographie</span>
         </button>
 
         <button
           type="button"
           onClick={() => setOsgildTab('geopolitique')}
-          className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+          className={`flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-bold transition-all cursor-pointer ${
             osgildTab === 'geopolitique'
               ? 'bg-[#d4a84a] text-[#120e0b] shadow-md'
               : 'text-[#cbb8a7] hover:text-[#f3d48d] hover:bg-[#201710]'
           }`}
         >
           <Crown className="w-4 h-4" />
-          <span>2. Géopolitique &amp; Factions</span>
+          <span>Géopolitique &amp; Factions</span>
         </button>
 
         <button
           type="button"
           onClick={() => setOsgildTab('institutions')}
-          className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+          className={`flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-bold transition-all cursor-pointer ${
             osgildTab === 'institutions'
               ? 'bg-[#d4a84a] text-[#120e0b] shadow-md'
               : 'text-[#cbb8a7] hover:text-[#f3d48d] hover:bg-[#201710]'
           }`}
         >
           <Building className="w-4 h-4" />
-          <span>3. Institutions &amp; Ordres</span>
+          <span>Institutions &amp; Ordres</span>
         </button>
 
         <button
           type="button"
           onClick={() => setOsgildTab('theologie')}
-          className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+          className={`flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-bold transition-all cursor-pointer ${
             osgildTab === 'theologie'
               ? 'bg-[#d4a84a] text-[#120e0b] shadow-md'
               : 'text-[#cbb8a7] hover:text-[#f3d48d] hover:bg-[#201710]'
           }`}
         >
           <Sparkles className="w-4 h-4" />
-          <span>4. Théologie &amp; Croyances</span>
+          <span>Théologie &amp; Croyances</span>
         </button>
       </div>
 
@@ -157,12 +131,9 @@ export const OsgildLoreMj: React.FC = () => {
         <div className="space-y-5">
           <div className="bg-[#181410] border border-[#3d3023] rounded-2xl p-5 space-y-4 shadow-md">
             <div className="flex items-center justify-between border-b border-[#30251a] pb-3">
-              <div className="flex items-center gap-2">
-                <span className="font-mono text-base font-bold text-[#d4a84a]">1.</span>
-                <h4 className="font-serif-co text-lg font-bold text-[#f3d48d]">
-                  Cartographie et Géographie des Terres d&apos;Osgild
-                </h4>
-              </div>
+              <h4 className="font-serif-co text-lg font-bold text-[#f3d48d]">
+                Cartographie et Géographie des Terres d&apos;Osgild
+              </h4>
               <button
                 type="button"
                 onClick={() => copyAscii(OSGILD_GEOGRAPHY_ASCII, 'geo')}
@@ -244,12 +215,9 @@ export const OsgildLoreMj: React.FC = () => {
         <div className="space-y-5">
           <div className="bg-[#181410] border border-[#3d3023] rounded-2xl p-5 space-y-4 shadow-md">
             <div className="flex items-center justify-between border-b border-[#30251a] pb-3">
-              <div className="flex items-center gap-2">
-                <span className="font-mono text-base font-bold text-[#d4a84a]">2.</span>
-                <h4 className="font-serif-co text-lg font-bold text-[#f3d48d]">
-                  Géopolitique et Échiquier des Factions
-                </h4>
-              </div>
+              <h4 className="font-serif-co text-lg font-bold text-[#f3d48d]">
+                Géopolitique et Échiquier des Factions
+              </h4>
               <button
                 type="button"
                 onClick={() => copyAscii(OSGILD_FACTIONS_ASCII, 'fac')}
@@ -336,12 +304,9 @@ export const OsgildLoreMj: React.FC = () => {
         <div className="space-y-5">
           <div className="bg-[#181410] border border-[#3d3023] rounded-2xl p-5 space-y-4 shadow-md">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#30251a] pb-3">
-              <div className="flex items-center gap-2">
-                <span className="font-mono text-base font-bold text-[#d4a84a]">3.</span>
-                <h4 className="font-serif-co text-lg font-bold text-[#f3d48d]">
-                  Institutions, Académies et Ordres Savants
-                </h4>
-              </div>
+              <h4 className="font-serif-co text-lg font-bold text-[#f3d48d]">
+                Institutions, Académies et Ordres Savants
+              </h4>
               <div className="relative max-w-xs w-full">
                 <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-[#a0907d]" />
                 <input
@@ -406,12 +371,9 @@ export const OsgildLoreMj: React.FC = () => {
         <div className="space-y-5">
           <div className="bg-[#181410] border border-[#3d3023] rounded-2xl p-5 space-y-4 shadow-md">
             <div className="flex items-center justify-between border-b border-[#30251a] pb-3">
-              <div className="flex items-center gap-2">
-                <span className="font-mono text-base font-bold text-[#d4a84a]">4.</span>
-                <h4 className="font-serif-co text-lg font-bold text-[#f3d48d]">
-                  Théologie et Systèmes de Croyances
-                </h4>
-              </div>
+              <h4 className="font-serif-co text-lg font-bold text-[#f3d48d]">
+                Théologie et Systèmes de Croyances
+              </h4>
               <button
                 type="button"
                 onClick={() => copyAscii(OSGILD_PANTHEON_ASCII, 'pan')}

@@ -100,11 +100,6 @@ export const Header: React.FC<HeaderProps> = ({
             >
               {appMode === 'pj' ? 'Mon compagnon PJ' : 'Console MJ'}
             </h1>
-            <p className="hidden xl:block text-[10px] text-[#9e907d] whitespace-nowrap">
-              {appMode === 'pj'
-                ? 'Chroniques Oubliées · Fiche & Grimoire'
-                : "Chroniques Oubliées · Initiative & DRS"}
-            </p>
           </div>
         </button>
 
@@ -270,9 +265,6 @@ export const Header: React.FC<HeaderProps> = ({
             />
             <Sparkles className={`w-3 h-3 ${isTharneaActive ? 'text-[#f08be0]' : 'text-[#9e907d]'}`} />
             <span className="font-semibold">Extension Tharnéa</span>
-            {isTharneaActive && (
-              <span className="text-[10px] text-[#e5a8dc] font-mono">· 61 Mobs</span>
-            )}
           </label>
 
           {isMjAuthorized && (

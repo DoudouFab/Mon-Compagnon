@@ -133,6 +133,12 @@ export const PjSheet: React.FC<PjSheetProps> = ({
   const [renamingFamilierKey, setRenamingFamilierKey] = useState<string | null>(null);
   const [renamingFamilierValue, setRenamingFamilierValue] = useState<string>('');
 
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, behavior: 'auto' });
+    }
+  }, [activeTab]);
+
   if (!pj) {
     return (
       <div className="max-w-3xl mx-auto p-6 text-center">
@@ -426,11 +432,11 @@ export const PjSheet: React.FC<PjSheetProps> = ({
 
   // Lookup catalog entry ONLY for items the PJ already owns (or for name-matching ownership)
   const findCatalogEquipmentByName = (name: string): Equipment | undefined => {
-    const key = name.trim().toLowerCase();
+    const key = (name || '').trim().toLowerCase();
     if (!key) return undefined;
     return (
-      THARNEA_ARTIFACTS.find((x) => x.n.trim().toLowerCase() === key) ||
-      EQUIPEMENTS.find((x) => x.n.trim().toLowerCase() === key)
+      THARNEA_ARTIFACTS.find((x) => (x.n || '').trim().toLowerCase() === key) ||
+      EQUIPEMENTS.find((x) => (x.n || '').trim().toLowerCase() === key)
     );
   };
 
@@ -458,12 +464,12 @@ export const PjSheet: React.FC<PjSheetProps> = ({
   };
 
   const isItemOwnedByPj = (itemName: string): boolean => {
-    const key = itemName.trim().toLowerCase();
+    const key = (itemName || '').trim().toLowerCase();
     if (!key) return false;
-    if ((pj.armes || []).some((w) => w.n.trim().toLowerCase() === key)) return true;
+    if ((pj.armes || []).some((w) => (w.n || '').trim().toLowerCase() === key)) return true;
     if (pj.arm && pj.arm.trim().toLowerCase() === key) return true;
     if (pj.bou && pj.bou.trim().toLowerCase() === key) return true;
-    if ((pj.inventaire || []).some((it) => it.n.trim().toLowerCase() === key && (it.q ?? 1) > 0)) {
+    if ((pj.inventaire || []).some((it) => (it.n || '').trim().toLowerCase() === key && (it.q ?? 1) > 0)) {
       return true;
     }
     return false;
@@ -1102,21 +1108,13 @@ export const PjSheet: React.FC<PjSheetProps> = ({
                 </div>
               </div>
             ) : (
-              <div className="print-card bg-[#181410] border border-[#3d3023] rounded-xl p-4 flex flex-col justify-center text-center">
-                <span className="text-xs uppercase tracking-widest text-[#9e907d] font-bold block mb-1">
-                  Vocation Martiale
-                </span>
-                <p className="text-sm text-[#ede3d1]">
-                  Profil non magique. Vous utilisez votre endurance physique et vos capacités martiales au combat.
-                </p>
-                <div className="mt-3 flex items-center justify-center gap-2">
-                  <button
-                    onClick={onSendToMjTable}
-                    className="px-4 py-1.5 bg-[#231c15] hover:bg-[#32271d] border border-[#d4a84a]/50 text-[#f3d48d] rounded-lg text-xs font-semibold"
-                  >
-                    ⚔️ Synchroniser avec la Table MJ
-                  </button>
-                </div>
+              <div className="print-card bg-[#181410] border border-[#3d3023] rounded-xl p-4 flex items-center justify-center">
+                <button
+                  onClick={onSendToMjTable}
+                  className="px-4 py-2 bg-[#231c15] hover:bg-[#32271d] border border-[#d4a84a]/50 text-[#f3d48d] rounded-lg text-xs font-semibold cursor-pointer"
+                >
+                  ⚔️ Synchroniser avec la Table MJ
+                </button>
               </div>
             )}
           </div>
@@ -1143,8 +1141,8 @@ export const PjSheet: React.FC<PjSheetProps> = ({
             </div>
 
             {(pj.etats || []).length === 0 ? (
-              <p className="text-xs text-[#9e907d] italic bg-[#231c15] p-2.5 rounded-lg border border-[#3d3023]">
-                🛡️ Aucun état préjudiciable en cours. Le héros est en pleine possession de ses moyens physiques et mentaux. Cliquez sur « + Modifier les états » pour lui infliger une condition (aveuglé, étourdi, immobilisé...).
+              <p className="text-xs text-[#9e907d] italic">
+                Aucun état préjudiciable actif.
               </p>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 mt-2">
@@ -1360,9 +1358,6 @@ export const PjSheet: React.FC<PjSheetProps> = ({
                         <span className="text-[10px] bg-[#1e2f47] text-[#b0d7ff] px-2 py-0.5 rounded font-bold">
                           {ar.t}
                         </span>
-                        <span className="text-[10px] text-[#9e907d] group-hover:text-[#d4a84a]">
-                          (Cliquer pour détails)
-                        </span>
                       </div>
                       <div className="text-xs text-[#9e907d] mt-0.5">
                         Dégâts : <b className="text-[#ede3d1]">{ar.dm}</b> • Portée : {ar.por} • Critique : {ar.crit}
@@ -1400,14 +1395,9 @@ export const PjSheet: React.FC<PjSheetProps> = ({
                 <div className="p-1.5 rounded-lg bg-[#d4a84a]/20 border border-[#d4a84a]/40 text-[#f3d48d]">
                   <Coins className="w-4 h-4" />
                 </div>
-                <div>
-                  <h3 className="font-serif-co text-base font-bold text-[#f3d48d] flex items-center gap-2">
-                    <span>Bourse &amp; Trésorerie de l'Aventurier</span>
-                  </h3>
-                  <p className="text-[11px] text-[#9e907d]">
-                    Règle officielle COF : <b>1 PO = 10 PA</b> • <b>1 PA = 10 PC</b> (1 PO = 100 PC)
-                  </p>
-                </div>
+                <h3 className="font-serif-co text-base font-bold text-[#f3d48d]">
+                  Bourse &amp; Trésorerie
+                </h3>
               </div>
 
               <div className="flex items-center gap-2 flex-wrap">
@@ -1434,7 +1424,6 @@ export const PjSheet: React.FC<PjSheetProps> = ({
                   <span className="text-xs font-bold text-[#f3d48d] flex items-center gap-1.5">
                     <span className="text-base select-none">🟡</span> Pièces d'Or (PO)
                   </span>
-                  <span className="text-[10px] text-[#9e907d] font-mono">1 PO = 10 PA</span>
                 </div>
                 <div className="my-1.5 flex items-center justify-between">
                   <input
@@ -1479,7 +1468,6 @@ export const PjSheet: React.FC<PjSheetProps> = ({
                   <span className="text-xs font-bold text-[#cbd5e1] flex items-center gap-1.5">
                     <span className="text-base select-none">⚪</span> Pièces d'Argent (PA)
                   </span>
-                  <span className="text-[10px] text-[#8ea0b5] font-mono">1 PA = 10 PC</span>
                 </div>
                 <div className="my-1.5 flex items-center justify-between">
                   <input
@@ -1524,7 +1512,6 @@ export const PjSheet: React.FC<PjSheetProps> = ({
                   <span className="text-xs font-bold text-[#f59e0b] flex items-center gap-1.5">
                     <span className="text-base select-none">🟤</span> Pièces de Cuivre (PC)
                   </span>
-                  <span className="text-[10px] text-[#b87333] font-mono">10 PC = 1 PA</span>
                 </div>
                 <div className="my-1.5 flex items-center justify-between">
                   <input
@@ -1619,10 +1606,6 @@ export const PjSheet: React.FC<PjSheetProps> = ({
                   1 PA ➔ 10 PC
                 </button>
               </div>
-
-              <span className="text-[11px] text-[#9e907d] italic">
-                Synchronisé en direct avec la console MJ
-              </span>
             </div>
           </div>
 
@@ -1873,8 +1856,8 @@ export const PjSheet: React.FC<PjSheetProps> = ({
                   return isWayAccessible(way.profil);
                 }
                 if (selectedWayProfil !== 'all') {
-                  if (selectedWayProfil === 'race') return way.profil.startsWith('race:');
-                  return way.profil.toLowerCase() === selectedWayProfil.toLowerCase();
+                  if (selectedWayProfil === 'race') return (way.profil || '').startsWith('race:');
+                  return (way.profil || '').toLowerCase() === selectedWayProfil.toLowerCase();
                 }
                 return true;
               })
@@ -1882,9 +1865,9 @@ export const PjSheet: React.FC<PjSheetProps> = ({
                 if (!waySearchQuery) return true;
                 const q = waySearchQuery.toLowerCase();
                 return (
-                  way.nom.toLowerCase().includes(q) ||
-                  way.profil.toLowerCase().includes(q) ||
-                  way.r.some((r) => r.n.toLowerCase().includes(q) || r.t.toLowerCase().includes(q))
+                  (way.nom || '').toLowerCase().includes(q) ||
+                  (way.profil || '').toLowerCase().includes(q) ||
+                  (way.r || []).some((r) => (r.n || '').toLowerCase().includes(q) || (r.t || '').toLowerCase().includes(q))
                 );
               })
               .sort(([keyA, wayA], [keyB, wayB]) => {
@@ -2945,21 +2928,16 @@ export const PjSheet: React.FC<PjSheetProps> = ({
               /* ÉTAT DÉVERROUILLÉ PAR LE MJ : SUIVI DES COMPAGNONS / FAMILIERS ATTRIBUÉS PAR LE MJ */
               <div className="print-card bg-[#111b14] border-2 border-[#4a8556] rounded-2xl p-4 space-y-4 shadow-lg">
                 <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#25452c] pb-3">
-                  <div>
-                    <h3 className="font-serif-co text-lg font-bold text-[#9ff0b2] flex items-center gap-2">
-                      <span>🐾</span>
-                      <span>Mon Compagnon / Familier</span>
-                      <span className="text-xs px-2 py-0.5 rounded bg-[#183320] border border-[#3a7048] text-[#d5fce0] font-mono">
-                        {familiers.length} lié(s)
-                      </span>
-                      <span className="text-[10px] px-2 py-0.5 rounded bg-[#15331d] border border-[#6fa85b] text-[#86efac] font-bold uppercase">
-                        🔓 Déverrouillé par le MJ
-                      </span>
-                    </h3>
-                    <p className="text-[11px] text-[#8db898]">
-                      Suivez en direct les PV, PM, états et capacités du compagnon ou familier attribué par votre Meneur de Jeu.
-                    </p>
-                  </div>
+                  <h3 className="font-serif-co text-lg font-bold text-[#9ff0b2] flex items-center gap-2">
+                    <span>🐾</span>
+                    <span>Mon Compagnon / Familier</span>
+                    <span className="text-xs px-2 py-0.5 rounded bg-[#183320] border border-[#3a7048] text-[#d5fce0] font-mono">
+                      {familiers.length} lié(s)
+                    </span>
+                    <span className="text-[10px] px-2 py-0.5 rounded bg-[#15331d] border border-[#6fa85b] text-[#86efac] font-bold uppercase">
+                      🔓 Déverrouillé par le MJ
+                    </span>
+                  </h3>
                 </div>
 
                 {familiers.length === 0 ? (
@@ -3297,7 +3275,7 @@ export const PjSheet: React.FC<PjSheetProps> = ({
             <div className="p-4 overflow-y-auto flex-1 space-y-2.5">
               {catalogDrawer === 'sorts' &&
                 SORTS_CATALOG.filter((s) =>
-                  (s.n + s.t + (s.voie || '')).toLowerCase().includes(catalogQuery.toLowerCase())
+                  ((s.n || '') + (s.t || '') + (s.voie || '')).toLowerCase().includes(catalogQuery.toLowerCase())
                 ).map((s, idx) => (
                   <div
                     key={idx}
@@ -3460,9 +3438,9 @@ export const PjSheet: React.FC<PjSheetProps> = ({
                           if (!q) return true;
                           const owned = isItemOwnedByPj(it.n);
                           if (owned) {
-                            return (it.n + (it.desc || '') + (it.props || '') + (it.cat || '')).toLowerCase().includes(q);
+                            return ((it.n || '') + (it.desc || '') + (it.props || '') + (it.cat || '')).toLowerCase().includes(q);
                           }
-                          return (it.n + (it.cat || '')).toLowerCase().includes(q);
+                          return ((it.n || '') + (it.cat || '')).toLowerCase().includes(q);
                         })
                         .map((it, idx) => {
                     const owned = isItemOwnedByPj(it.n);
@@ -4468,11 +4446,6 @@ export const PjSheet: React.FC<PjSheetProps> = ({
             : undefined
         }
       />
-
-      {/* Discreet Signature */}
-      <div className="text-right text-[10px] text-[#4d3d2e] font-mono tracking-wider pt-2 select-none">
-        Doudou, F.P
-      </div>
     </div>
   );
 };

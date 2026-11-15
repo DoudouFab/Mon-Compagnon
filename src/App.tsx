@@ -176,11 +176,13 @@ export default function App() {
       }
       setAppMode('mj');
       window.location.hash = '#mj001';
+      window.scrollTo({ top: 0, behavior: 'auto' });
       if (realtimeTable.room) realtimeTable.setRole('mj', currentPjRef.current);
       return;
     }
     setAppMode(mode);
     window.location.hash = '#pj';
+    window.scrollTo({ top: 0, behavior: 'auto' });
     if (realtimeTable.room) realtimeTable.setRole('pj', currentPjRef.current);
   };
 
@@ -225,6 +227,7 @@ export default function App() {
     setIsMjAuthorized(false);
     setAppMode('pj');
     window.location.hash = '#pj';
+    window.scrollTo({ top: 0, behavior: 'auto' });
     if (realtimeTable.room) realtimeTable.setRole('pj', currentPjRef.current);
     try {
       localStorage.removeItem('cof_mj_access');
@@ -238,6 +241,7 @@ export default function App() {
     setIsMjAuthorized(true);
     setAppMode('mj');
     window.location.hash = '#mj001';
+    window.scrollTo({ top: 0, behavior: 'auto' });
     if (realtimeTable.room) realtimeTable.setRole('mj', currentPjRef.current);
     showToast('🔓 Accès MJ déverrouillé ! Bienvenue dans la Console du Meneur.');
   };
@@ -701,7 +705,7 @@ export default function App() {
     const map = new Map<string, Character>();
     [...tableData.pjs, ...connectedHeroes].forEach((p) => {
       if (!p || !p.name || p.isFamilier) return;
-      const key = p.id || p.name.toLowerCase();
+      const key = p.id || (p.name || '').toLowerCase();
       if (!map.has(key)) map.set(key, p);
     });
     return Array.from(map.values());
@@ -728,7 +732,10 @@ export default function App() {
       },
       onHeroPatchedByDm: (heroId, _patch, updatedHero) => {
         const cur = currentPjRef.current;
-        if (cur && (cur.id === heroId || cur.name.toLowerCase() === updatedHero.name.toLowerCase())) {
+        if (
+          cur &&
+          (cur.id === heroId || (cur.name || '').toLowerCase() === (updatedHero?.name || '').toLowerCase())
+        ) {
           applyLocalPjUpdate(updatedHero, false);
           showToast(`✨ Fiche mise à jour en direct par le Meneur de Jeu !`);
         }
@@ -873,7 +880,7 @@ export default function App() {
               const incomingFamiliers = incomingHeroes.flatMap((h) => h.familiers || []);
               const combatants = prev.combatants.map((c: Combatant) => {
                 const match = incomingHeroes.find(
-                  (h) => (h.id && c.pjRefId === h.id) || (h.name && c.n.toLowerCase().startsWith(h.name.toLowerCase()))
+                  (h) => (h.id && c.pjRefId === h.id) || (h.name && (c.n || '').toLowerCase().startsWith(h.name.toLowerCase()))
                 );
                 if (match) {
                   return {
@@ -930,14 +937,15 @@ export default function App() {
                 e.senderRole === 'pj' &&
                 curPj &&
                 ((e.senderHeroId && e.senderHeroId === curPj.id) ||
-                  e.senderName.toLowerCase() === curPj.name.toLowerCase())
+                  (e.senderName || '').toLowerCase() === (curPj.name || '').toLowerCase())
               )
             );
           });
           const lastNew = newlyArrivedMsgs[newlyArrivedMsgs.length - 1];
           if (lastNew) {
+            const msgSummary = String(lastNew.summary || '');
             showToast(
-              `${lastNew.scope === 'secret' ? '🔒 Message secret' : '💬 Message'} de ${lastNew.senderName} : ${lastNew.summary.slice(0, 60)}${lastNew.summary.length > 60 ? '…' : ''}`
+              `${lastNew.scope === 'secret' ? '🔒 Message secret' : '💬 Message'} de ${lastNew.senderName || 'Inconnu'} : ${msgSummary.slice(0, 60)}${msgSummary.length > 60 ? '…' : ''}`
             );
           }
         }
@@ -989,7 +997,7 @@ export default function App() {
     if (!currentPj) return;
     let pjs = [...tableData.pjs];
     const idx = pjs.findIndex(
-      (p) => !p.isFamilier && ((p.id && p.id === currentPj.id) || p.name.toLowerCase() === currentPj.name.toLowerCase())
+      (p) => !p.isFamilier && ((p.id && p.id === currentPj.id) || (p.name || '').toLowerCase() === (currentPj.name || '').toLowerCase())
     );
 
     if (idx >= 0) {
@@ -1085,9 +1093,15 @@ export default function App() {
               // Full MJ campaign master
               setTableData((prev) => ({
                 ...prev,
-                ...data,
                 pjs: sanitizeCharacterList(data.pjs),
                 combatants: sanitizeCombatantList(data.combatants),
+                bestiaire: Array.isArray(data.bestiaire) ? data.bestiaire : prev.bestiaire,
+                equipements: Array.isArray(data.equipements) ? data.equipements : prev.equipements,
+                regles: Array.isArray(data.regles) ? data.regles : prev.regles,
+                etats: Array.isArray(data.etats) ? data.etats : prev.etats,
+                races: Array.isArray(data.races) ? data.races : prev.races,
+                profils: Array.isArray(data.profils) ? data.profils : prev.profils,
+                sorts: Array.isArray(data.sorts) ? data.sorts : prev.sorts,
               }));
               showToast('Campagne Master MJ chargée avec succès !');
             } else if (Array.isArray(data) && data[0]?.nc !== undefined) {
@@ -1302,7 +1316,7 @@ export default function App() {
             . Compagnon PJ &amp; Console MJ optimisés pour table physique et virtuelle.
           </p>
           <div className="flex items-center gap-3 shrink-0">
-            {!isMjAuthorized ? (
+            {!isMjAuthorized && (
               <button
                 type="button"
                 onClick={() => setIsMjPasswordModalOpen(true)}
@@ -1310,15 +1324,6 @@ export default function App() {
                 title="Accès réservé au Meneur de Jeu"
               >
                 🔒 Accès MJ
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={handleLockToPj}
-                className="text-[10px] text-[#854d31] hover:text-[#d4a84a] transition-colors cursor-pointer"
-                title="Masquer la Console MJ pour repasser en vue joueur"
-              >
-                🔒 Verrouiller MJ
               </button>
             )}
             <span className="text-[10px] text-[#6d5e4b] font-mono tracking-wider select-none">

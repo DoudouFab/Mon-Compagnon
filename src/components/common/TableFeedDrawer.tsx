@@ -109,7 +109,7 @@ export const TableFeedDrawer: React.FC<TableFeedDrawerProps> = ({
           item.targetHeroId === mjHeroFilter ||
           item.senderHeroId === mjHeroFilter ||
           (item.targetHeroName || '').toLowerCase() === mjHeroFilter.toLowerCase() ||
-          (item.senderRole === 'pj' && item.senderName.toLowerCase() === mjHeroFilter.toLowerCase());
+          (item.senderRole === 'pj' && (item.senderName || '').toLowerCase() === mjHeroFilter.toLowerCase());
         if (!matchTarget && item.scope !== 'all') return false;
         if (!matchTarget && item.scope === 'all' && item.senderRole === 'pj') return false;
       }
@@ -296,7 +296,7 @@ export const TableFeedDrawer: React.FC<TableFeedDrawerProps> = ({
                     item.senderRole === 'pj' &&
                     currentPj &&
                     ((item.senderHeroId && item.senderHeroId === currentPj.id) ||
-                      item.senderName.toLowerCase() === currentPj.name.toLowerCase()));
+                      (item.senderName || '').toLowerCase() === (currentPj.name || '').toLowerCase()));
 
                 return (
                   <div

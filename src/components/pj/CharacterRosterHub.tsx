@@ -46,18 +46,14 @@ export const CharacterRosterHub: React.FC<CharacterRosterHubProps> = ({
       {/* Welcome Hero Banner */}
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#291712] via-[#1a130e] to-[#120f0d] border border-[#d4a84a]/40 shadow-2xl p-6 sm:p-8">
         <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
-          <div className="space-y-2 text-center md:text-left">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#3d2a17] border border-[#d4a84a]/40 text-[#f3d48d] text-xs font-bold tracking-wide">
-              <Shield className="w-3.5 h-3.5 text-[#d4a84a]" />
-              Compagnon du Joueur · Chroniques Oubliées
-            </div>
+          <div className="space-y-1.5 text-center md:text-left">
             <h2 className="font-serif-co text-2xl sm:text-3xl font-bold text-[#f3d48d]">
-              {roster.length === 0 ? "Commencer votre Aventure" : "Sélection & Gestion des Héros"}
+              {roster.length === 0 ? "Commencer votre Aventure" : "Mes Héros"}
             </h2>
             <p className="text-xs sm:text-sm text-[#b0a08d] max-w-xl">
               {roster.length === 0
-                ? "Bienvenue ! Vous n'avez pas encore de personnage. Créez votre premier héros avec l'assistant guidé ou importez votre fichier de sauvegarde JSON pour commencer à jouer."
-                : `Vous avez ${roster.length} personnage${roster.length > 1 ? 's' : ''} enregistré${roster.length > 1 ? 's' : ''}. Choisissez le héros à incarner à votre table ou ajoutez-en un nouveau.`}
+                ? "Créez votre premier personnage avec l'assistant guidé ou importez une sauvegarde JSON."
+                : `${roster.length} personnage${roster.length > 1 ? 's' : ''} enregistré${roster.length > 1 ? 's' : ''}.`}
             </p>
           </div>
 
@@ -106,13 +102,13 @@ export const CharacterRosterHub: React.FC<CharacterRosterHubProps> = ({
               <Sparkles className="w-6 h-6" />
             </div>
             <h3 className="font-serif-co text-lg font-bold text-[#f3d48d] mb-1">
-              Option 1 : Créer votre Héros de A à Z
+              Créer votre Héros
             </h3>
             <p className="text-xs text-[#9e907d] leading-relaxed mb-4">
-              Laissez-vous guider par l'assistant officiel de Chroniques Oubliées : nom, choix de la race (Humain, Elfe, Nain, etc.), profil (Guerrier, Voleur, Magicien...), caractéristiques et choix de vos 2 premières capacités.
+              Assistant guidé : nom, race, profil, caractéristiques et 2 premières capacités.
             </p>
             <span className="inline-flex items-center gap-1.5 text-xs font-bold text-[#d4a84a] group-hover:underline">
-              Lancer la création de personnage →
+              Lancer la création →
             </span>
           </div>
 
@@ -121,10 +117,10 @@ export const CharacterRosterHub: React.FC<CharacterRosterHubProps> = ({
               <FileUp className="w-6 h-6 text-[#d4a84a]" />
             </div>
             <h3 className="font-serif-co text-lg font-bold text-[#ede3d1] mb-1">
-              Option 2 : Importer un fichier JSON
+              Importer un fichier JSON
             </h3>
             <p className="text-xs text-[#9e907d] leading-relaxed mb-4">
-              Vous avez déjà une fiche exportée ou le MJ vous a transmis votre personnage ? Chargez simplement votre fichier <code>.json</code> pour retrouver instantanément toutes vos statistiques et votre équipement.
+              Chargez un fichier <code>.json</code> exporté ou transmis par votre MJ.
             </p>
             <span className="inline-flex items-center gap-1.5 text-xs font-bold text-[#ede3d1] group-hover:underline">
               Parcourir mes fichiers JSON →

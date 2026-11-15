@@ -147,11 +147,21 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
     | 'grimoire'
   >('combat');
 
+  // Tharnea Codex Tab states
+  const [tharneaSubTab, setTharneaSubTab] = useState<'monstres' | 'artefacts' | 'bonbons' | 'lore'>('monstres');
+  const [tharneaSearch, setTharneaSearch] = useState('');
+
   React.useEffect(() => {
     if (!isTharneaActive && activeTab === 'tharnea') {
       setActiveTab('combat');
     }
   }, [isTharneaActive, activeTab]);
+
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, behavior: 'auto' });
+    }
+  }, [activeTab, tharneaSubTab]);
 
   const [isImportCodeModalOpen, setIsImportCodeModalOpen] = useState(false);
   const [transferCodeInput, setTransferCodeInput] = useState('');
@@ -169,10 +179,6 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
   const [bestNcFilter, setBestNcFilter] = useState('');
   const [bestFamFilter, setBestFamFilter] = useState('');
   const [bestSourceFilter, setBestSourceFilter] = useState<'all' | 'drs' | 'tharnea'>('all');
-
-  // Tharnea Codex Tab states
-  const [tharneaSubTab, setTharneaSubTab] = useState<'monstres' | 'artefacts' | 'bonbons' | 'lore'>('monstres');
-  const [tharneaSearch, setTharneaSearch] = useState('');
   const [isPnjCreatorOpen, setIsPnjCreatorOpen] = useState(false);
   const [isFamilierCreatorOpen, setIsFamilierCreatorOpen] = useState(false);
   const [editingFamilier, setEditingFamilier] = useState<Character | null>(null);
@@ -1509,9 +1515,15 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
         if (parsed && typeof parsed === 'object') {
           onUpdateTableData({
             ...tableData,
-            ...parsed,
             pjs: parsed.pjs ? sanitizeCharacterList(parsed.pjs) : tableData.pjs,
             combatants: parsed.combatants ? sanitizeCombatantList(parsed.combatants) : tableData.combatants,
+            bestiaire: Array.isArray(parsed.bestiaire) ? parsed.bestiaire : tableData.bestiaire,
+            equipements: Array.isArray(parsed.equipements) ? parsed.equipements : tableData.equipements,
+            regles: Array.isArray(parsed.regles) ? parsed.regles : tableData.regles,
+            etats: Array.isArray(parsed.etats) ? parsed.etats : tableData.etats,
+            races: Array.isArray(parsed.races) ? parsed.races : tableData.races,
+            profils: Array.isArray(parsed.profils) ? parsed.profils : tableData.profils,
+            sorts: Array.isArray(parsed.sorts) ? parsed.sorts : tableData.sorts,
           });
           success('Campagne Master restaurée avec succès !');
         }
@@ -1598,43 +1610,30 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
 
   return (
     <div className="max-w-[1400px] mx-auto space-y-2.5">
-      {/* MJ Console Sub-Header & Controls (Compact) */}
-      <div className="bg-gradient-to-r from-[#2e1313] via-[#1c1410] to-[#120f0d] border border-[#9c2a2b]/70 rounded-xl px-3 py-1.5 shadow-md">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="flex items-center gap-2 flex-wrap">
-            <h2 className="font-serif-co text-base sm:text-lg font-bold text-[#ffb8b8] leading-tight">
-              Console du Meneur de Jeu (MJ)
-            </h2>
-            <span className="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-[#4d1f1c] text-[#ff9d9d] border border-[#cf5544]/50">
-              Hub &amp; DRS
-            </span>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-1.5">
-            <button
-              onClick={handleDownloadOfflineMjHtml}
-              className="px-2.5 py-1 rounded-lg bg-gradient-to-r from-[#8b2628] to-[#691c1d] hover:brightness-110 text-[11px] font-bold text-white flex items-center gap-1 shadow-xs cursor-pointer"
-              title="Télécharger l'application HTML autonome du MJ pour jouer hors-ligne"
-            >
-              <Download className="w-3 h-3" /> MJ Offline (.html)
-            </button>
-            <button
-              onClick={handleSaveMaster}
-              className="px-2.5 py-1 rounded-lg bg-[#231c15] hover:bg-[#32271d] border border-[#3d3023] hover:border-[#d4a84a] text-[11px] font-semibold text-[#f3d48d] flex items-center gap-1 shadow-xs cursor-pointer"
-            >
-              <FileDown className="w-3 h-3 text-[#d4a84a]" /> Sauvegarder (JSON)
-            </button>
-            <label className="px-2.5 py-1 rounded-lg bg-[#231c15] hover:bg-[#32271d] border border-[#3d3023] hover:border-[#d4a84a] text-[11px] font-semibold text-[#ede3d1] flex items-center gap-1 cursor-pointer shadow-xs">
-              <FileUp className="w-3 h-3 text-[#d4a84a]" /> Charger Campagne
-              <input
-                type="file"
-                accept=".json"
-                className="hidden"
-                onChange={handleLoadMaster}
-              />
-            </label>
-          </div>
-        </div>
+      {/* MJ Controls Bar (Compact) */}
+      <div className="flex flex-wrap items-center justify-end gap-1.5">
+        <button
+          onClick={handleDownloadOfflineMjHtml}
+          className="px-2.5 py-1 rounded-lg bg-gradient-to-r from-[#8b2628] to-[#691c1d] hover:brightness-110 text-[11px] font-bold text-white flex items-center gap-1 shadow-xs cursor-pointer"
+          title="Télécharger l'application HTML autonome du MJ pour jouer hors-ligne"
+        >
+          <Download className="w-3 h-3" /> MJ Offline (.html)
+        </button>
+        <button
+          onClick={handleSaveMaster}
+          className="px-2.5 py-1 rounded-lg bg-[#231c15] hover:bg-[#32271d] border border-[#3d3023] hover:border-[#d4a84a] text-[11px] font-semibold text-[#f3d48d] flex items-center gap-1 shadow-xs cursor-pointer"
+        >
+          <FileDown className="w-3 h-3 text-[#d4a84a]" /> Sauvegarder (JSON)
+        </button>
+        <label className="px-2.5 py-1 rounded-lg bg-[#231c15] hover:bg-[#32271d] border border-[#3d3023] hover:border-[#d4a84a] text-[11px] font-semibold text-[#ede3d1] flex items-center gap-1 cursor-pointer shadow-xs">
+          <FileUp className="w-3 h-3 text-[#d4a84a]" /> Charger Campagne
+          <input
+            type="file"
+            accept=".json"
+            className="hidden"
+            onChange={handleLoadMaster}
+          />
+        </label>
       </div>
 
       {/* Navigation Sub-Tabs for MJ */}
@@ -1915,7 +1914,7 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
           <div className="space-y-2.5">
             {tableData.combatants
               .filter((c) => {
-                const matchQ = (c.n + (c.notes || '')).toLowerCase().includes(combatSearch.toLowerCase());
+                const matchQ = ((c.n || '') + (c.notes || '')).toLowerCase().includes(combatSearch.toLowerCase());
                 let matchF = true;
                 if (combatFilter === 'pj') matchF = !!c.isPj;
                 else if (combatFilter === 'monstre') matchF = !c.isPj;
@@ -2157,7 +2156,7 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                     </div>
 
                     {/* ÉTATS PRÉJUDICIABLES DU COMBATTANT */}
-                    <div className="flex items-center gap-2 flex-wrap bg-[#14100c] px-2.5 py-1.5 rounded-lg border border-[#2d2218]">
+                    <div className="flex items-center gap-2 flex-wrap border-t border-[#2b2219] pt-2">
                       <span className="text-[11px] font-bold uppercase tracking-wider text-[#9e907d] shrink-0">
                         États :
                       </span>
@@ -2299,7 +2298,7 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
 
                     {/* Rappel express des armes équipées pour les PJ */}
                     {matchedPj && matchedPj.armes && matchedPj.armes.length > 0 && pjStats && (
-                      <div className="flex flex-wrap items-center gap-1.5 bg-[#120f0c] px-2.5 py-1.5 rounded-lg border border-[#2b2219] text-[11px]">
+                      <div className="flex flex-wrap items-center gap-1.5 border-t border-[#2b2219] pt-2 text-[11px]">
                         <span className="text-[#9e907d] font-bold uppercase text-[10px] mr-1">
                           Armes :
                         </span>
@@ -2324,7 +2323,7 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                     )}
 
                     {c.notes && (
-                      <p className="text-xs text-[#9e907d] bg-[#120f0c] p-2 rounded border border-[#261f18]">
+                      <p className="text-xs text-[#9e907d] border-t border-[#2b2219] pt-2">
                         {c.notes}
                       </p>
                     )}
@@ -2361,25 +2360,15 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                   <span className="text-xs px-2 py-0.5 rounded bg-[#231c15] border border-[#3d3023] text-[#ede3d1] font-semibold">
                     {tableData.pjs.length} héros
                   </span>
-                  <span
-                    className={`text-[11px] px-2 py-0.5 rounded-full font-medium flex items-center gap-1 ${
-                      onlineHeroes.length > 0
-                        ? 'bg-[#18301c] text-[#7fb069] border border-[#2b5431]'
-                        : 'bg-[#231c15] text-[#9e907d] border border-[#3d3023]'
-                    }`}
-                    title={
-                      onlineHeroes.length > 0
-                        ? `${onlineHeroes.length} joueur(s) connecté(s) en direct à la table`
-                        : 'Aucun joueur connecté en direct pour le moment'
-                    }
-                  >
+                  {onlineHeroes.length > 0 && (
                     <span
-                      className={`w-2 h-2 rounded-full ${
-                        onlineHeroes.length > 0 ? 'bg-[#7fb069] animate-pulse' : 'bg-[#665a4c]'
-                      }`}
-                    />
-                    {onlineHeroes.length > 0 ? `${onlineHeroes.length} joueur(s) en ligne` : '0 en ligne'}
-                  </span>
+                      className="text-[11px] px-2 py-0.5 rounded-full font-medium flex items-center gap-1 bg-[#18301c] text-[#7fb069] border border-[#2b5431]"
+                      title={`${onlineHeroes.length} joueur(s) connecté(s) en direct à la table`}
+                    >
+                      <span className="w-2 h-2 rounded-full bg-[#7fb069] animate-pulse" />
+                      {onlineHeroes.length} en ligne
+                    </span>
+                  )}
                 </div>
               </div>
 
@@ -2489,7 +2478,7 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                     </span>
                   </div>
                   <p className="text-[11px] text-[#a0907d]">
-                    Règle officielle COF : <b>1 PO = 10 PA</b> • <b>1 PA = 10 PC</b> (1 PO = 100 PC) • ~{avgGoldPerPj} PO / PJ
+                    Moyenne : ~{avgGoldPerPj} PO / PJ
                   </p>
                 </div>
               </div>
@@ -2573,11 +2562,8 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div>
                     <h4 className="font-serif-co text-sm font-bold text-[#bfdbfe] flex items-center gap-1.5">
-                      <BookOpen className="w-4 h-4 text-[#60a5fa]" /> Base Pré-établie : PNJ Pré-tirés (1 clic)
+                      <BookOpen className="w-4 h-4 text-[#60a5fa]" /> Base PNJ Pré-tirés
                     </h4>
-                    <p className="text-[11px] text-[#93adc9]">
-                      Humanoïdes prêts à jouer avec race, profil, voies, armure, armes et bourse (écuyers, mercenaires, guides, érudits, brigands).
-                    </p>
                   </div>
                   <div className="flex flex-wrap items-center gap-1.5">
                     <button
@@ -2705,11 +2691,8 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div>
                     <h4 className="font-serif-co text-sm font-bold text-[#9ff0b2] flex items-center gap-1.5">
-                      <span>🐾</span> Base Pré-établie : Familiers Courants &amp; Compagnons / Montures (1 clic)
+                      <span>🐾</span> Base Familiers, Compagnons &amp; Montures
                     </h4>
-                    <p className="text-[11px] text-[#8db898]">
-                      Ajoutez directement un familier, compagnon animal (Rôdeur) ou monture avec ses stats, attaques, portrait et capacités spéciales, puis liez-le au maître de votre choix.
-                    </p>
                   </div>
                   <div className="flex flex-wrap items-center gap-1.5">
                     {[
@@ -2942,7 +2925,7 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
             {tableData.pjs
               .filter((p) => {
                 const str = (
-                  p.name +
+                  (p.name || '') +
                   (p.player || '') +
                   (p.persoTraits || '') +
                   (p.familierEspece || '') +
@@ -3204,7 +3187,7 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                       )}
 
                       {/* PV et DÉFENSE / CA avec ajustement direct par le MJ */}
-                      <div className="mt-2.5 flex items-center justify-between text-xs bg-[#120f0c] p-2 rounded-lg border border-[#2d2218]">
+                      <div className="mt-2.5 pt-2 border-t border-[#2d2218] flex items-center justify-between text-xs">
                         <div className="flex items-center gap-1.5">
                           <button
                             type="button"
@@ -3265,7 +3248,7 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                       </div>
 
                       {/* POINTS DE MANA (PM) avec ajustement direct par le MJ */}
-                      <div className="mt-1.5 flex items-center justify-between text-xs bg-[#0f1722] p-2 rounded-lg border border-[#1e3450]">
+                      <div className="mt-1.5 pt-1.5 border-t border-[#1e3450]/60 flex items-center justify-between text-xs">
                         <div className="flex items-center gap-1.5">
                           <button
                             type="button"
@@ -3328,7 +3311,7 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                       {/* Points de capacité & Cadeau RP (masqué pour les familiers) */}
                       {!isFam && (
                         <>
-                          <div className="mt-2 flex items-center justify-between bg-[#19130d] p-1.5 px-2.5 rounded-lg border border-[#3d2e1b] text-xs">
+                          <div className="mt-2 pt-2 border-t border-[#2b2219] flex items-center justify-between text-xs">
                             <span className="text-[#9e907d]">
                               Pts Capacité : <b className="text-[#f3d48d]">{p.ptsCap || 0}</b>
                             </span>
@@ -3352,7 +3335,7 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                           </div>
 
                           {/* Bourse individuelle du héros (PO, PA, PC) visible et modifiable en direct par le MJ */}
-                          <div className="mt-2 bg-[#17110c] border border-[#d4a84a]/40 rounded-lg p-2 text-xs space-y-1.5 shadow-xs">
+                          <div className="mt-2 pt-2 border-t border-[#3d2e1b]/70 text-xs space-y-1.5">
                             <div className="flex items-center justify-between">
                               <span className="font-bold text-[#f3d48d] flex items-center gap-1 text-[11px]">
                                 <Coins className="w-3.5 h-3.5 text-[#d4a84a]" /> Bourse :
@@ -3898,11 +3881,11 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                   return true;
                 })
                 .filter((m) => {
-                  const str = (m.n + m.att + m.traits + (m.fam || '') + (m.milieu || '')).toLowerCase();
+                  const str = ((m.n || '') + (m.att || '') + (m.traits || '') + (m.fam || '') + (m.milieu || '')).toLowerCase();
                   const matchQ = str.includes(bestSearch.toLowerCase());
                   const matchNc =
                     !bestNcFilter ||
-                    (bestNcFilter === '10' ? parseInt(m.nc) >= 10 : m.nc === bestNcFilter);
+                    (bestNcFilter === '10' ? parseInt(String(m.nc || '0'), 10) >= 10 : String(m.nc) === bestNcFilter);
                   const matchFam = !bestFamFilter || m.fam === bestFamFilter;
                   return matchQ && matchNc && matchFam;
                 })
@@ -4034,18 +4017,8 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                     <b className="text-[#f3d48d]">Capacités &amp; Traits :</b>{' '}
                     <span className="text-[#ede3d1]">{m.traits}</span>
                   </div>
-                  <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
-                    <div className="text-[11px] text-[#9e907d]">
-                      Famille : {m.fam || 'Non classé'} • PV : {m.pv} • Défense : {m.def} •
-                      Initiative : {m.init}
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setDetailItem({ type: 'monster', data: m })}
-                      className="px-3 py-1 bg-[#2e1d16] hover:bg-[#3d271e] text-[#f3d48d] rounded border border-[#d4a84a]/40 text-xs font-bold flex items-center gap-1 cursor-pointer"
-                    >
-                      <ExternalLink className="w-3.5 h-3.5" /> Fiche complète
-                    </button>
+                  <div className="pt-1 text-[11px] text-[#9e907d]">
+                    Famille : {m.fam || 'Non classé'} • PV : {m.pv} • Défense : {m.def} • Initiative : {m.init}
                   </div>
                 </div>
               </details>
@@ -4067,40 +4040,12 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
         return (
           <div className="space-y-4">
             {/* Header Banner */}
-            <div className="bg-gradient-to-r from-[#291338] via-[#1f102b] to-[#120a1c] border border-[#a855f7]/60 rounded-xl p-5 shadow-xl space-y-3">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-xl">🔮</span>
-                    <h3 className="font-serif-co text-xl font-bold text-[#f3e8ff]">
-                      Codex de l'Obscure – Extension Tharnéa
-                    </h3>
-                    <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-[#4c1d6f] text-[#f5d0fe] border border-[#c084fc]/40">
-                      Campagne Inédite
-                    </span>
-                    <span className="text-[10px] text-[#a855f7] italic font-mono">
-                      Signé Doudou, F.P
-                    </span>
-                  </div>
-                  <p className="text-xs text-[#d8b4fe] max-w-2xl">
-                    Pack complet de créatures cauchemardesques, artefacts d'ombre, alchimies mystiques et lore militaire de Norvhal, 100% harmonisé avec le système Chroniques Oubliées Fantasy.
-                  </p>
-                </div>
-
-                <div className="flex items-center gap-2 bg-[#170a24] px-3.5 py-2 rounded-lg border border-[#6b21a8]/60">
-                  <div className="text-center px-2 border-r border-[#4c1d6f]">
-                    <span className="block font-serif-co text-base font-bold text-[#f5d0fe]">{THARNEA_MONSTERS.length}</span>
-                    <span className="text-[9px] text-[#c084fc] uppercase">Monstres</span>
-                  </div>
-                  <div className="text-center px-2 border-r border-[#4c1d6f]">
-                    <span className="block font-serif-co text-base font-bold text-[#f5d0fe]">{artifactsOnly.length}</span>
-                    <span className="text-[9px] text-[#c084fc] uppercase">Artéfacts</span>
-                  </div>
-                  <div className="text-center px-2">
-                    <span className="block font-serif-co text-base font-bold text-[#f5d0fe]">{candies.length}</span>
-                    <span className="text-[9px] text-[#c084fc] uppercase">Bonbons</span>
-                  </div>
-                </div>
+            <div className="bg-gradient-to-r from-[#291338] via-[#1f102b] to-[#120a1c] border border-[#a855f7]/60 rounded-xl p-4 shadow-xl space-y-3">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-xl">🔮</span>
+                <h3 className="font-serif-co text-xl font-bold text-[#f3e8ff]">
+                  Codex de l'Obscure – Extension Tharnéa
+                </h3>
               </div>
 
               {/* Sub navigation inside Tharnea tab */}
@@ -4183,7 +4128,7 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                     .filter((m) => {
                       const query = tharneaSearch.toLowerCase();
                       const numStr = m.num ? `#${m.num}` : '';
-                      const fullStr = `${numStr} ${m.n} ${m.fam || ''} ${m.milieu || ''} ${m.att} ${m.traits} ${m.tactique || ''}`.toLowerCase();
+                      const fullStr = `${numStr} ${m.n || ''} ${m.fam || ''} ${m.milieu || ''} ${m.att || ''} ${m.traits || ''} ${m.tactique || ''}`.toLowerCase();
                       return fullStr.includes(query);
                     })
                     .map((m) => {
@@ -4253,14 +4198,6 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                               >
                                 <Swords className="w-3.5 h-3.5" /> Combat
                               </button>
-                              <button
-                                type="button"
-                                onClick={() => setDetailItem({ type: 'monster', data: m })}
-                                className="px-2.5 py-1 bg-[#231530] hover:bg-[#341d47] border border-[#6b21a8] text-[#e9d5ff] text-xs font-semibold rounded-lg flex items-center gap-1 cursor-pointer"
-                                title="Afficher la fiche complète détaillée en pop-up"
-                              >
-                                <ExternalLink className="w-3.5 h-3.5" /> Fiche complète
-                              </button>
                             </div>
                           </div>
 
@@ -4281,15 +4218,9 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                               <b className="not-italic text-[#f3d48d]">Aspect :</b> {m.descPhysique}
                             </p>
                           )}
-                          <div className="flex items-center justify-between text-xs text-[#c4b5fd]">
-                            <p className="line-clamp-1 italic text-[#a78bfa]">
-                              {m.traits || (m.tactique ? `Tactique MJ : ${m.tactique}` : 'Créature du Codex')}
-                            </p>
-                            <span className="text-[11px] text-[#c084fc] shrink-0 font-medium ml-2 flex items-center gap-1">
-                              <span>Voir tactique, liens PJ &amp; secrets</span>
-                              <ExternalLink className="w-3 h-3" />
-                            </span>
-                          </div>
+                          <p className="text-xs line-clamp-1 italic text-[#a78bfa]">
+                            {m.traits || (m.tactique ? `Tactique MJ : ${m.tactique}` : 'Créature du Codex')}
+                          </p>
                         </div>
                       );
                     })}
@@ -4317,7 +4248,7 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {artifactsOnly
                     .filter((a) => {
-                      const str = `${a.n} ${a.cat || ''} ${a.desc || ''} ${a.props || ''}`.toLowerCase();
+                      const str = `${a.n || ''} ${a.cat || ''} ${a.desc || ''} ${a.props || ''}`.toLowerCase();
                       return str.includes(tharneaSearch.toLowerCase());
                     })
                     .map((a, idx) => {
@@ -4407,16 +4338,6 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                           <span className="text-xs font-mono font-bold px-2.5 py-1 rounded bg-[#200730] text-[#fde047] border border-[#d4a84a]/50">
                             Prix : {boite.prix || '500 pa'}
                           </span>
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setDetailItem({ type: 'equipement', data: boite });
-                            }}
-                            className="px-3 py-1 bg-[#d4a84a] text-black font-bold text-xs rounded-lg flex items-center gap-1 shadow-sm cursor-pointer"
-                          >
-                            <ExternalLink className="w-3.5 h-3.5" /> Fiche
-                          </button>
                           {tableData.pjs.length > 0 && (
                             <button
                               type="button"
@@ -4435,7 +4356,7 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                         {boite.desc}
                       </p>
                       <div className="text-[11px] text-[#fde047] italic bg-[#1e072c] p-2 rounded-lg border border-[#7e22ce]/40">
-                        ✨ <b>Contenu exact (48 bonbons) :</b> 4x Bleu, 4x Orange, 4x Vert, 4x Blanc, 4x Pourpre, 4x Noir, 4x Vert-Pomme, 4x Turquoise, 4x Jaune, 4x Rouge, 4x Marron, 4x Rose (1 pour goûter/découvrir l&apos;effet + 3 pour le jeu).
+                        ✨ <b>12 couleurs (4 de chaque) :</b> Bleu, Orange, Vert, Blanc, Pourpre, Noir, Vert-Pomme, Turquoise, Jaune, Rouge, Marron, Rose (1 dégustation + 3 jeu).
                       </div>
                       <label
                         onClick={(e) => e.stopPropagation()}
@@ -4455,14 +4376,9 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                   );
                 })()}
 
-                <div className="bg-[#24132b] p-3.5 rounded-xl border border-[#7e22ce]/60 space-y-1">
-                  <h4 className="font-serif-co text-sm font-bold text-[#f5d0fe] flex items-center gap-2">
-                    <span>🍬</span> Les 12 Bonbons Alchimiques Individuels
-                  </h4>
-                  <p className="text-xs text-[#d8b4fe]">
-                    Chaque bonbon est une confiserie imprégnée d&apos;essences surnaturelles. Cliquez sur un bonbon pour ouvrir sa fiche détaillée ou octroyez-le à un PJ choisi.
-                  </p>
-                </div>
+                <h4 className="font-serif-co text-sm font-bold text-[#f5d0fe] flex items-center gap-2 pt-1">
+                  <span>🍬</span> Les 12 Bonbons Alchimiques Individuels
+                </h4>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                   {candies.map((c, idx) => {
@@ -4513,11 +4429,8 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
               <div className="space-y-4">
                 <div className="bg-[#181410] border border-[#3d3023] rounded-xl p-4 space-y-3">
                   <h4 className="font-serif-co text-base font-bold text-[#f3d48d] flex items-center gap-2">
-                    <span>👑</span> Hiérarchie Militaire de l'Armée du Roi
+                    <span>👑</span> Hiérarchie Militaire de l'Armée du Roi (Norvhal)
                   </h4>
-                  <p className="text-xs text-[#9e907d]">
-                    Documentation officielle sur l'organisation des forces armées du royaume de Norvhal et les factions en guerre.
-                  </p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2 text-xs">
                     <div className="bg-[#231c15] p-2.5 rounded-lg border border-[#3d3023]">
                       <b className="text-[#f3d48d] block mb-1">Commandement Suprême</b>
@@ -4587,7 +4500,7 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
       {activeTab === 'loot' && (() => {
         const filteredLoot = orderedLootCatalog.filter((it) => {
           if (lootCategoryFilter !== 'all' && it.lootCategoryGroup !== lootCategoryFilter) return false;
-          if (lootSearch && !(it.n + (it.desc || '') + (it.props || '') + (it.cat || '')).toLowerCase().includes(lootSearch.toLowerCase())) return false;
+          if (lootSearch && !((it.n || '') + (it.desc || '') + (it.props || '') + (it.cat || '')).toLowerCase().includes(lootSearch.toLowerCase())) return false;
           return true;
         });
 
@@ -4598,25 +4511,16 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
             {/* Header & Roll Action */}
             <div className="bg-gradient-to-r from-[#291712] via-[#1e130f] to-[#120f0c] border border-[#d4a84a]/60 rounded-xl p-3.5 sm:p-4 shadow-xl space-y-3">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-                <div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-2xl">🎲</span>
-                    <h3 className="font-serif-co text-xl font-bold text-[#f3d48d]">
-                      Table de Butin Aléatoire (d100)
-                    </h3>
-                    <span
-                      className={`text-xs font-bold px-2.5 py-0.5 rounded-full border ${
-                        lootOrderIndices
-                          ? 'bg-[#1a3320] text-[#86efac] border-[#3b7a4a]'
-                          : 'bg-[#231c15] text-[#cbb8a7] border-[#3d3023]'
-                      }`}
-                    >
-                      {lootOrderIndices ? '🔀 Liste mélangée aléatoirement' : 'Ordre standard du catalogue'}
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-2xl">🎲</span>
+                  <h3 className="font-serif-co text-xl font-bold text-[#f3d48d]">
+                    Table de Butin Aléatoire (d100)
+                  </h3>
+                  {lootOrderIndices && (
+                    <span className="text-xs font-bold px-2.5 py-0.5 rounded-full border bg-[#1a3320] text-[#86efac] border-[#3b7a4a]">
+                      🔀 Liste mélangée
                     </span>
-                  </div>
-                  <p className="text-xs text-[#9e907d] mt-1">
-                    Générez instantanément des trésors ou mélangez toute la liste aléatoirement : la colonne <b>Pos.</b> démarre toujours à 1.
-                  </p>
+                  )}
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2">
@@ -4767,14 +4671,6 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                 </div>
 
                 <div className="flex flex-wrap items-center gap-1.5 w-full sm:w-auto">
-                  <button
-                    type="button"
-                    onClick={handleShuffleLootList}
-                    className="px-3 py-2 rounded-lg text-xs font-bold bg-[#2c2116] hover:bg-[#3d2e1e] text-[#f3d48d] border border-[#d4a84a]/60 inline-flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <Shuffle className="w-3.5 h-3.5 text-[#d4a84a]" />
-                    <span>Mélanger la liste</span>
-                  </button>
                   {[
                     { id: 'all', label: `Tous (${masterLootCatalog.length})` },
                     { id: 'armes', label: 'Armes' },
@@ -5025,7 +4921,7 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                     })
                     .filter((it) => {
                       const matchQ = (
-                        it.n +
+                        (it.n || '') +
                         (it.cat || '') +
                         (it.desc || '') +
                         (it.prix || '') +
@@ -5036,7 +4932,7 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                       const matchCat =
                         !eqCatFilter ||
                         (eqCatFilter === 'Boîte à Bonbons'
-                          ? it.n.toLowerCase().includes('bonbon') && (it.n.toLowerCase().includes('boîte') || it.n.toLowerCase().includes('boite'))
+                          ? (it.n || '').toLowerCase().includes('bonbon') && ((it.n || '').toLowerCase().includes('boîte') || (it.n || '').toLowerCase().includes('boite'))
                           : it.cat?.includes(eqCatFilter));
                       return matchQ && matchCat;
                     })
@@ -5180,18 +5076,10 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
           {/* États Section */}
           {(!regCatFilter || regCatFilter === 'etats') && (
             <div className="bg-[#181410] border border-[#3d3023] rounded-xl p-4 space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#30251a] pb-3">
-                <div>
-                  <h4 className="font-serif-co text-lg font-bold text-[#f3d48d] flex items-center gap-2">
-                    <span>⚠️</span> Les 13 États Préjudiciables (Guide Complet MJ)
-                  </h4>
-                  <p className="text-xs text-[#9e907d]">
-                    Règles exhaustives avec explications : Quand, Comment (mécanique), Pourquoi (justification en jeu) et Comment en guérir.
-                  </p>
-                </div>
-                <span className="text-xs font-bold font-mono px-2.5 py-1 bg-[#231c15] text-[#f3d48d] border border-[#3d3023] rounded-lg">
-                  13 États Répertoriés
-                </span>
+              <div className="border-b border-[#30251a] pb-2">
+                <h4 className="font-serif-co text-lg font-bold text-[#f3d48d] flex items-center gap-2">
+                  <span>⚠️</span> Les 13 États Préjudiciables
+                </h4>
               </div>
 
               <div className="grid grid-cols-1 gap-3">
@@ -5232,22 +5120,22 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
 
                     {/* Les 4 Piliers Détaillés */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
-                      <div className="p-2.5 bg-[#1a1511] border border-[#3d2b1a] rounded-lg space-y-0.5">
+                      <div className="p-2.5 bg-[#191410] border border-[#30251a] rounded-lg space-y-0.5">
                         <b className="text-[#f3d48d] block font-bold">🕒 Quand s'applique-t-il ?</b>
                         <p className="text-[#ede3d1]">{e.quand}</p>
                       </div>
 
-                      <div className="p-2.5 bg-[#141724] border border-[#2b3559] rounded-lg space-y-0.5">
+                      <div className="p-2.5 bg-[#191410] border border-[#30251a] rounded-lg space-y-0.5">
                         <b className="text-[#9bb8ff] block font-bold">🎲 Comment s'applique-t-il ? (Mécanique)</b>
                         <p className="text-[#ede3d1]">{e.comment}</p>
                       </div>
 
-                      <div className="p-2.5 bg-[#1f141f] border border-[#4d254d] rounded-lg space-y-0.5">
+                      <div className="p-2.5 bg-[#191410] border border-[#30251a] rounded-lg space-y-0.5">
                         <b className="text-[#f0a6f0] block font-bold">🧬 Pourquoi ? (Justification en jeu)</b>
                         <p className="text-[#ede3d1]">{e.pourquoi}</p>
                       </div>
 
-                      <div className="p-2.5 bg-[#142115] border border-[#234724] rounded-lg space-y-0.5">
+                      <div className="p-2.5 bg-[#191410] border border-[#30251a] rounded-lg space-y-0.5">
                         <b className="text-[#8be391] block font-bold">🌿 Comment en guérir / s'en libérer ?</b>
                         <p className="text-[#ede3d1]">{e.guerison}</p>
                       </div>
@@ -5262,7 +5150,7 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
           {regCatFilter !== 'etats' && (
             <div className="space-y-2.5">
               {REGLES.filter((r) => {
-                const matchQ = (r.t + r.c + (r.cat || '')).toLowerCase().includes(regSearch.toLowerCase());
+                const matchQ = ((r.t || '') + (r.c || '') + (r.cat || '')).toLowerCase().includes(regSearch.toLowerCase());
                 const matchCat = !regCatFilter || r.cat === regCatFilter;
                 return matchQ && matchCat;
               }).map((r, idx) => (
@@ -5303,13 +5191,10 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
       {/* ==================== 6. RACES ==================== */}
       {activeTab === 'races' && (
         <div className="space-y-3">
-          <div className="bg-[#181410] border border-[#3d3023] rounded-xl p-4">
-            <h3 className="font-serif-co text-lg font-bold text-[#f3d48d] mb-1">
+          <div className="bg-[#181410] border border-[#3d3023] rounded-xl px-4 py-3">
+            <h3 className="font-serif-co text-lg font-bold text-[#f3d48d]">
               Races Jouables du DRS
             </h3>
-            <p className="text-xs text-[#9e907d]">
-              Guide résumé des ascendances et modificateurs raciaux. Cliquez sur une race pour ouvrir sa fiche officielle complète en pop-up.
-            </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -5317,30 +5202,23 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
               <div
                 key={r.id}
                 onClick={() => setDetailItem({ type: 'race', data: r })}
-                className="cursor-pointer p-4 bg-[#181410] hover:bg-[#201913] border border-[#3d3023] hover:border-[#d4a84a] rounded-xl space-y-2.5 flex flex-col justify-between transition-all shadow-sm"
+                className="cursor-pointer p-4 bg-[#181410] hover:bg-[#201913] border border-[#3d3023] hover:border-[#d4a84a] rounded-xl space-y-1.5 transition-all shadow-sm"
               >
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <b className="font-serif-co text-base text-[#f3d48d] hover:underline flex items-center gap-1.5">
-                      <span>{r.n}</span>
-                      <ExternalLink className="w-3.5 h-3.5 text-[#d4a84a]" />
-                    </b>
-                    <span className="text-xs font-mono font-bold text-[#6fa85b] bg-[#122410] px-2 py-0.5 rounded border border-[#274721]">
-                      {r.t}
-                    </span>
-                  </div>
-                  <p className="text-xs text-[#ede3d1] line-clamp-2">{r.d}</p>
-                  <div className="text-[11px] text-[#9e907d] italic">
-                    Tempérament : {r.traits}
-                  </div>
-                  <div className="text-[11px] text-[#cbafff]">
-                    ✨ {r.cap.length} capacité{r.cap.length > 1 ? 's' : ''} raciale{r.cap.length > 1 ? 's' : ''} officielles (co-drs.org)
-                  </div>
+                <div className="flex items-center justify-between">
+                  <b className="font-serif-co text-base text-[#f3d48d] hover:underline flex items-center gap-1.5">
+                    <span>{r.n}</span>
+                    <ExternalLink className="w-3.5 h-3.5 text-[#d4a84a]" />
+                  </b>
+                  <span className="text-xs font-mono font-bold text-[#6fa85b] bg-[#122410] px-2 py-0.5 rounded border border-[#274721]">
+                    {r.t}
+                  </span>
                 </div>
-
-                <div className="pt-2 border-t border-[#30251a] flex items-center justify-between text-xs text-[#d4a84a]">
-                  <span className="font-semibold">Ouvrir la fiche complète (Pop-up)</span>
-                  <ExternalLink className="w-3.5 h-3.5" />
+                <p className="text-xs text-[#ede3d1] line-clamp-2">{r.d}</p>
+                <div className="text-[11px] text-[#9e907d] italic">
+                  Tempérament : {r.traits}
+                </div>
+                <div className="text-[11px] text-[#cbafff]">
+                  ✨ {r.cap.length} capacité{r.cap.length > 1 ? 's' : ''} raciale{r.cap.length > 1 ? 's' : ''} officielles
                 </div>
               </div>
             ))}
@@ -5351,13 +5229,10 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
       {/* ==================== 7. PROFILS (CLASSES) ==================== */}
       {activeTab === 'profils' && (
         <div className="space-y-3">
-          <div className="bg-[#181410] border border-[#3d3023] rounded-xl p-4">
-            <h3 className="font-serif-co text-lg font-bold text-[#f3d48d] mb-1">
+          <div className="bg-[#181410] border border-[#3d3023] rounded-xl px-4 py-3">
+            <h3 className="font-serif-co text-lg font-bold text-[#f3d48d]">
               14 Profils &amp; Vocations Martiales
             </h3>
-            <p className="text-xs text-[#9e907d]">
-              Fiches résumées des profils. Cliquez sur un profil pour ouvrir sa fiche officielle complète en pop-up (dé de vie, équipement, armes et 5 voies).
-            </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -5365,32 +5240,25 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
               <div
                 key={p.id}
                 onClick={() => setDetailItem({ type: 'profil', data: p })}
-                className="cursor-pointer p-4 bg-[#181410] hover:bg-[#201913] border border-[#3d3023] hover:border-[#d4a84a] rounded-xl space-y-2.5 flex flex-col justify-between transition-all shadow-sm"
+                className="cursor-pointer p-4 bg-[#181410] hover:bg-[#201913] border border-[#3d3023] hover:border-[#d4a84a] rounded-xl space-y-1.5 transition-all shadow-sm"
               >
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <b className="font-serif-co text-base text-[#f3d48d] hover:underline flex items-center gap-1.5">
-                      <span>{p.n}</span>
-                      <ExternalLink className="w-3.5 h-3.5 text-[#d4a84a]" />
-                    </b>
-                    <span className="text-xs font-mono font-bold text-[#cbafff] bg-[#291b3b] px-2 py-0.5 rounded border border-[#492d6e]">
-                      Dé de vie : d{p.dv} {p.mag ? `• Magie ${p.mag}` : ''}
-                    </span>
-                  </div>
-                  <p className="text-xs text-[#ede3d1] italic line-clamp-2">« {p.traits} »</p>
-                  <div className="text-xs text-[#9e907d] space-y-0.5">
-                    <div className="truncate">
-                      <b className="text-[#ede3d1]">Armes autorisées :</b> {p.ar}
-                    </div>
-                    <div className="truncate">
-                      <b className="text-[#ede3d1]">Équipement de départ :</b> {p.eq}
-                    </div>
-                  </div>
+                <div className="flex items-center justify-between">
+                  <b className="font-serif-co text-base text-[#f3d48d] hover:underline flex items-center gap-1.5">
+                    <span>{p.n}</span>
+                    <ExternalLink className="w-3.5 h-3.5 text-[#d4a84a]" />
+                  </b>
+                  <span className="text-xs font-mono font-bold text-[#cbafff] bg-[#291b3b] px-2 py-0.5 rounded border border-[#492d6e]">
+                    Dé de vie : d{p.dv} {p.mag ? `• Magie ${p.mag}` : ''}
+                  </span>
                 </div>
-
-                <div className="pt-2 border-t border-[#30251a] flex items-center justify-between text-xs text-[#d4a84a]">
-                  <span className="font-semibold">Ouvrir la fiche complète &amp; les 5 voies (Pop-up)</span>
-                  <ExternalLink className="w-3.5 h-3.5" />
+                <p className="text-xs text-[#ede3d1] italic line-clamp-2">« {p.traits} »</p>
+                <div className="text-xs text-[#9e907d] space-y-0.5">
+                  <div className="truncate">
+                    <b className="text-[#ede3d1]">Armes autorisées :</b> {p.ar}
+                  </div>
+                  <div className="truncate">
+                    <b className="text-[#ede3d1]">Équipement de départ :</b> {p.eq}
+                  </div>
                 </div>
               </div>
             ))}
@@ -5402,16 +5270,9 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
       {activeTab === 'voies' && (
         <div className="space-y-4">
           <div className="bg-[#181410] border border-[#3d3023] rounded-xl p-4 space-y-3">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div>
-                <h3 className="font-serif-co text-lg font-bold text-[#f3d48d]">
-                  Encyclopédie des 70 Voies Héroïques (350 Rangs)
-                </h3>
-                <p className="text-xs text-[#9e907d]">
-                  Consultez l'arbre complet des voies par profil ou effectuez une recherche globale.
-                </p>
-              </div>
-            </div>
+            <h3 className="font-serif-co text-lg font-bold text-[#f3d48d]">
+              Encyclopédie des 70 Voies Héroïques (350 Rangs)
+            </h3>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-[#30251a]">
               <div className="relative">
@@ -5448,13 +5309,13 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
             {Object.entries(VOIES_CATALOG)
               .filter(([k, v]) => {
                 if (voiesProfilFilter !== 'all') {
-                  if (voiesProfilFilter === 'race') return v.profil.startsWith('race:');
-                  return v.profil.toLowerCase() === voiesProfilFilter.toLowerCase();
+                  if (voiesProfilFilter === 'race') return (v.profil || '').startsWith('race:');
+                  return (v.profil || '').toLowerCase() === voiesProfilFilter.toLowerCase();
                 }
                 return true;
               })
               .filter(([k, v]) =>
-                (v.nom + v.profil + v.r.map((r) => r.n + r.t).join(' ')).toLowerCase().includes(voieSearch.toLowerCase())
+                ((v.nom || '') + (v.profil || '') + (v.r || []).map((r) => (r.n || '') + (r.t || '')).join(' ')).toLowerCase().includes(voieSearch.toLowerCase())
               )
               .map(([wKey, way]) => (
                 <details
@@ -5565,7 +5426,7 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
 
           <div className="space-y-2">
             {SORTS_CATALOG.filter((s) =>
-              (s.n + s.t + (s.voie || '')).toLowerCase().includes(grimSearch.toLowerCase())
+              ((s.n || '') + (s.t || '') + (s.voie || '')).toLowerCase().includes(grimSearch.toLowerCase())
             ).map((s, idx) => {
               const ar = resolveActionRule(s.actionCost, s.L === 1, true);
               return (
@@ -5859,7 +5720,7 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
                     const hero = sanitizeCharacter(rawHero);
                     const list = [...tableData.pjs];
                     const existingIdx = list.findIndex(
-                      (p) => (p.id && p.id === hero.id) || (p.name || '').toLowerCase() === hero.name.toLowerCase()
+                      (p) => (p.id && p.id === hero.id) || (p.name || '').toLowerCase() === (hero.name || '').toLowerCase()
                     );
                     if (existingIdx >= 0) {
                       list[existingIdx] = hero;
@@ -6345,11 +6206,6 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
           </div>
         );
       })()}
-
-      {/* Discreet Signature */}
-      <div className="text-right text-[10px] text-[#4d3d2e] font-mono tracking-wider pt-2 select-none">
-        Doudou, F.P
-      </div>
     </div>
   );
 };
