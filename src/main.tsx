@@ -1,8 +1,11 @@
 import {createRoot} from 'react-dom/client';
+import { registerSW } from 'virtual:pwa-register';
 import App from './App.tsx';
 import './index.css';
 import { ToastProvider } from './components/common/ToastContext';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
+
+registerSW({ immediate: true });
 
 createRoot(document.getElementById('root')!).render(
   <ErrorBoundary

@@ -774,41 +774,44 @@ export const PjSheet: React.FC<PjSheetProps> = ({
       </div>
 
       {/* Navigation Sub-Tabs */}
-      <div className="no-print flex items-center gap-1 bg-[#181410] p-1.5 rounded-xl border border-[#3d3023] overflow-x-auto">
+      <div className="no-print grid grid-cols-3 sm:flex sm:items-center gap-1 bg-[#181410] p-1.5 rounded-xl border border-[#3d3023]">
         <button
           onClick={() => setActiveTab('fiche')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all shrink-0 ${
+          title="Fiche & Combat"
+          className={`flex items-center justify-center sm:justify-start gap-1.5 px-2.5 sm:px-3.5 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
             activeTab === 'fiche'
               ? 'bg-[#d4a84a] text-black shadow-sm'
               : 'text-[#9e907d] hover:text-[#ede3d1] hover:bg-[#231c15]'
           }`}
         >
-          <Shield className="w-4 h-4" />
-          <span>Fiche &amp; Combat</span>
+          <Shield className="w-3.5 h-3.5 shrink-0" />
+          <span className="truncate">Fiche</span>
         </button>
 
         <button
           onClick={() => setActiveTab('voies')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all shrink-0 ${
+          title="Arbre des Voies"
+          className={`flex items-center justify-center sm:justify-start gap-1.5 px-2.5 sm:px-3.5 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
             activeTab === 'voies'
               ? 'bg-[#d4a84a] text-black shadow-sm'
               : 'text-[#9e907d] hover:text-[#ede3d1] hover:bg-[#231c15]'
           }`}
         >
-          <Scroll className="w-4 h-4" />
-          <span>Arbre des Voies</span>
+          <Scroll className="w-3.5 h-3.5 shrink-0" />
+          <span className="truncate">Voies</span>
         </button>
 
         <button
           onClick={() => setActiveTab('sorts')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all shrink-0 ${
+          title="Grimoire & Arcanes"
+          className={`flex items-center justify-center sm:justify-start gap-1.5 px-2.5 sm:px-3.5 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
             activeTab === 'sorts'
               ? 'bg-[#3a2954] text-[#dccbff] border border-[#654a93] shadow-sm'
               : 'text-[#9e907d] hover:text-[#ede3d1] hover:bg-[#231c15]'
           }`}
         >
-          <BookOpen className="w-4 h-4" />
-          <span>Grimoire &amp; Arcanes</span>
+          <BookOpen className="w-3.5 h-3.5 shrink-0" />
+          <span className="truncate">Grimoire</span>
           {allSpells.length > 0 && (
             <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-black/40 font-mono">
               {allSpells.length}
@@ -818,14 +821,15 @@ export const PjSheet: React.FC<PjSheetProps> = ({
 
         <button
           onClick={() => setActiveTab('sac')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all shrink-0 cursor-pointer ${
+          title="Sac & Matériel"
+          className={`flex items-center justify-center sm:justify-start gap-1.5 px-2.5 sm:px-3.5 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
             activeTab === 'sac'
               ? 'bg-[#d4a84a] text-black shadow-sm'
               : 'text-[#9e907d] hover:text-[#ede3d1] hover:bg-[#231c15]'
           }`}
         >
-          <Package className="w-4 h-4" />
-          <span>Sac &amp; Matériel</span>
+          <Package className="w-3.5 h-3.5 shrink-0" />
+          <span className="truncate">Sac</span>
           {pj.inventaire && (
             <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-black/40 font-mono">
               {pj.inventaire.length}
@@ -835,20 +839,21 @@ export const PjSheet: React.FC<PjSheetProps> = ({
 
         <button
           onClick={() => setActiveTab('familier')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all shrink-0 cursor-pointer ${
+          title="Mon Compagnon / Familier"
+          className={`flex items-center justify-center sm:justify-start gap-1.5 px-2.5 sm:px-3.5 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
             activeTab === 'familier'
               ? 'bg-gradient-to-r from-[#235430] to-[#16381f] text-[#d5fce0] border border-[#6fa85b] shadow-sm'
               : 'text-[#9e907d] hover:text-[#ede3d1] hover:bg-[#231c15]'
           }`}
         >
           {pj.familierAccess?.unlocked ? (
-            <span>🐾</span>
+            <span className="shrink-0">🐾</span>
           ) : (
-            <Lock className="w-3.5 h-3.5 text-[#d4a84a]" />
+            <Lock className="w-3.5 h-3.5 text-[#d4a84a] shrink-0" />
           )}
-          <span>Mon Compagnon / Familier</span>
+          <span className="truncate">Compagnon</span>
           {pj.familierAccess?.pendingRequest && !pj.familierAccess?.unlocked && (
-            <span className="w-2 h-2 rounded-full bg-[#f59e0b] animate-pulse" title="Demande en attente" />
+            <span className="w-2 h-2 rounded-full bg-[#f59e0b] animate-pulse shrink-0" title="Demande en attente" />
           )}
           {pj.familiers && pj.familiers.length > 0 && (
             <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-black/40 font-mono">
@@ -859,14 +864,15 @@ export const PjSheet: React.FC<PjSheetProps> = ({
 
         <button
           onClick={() => setActiveTab('lore')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all shrink-0 cursor-pointer ${
+          title="Les Terres d'Osgild"
+          className={`flex items-center justify-center sm:justify-start gap-1.5 px-2.5 sm:px-3.5 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
             activeTab === 'lore'
               ? 'bg-gradient-to-r from-[#855325] to-[#593313] text-[#f7e0b5] shadow-sm border border-[#a8743d]'
               : 'text-[#9e907d] hover:text-[#ede3d1] hover:bg-[#231c15]'
           }`}
         >
-          <Map className="w-4 h-4 text-[#d4a84a]" />
-          <span>Les Terres d&apos;Osgild</span>
+          <Map className="w-3.5 h-3.5 text-[#d4a84a] shrink-0" />
+          <span className="truncate">Osgild</span>
         </button>
       </div>
 

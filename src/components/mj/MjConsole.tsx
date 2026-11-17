@@ -147,15 +147,35 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
     | 'grimoire'
   >('combat');
 
+  // Mémoire du dernier sous-onglet visité par catégorie
+  const [lastCatalogTab, setLastCatalogTab] = useState<'bestiaire' | 'equipements' | 'loot' | 'grimoire' | 'tharnea'>('bestiaire');
+  const [lastReglesTab, setLastReglesTab] = useState<'regles' | 'osgild' | 'races' | 'profils' | 'voies'>('regles');
+
+  const selectMjTab = (tab: typeof activeTab) => {
+    setActiveTab(tab);
+    if (tab === 'bestiaire' || tab === 'equipements' || tab === 'loot' || tab === 'grimoire' || tab === 'tharnea') {
+      setLastCatalogTab(tab);
+    } else if (tab === 'regles' || tab === 'osgild' || tab === 'races' || tab === 'profils' || tab === 'voies') {
+      setLastReglesTab(tab);
+    }
+  };
+
   // Tharnea Codex Tab states
   const [tharneaSubTab, setTharneaSubTab] = useState<'monstres' | 'artefacts' | 'bonbons' | 'lore'>('monstres');
   const [tharneaSearch, setTharneaSearch] = useState('');
 
   React.useEffect(() => {
     if (!isTharneaActive && activeTab === 'tharnea') {
-      setActiveTab('combat');
+      setActiveTab('bestiaire');
+      setLastCatalogTab('bestiaire');
     }
   }, [isTharneaActive, activeTab]);
+
+  React.useEffect(() => {
+    if (!isTharneaActive && bestSourceFilter === 'tharnea') {
+      setBestSourceFilter('all');
+    }
+  }, [isTharneaActive]);
 
   React.useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -178,7 +198,7 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
   const [bestSearch, setBestSearch] = useState('');
   const [bestNcFilter, setBestNcFilter] = useState('');
   const [bestFamFilter, setBestFamFilter] = useState('');
-  const [bestSourceFilter, setBestSourceFilter] = useState<'all' | 'drs' | 'tharnea'>('all');
+  const [bestSourceFilter, setBestSourceFilter] = useState<'all' | 'drs' | 'tharnea' | 'custom'>('all');
   const [isPnjCreatorOpen, setIsPnjCreatorOpen] = useState(false);
   const [isFamilierCreatorOpen, setIsFamilierCreatorOpen] = useState(false);
   const [editingFamilier, setEditingFamilier] = useState<Character | null>(null);
@@ -1636,69 +1656,157 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
         </label>
       </div>
 
-      {/* Navigation Sub-Tabs for MJ */}
-      <div className="flex items-center gap-1 bg-[#181410] p-1.5 rounded-xl border border-[#3d3023] overflow-x-auto">
-        {[
-          { key: 'combat', label: 'Combat & Init', icon: Swords, badge: tableData.combatants.length },
-          { key: 'groupe', label: 'Groupe & PNJ', icon: Users, badge: tableData.pjs.length },
-          { key: 'bestiaire', label: 'Bestiaire DRS', icon: Skull, badge: BESTIAIRE.length },
-          { key: 'osgild', label: "Terres d'Osgild 🗺️", icon: Map, badge: 4 },
+      {/* Navigation Hiérarchique MJ : 4 Catégories Principales + Sous-catégories contextuelles */}
+      {(() => {
+        const isCatalogCategory = ['bestiaire', 'equipements', 'loot', 'grimoire', 'tharnea'].includes(activeTab);
+        const isReglesCategory = ['regles', 'osgild', 'races', 'profils', 'voies'].includes(activeTab);
+
+        const catalogSubTabs = [
+          {
+            key: 'bestiaire' as const,
+            label: 'Bestiaire',
+            icon: Skull,
+            badge: isTharneaActive ? BESTIAIRE.length + THARNEA_MONSTERS.length : BESTIAIRE.length,
+          },
+          { key: 'equipements' as const, label: 'Équipements', icon: Coins, badge: EQUIPEMENTS.length },
+          { key: 'loot' as const, label: 'Table de Butin', icon: Dices, badge: masterLootCatalog.length },
+          { key: 'grimoire' as const, label: 'Grimoire DRS', icon: Zap, badge: SORTS_CATALOG.length },
           ...(isTharneaActive
             ? [
                 {
-                  key: 'tharnea',
-                  label: '🔮 Codex Tharnéa',
+                  key: 'tharnea' as const,
+                  label: 'Codex Tharnéa',
                   icon: Sparkles,
                   badge: THARNEA_MONSTERS.length + THARNEA_ARTIFACTS.length,
-                  highlight: true,
+                  isTharnea: true,
                 },
               ]
             : []),
-          { key: 'loot', label: 'Table de Butin 🎲', icon: Dices, badge: masterLootCatalog.length },
-          { key: 'equipements', label: 'Équipements', icon: Coins, badge: EQUIPEMENTS.length },
-          { key: 'regles', label: 'Règles & États', icon: BookOpen, badge: REGLES.length + ETATS.length },
-          { key: 'races', label: 'Races', icon: Shield, badge: RACES.length },
-          { key: 'profils', label: 'Profils', icon: Layers, badge: PROFILS.length },
-          { key: 'voies', label: 'Voies & Rangs', icon: Sparkles, badge: Object.keys(VOIES_CATALOG).length },
-          { key: 'grimoire', label: 'Grimoire DRS', icon: Zap, badge: SORTS_CATALOG.length },
-        ].map((tab) => {
-          const Icon = tab.icon;
-          const isActive = activeTab === tab.key;
-          const isTharneaTab = tab.key === 'tharnea';
+        ];
 
-          return (
-            <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key as any)}
-              className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold transition-all shrink-0 ${
-                isActive
-                  ? isTharneaTab
-                    ? 'bg-gradient-to-r from-[#692994] to-[#4c1670] text-[#f7e6ff] border border-[#a855f7] shadow-md'
-                    : 'bg-gradient-to-r from-[#9c2a2b] to-[#751c1d] text-white shadow-sm'
-                  : isTharneaTab
-                  ? 'text-[#cbafff] bg-[#22152f]/60 hover:bg-[#2b193d] border border-[#6b21a8]/50'
-                  : 'text-[#9e907d] hover:text-[#ede3d1] hover:bg-[#231c15]'
-              }`}
-            >
-              <Icon className={`w-3.5 h-3.5 ${isTharneaTab && !isActive ? 'text-[#c084fc]' : ''}`} />
-              <span>{tab.label}</span>
-              {tab.badge !== undefined && (
-                <span
-                  className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
-                    isActive
-                      ? 'bg-black/40 text-[#f3d48d]'
-                      : isTharneaTab
-                      ? 'bg-[#3b1754] text-[#e9d5ff]'
-                      : 'bg-[#231c15] text-[#9e907d]'
-                  }`}
-                >
-                  {tab.badge}
+        const reglesSubTabs = [
+          { key: 'regles' as const, label: 'Règles & États', icon: BookOpen, badge: REGLES.length + ETATS.length },
+          { key: 'osgild' as const, label: "Terres d'Osgild", icon: Map, badge: 4 },
+          { key: 'races' as const, label: 'Races', icon: Shield, badge: RACES.length },
+          { key: 'profils' as const, label: 'Profils', icon: Layers, badge: PROFILS.length },
+          { key: 'voies' as const, label: 'Voies & Rangs', icon: Sparkles, badge: Object.keys(VOIES_CATALOG).length },
+        ];
+
+        return (
+          <div className="space-y-1.5">
+            {/* Niveau 1 : 4 Catégories Principales */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 bg-[#181410] p-1.5 rounded-xl border border-[#3d3023]">
+              <button
+                type="button"
+                onClick={() => selectMjTab('combat')}
+                className={`flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  activeTab === 'combat'
+                    ? 'bg-gradient-to-r from-[#9c2a2b] to-[#751c1d] text-white shadow-sm'
+                    : 'text-[#cbbba6] hover:text-white hover:bg-[#231c15]'
+                }`}
+              >
+                <Swords className="w-4 h-4 shrink-0" />
+                <span>Combat &amp; Init</span>
+                <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${activeTab === 'combat' ? 'bg-black/40 text-[#f3d48d]' : 'bg-[#231c15] text-[#9e907d]'}`}>
+                  {tableData.combatants.length}
                 </span>
-              )}
-            </button>
-          );
-        })}
-      </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => selectMjTab('groupe')}
+                className={`flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  activeTab === 'groupe'
+                    ? 'bg-gradient-to-r from-[#9c2a2b] to-[#751c1d] text-white shadow-sm'
+                    : 'text-[#cbbba6] hover:text-white hover:bg-[#231c15]'
+                }`}
+              >
+                <Users className="w-4 h-4 shrink-0" />
+                <span>Groupe &amp; PNJ</span>
+                <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${activeTab === 'groupe' ? 'bg-black/40 text-[#f3d48d]' : 'bg-[#231c15] text-[#9e907d]'}`}>
+                  {tableData.pjs.length}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => selectMjTab(isCatalogCategory ? activeTab : lastCatalogTab)}
+                className={`flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  isCatalogCategory
+                    ? 'bg-gradient-to-r from-[#8c621b] to-[#63430e] text-[#fff3d1] border border-[#d4a84a]/60 shadow-sm'
+                    : 'text-[#cbbba6] hover:text-white hover:bg-[#231c15]'
+                }`}
+              >
+                <Skull className="w-4 h-4 shrink-0" />
+                <span>Catalogues</span>
+                <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${isCatalogCategory ? 'bg-black/40 text-[#f3d48d]' : 'bg-[#231c15] text-[#9e907d]'}`}>
+                  {catalogSubTabs.length}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => selectMjTab(isReglesCategory ? activeTab : lastReglesTab)}
+                className={`flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  isReglesCategory
+                    ? 'bg-gradient-to-r from-[#3a2954] to-[#261a38] text-[#ece1ff] border border-[#7c5cb0]/70 shadow-sm'
+                    : 'text-[#cbbba6] hover:text-white hover:bg-[#231c15]'
+                }`}
+              >
+                <BookOpen className="w-4 h-4 shrink-0" />
+                <span>Règles</span>
+                <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${isReglesCategory ? 'bg-black/40 text-[#dccbff]' : 'bg-[#231c15] text-[#9e907d]'}`}>
+                  {reglesSubTabs.length}
+                </span>
+              </button>
+            </div>
+
+            {/* Niveau 2 : Sous-onglets contextuels pour Catalogues ou Règles */}
+            {(isCatalogCategory || isReglesCategory) && (
+              <div className="flex flex-wrap items-center gap-1 bg-[#14100c] px-2 py-1.5 rounded-xl border border-[#30251a]">
+                <span className="text-[10px] uppercase tracking-wider font-bold text-[#9e907d] px-1.5 mr-1">
+                  {isCatalogCategory ? 'Catalogues ›' : 'Règles ›'}
+                </span>
+                {(isCatalogCategory ? catalogSubTabs : reglesSubTabs).map((sub) => {
+                  const Icon = sub.icon;
+                  const isSubActive = activeTab === sub.key;
+                  const isTharnea = 'isTharnea' in sub && sub.isTharnea;
+                  return (
+                    <button
+                      key={sub.key}
+                      type="button"
+                      onClick={() => selectMjTab(sub.key)}
+                      className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                        isSubActive
+                          ? isTharnea
+                            ? 'bg-[#581c87] text-[#f5d0fe] border border-[#a855f7] shadow-xs'
+                            : isCatalogCategory
+                            ? 'bg-[#d4a84a] text-[#1a1208] shadow-xs'
+                            : 'bg-[#654a93] text-white shadow-xs'
+                          : isTharnea
+                          ? 'text-[#cbafff] bg-[#22152f]/60 hover:bg-[#2d1a40] border border-[#6b21a8]/40'
+                          : 'text-[#9e907d] hover:text-[#ede3d1] hover:bg-[#231c15]'
+                      }`}
+                    >
+                      <Icon className="w-3.5 h-3.5 shrink-0" />
+                      <span>{sub.label}</span>
+                      {sub.badge !== undefined && (
+                        <span
+                          className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
+                            isSubActive ? 'bg-black/30 text-current' : 'bg-[#231c15] text-[#9e907d]'
+                          }`}
+                        >
+                          {sub.badge}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {/* ==================== CONTENU DES ONGLETS MJ (PROTÉGÉ) ==================== */}
       <ErrorBoundary
@@ -3748,66 +3856,79 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
         </div>
       )}
 
-      {/* ==================== 3. BESTIAIRE (DRS + THARNÉA) ==================== */}
+      {/* ==================== 3. BESTIAIRE (DRS + THARNÉA + PERSO) ==================== */}
       {activeTab === 'bestiaire' && (() => {
-        const fullBestiaire = isTharneaActive ? [...THARNEA_MONSTERS, ...BESTIAIRE] : BESTIAIRE;
+        const knownNames = new Set(
+          [...BESTIAIRE, ...THARNEA_MONSTERS].map((m) => (m.n || '').trim().toLowerCase())
+        );
+        const customMonsters = (tableData.bestiaire || []).filter(
+          (m) => m.n && !knownNames.has(m.n.trim().toLowerCase())
+        );
+        const fullBestiaire = isTharneaActive
+          ? [...customMonsters, ...THARNEA_MONSTERS, ...BESTIAIRE]
+          : [...customMonsters, ...BESTIAIRE];
 
         return (
-          <div className="space-y-4">
-            <div className="bg-[#181410] border border-[#3d3023] rounded-xl p-4 space-y-3">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div>
-                  <h3 className="font-serif-co text-lg font-bold text-[#f3d48d]">
-                    Bestiaire {isTharneaActive ? 'Complet (DRS & Codex de l\'Obscure)' : 'Officiel du DRS'}
-                  </h3>
-                  <span className="text-xs text-[#9e907d]">
-                    Créatures répertoriées : <b className="text-[#ede3d1]">{fullBestiaire.length}</b> (DRS: {BESTIAIRE.length}{isTharneaActive ? ` · Tharnéa: ${THARNEA_MONSTERS.length}` : ''})
-                  </span>
-                </div>
+          <div className="space-y-3">
+            {/* Sous-catégories des Bestiaires */}
+            <div className="flex flex-wrap items-center gap-1.5 bg-[#181410] p-2 rounded-xl border border-[#3d3023]">
+              <span className="text-[10px] uppercase tracking-wider font-bold text-[#9e907d] px-1.5">
+                Bestiaires :
+              </span>
+              <button
+                type="button"
+                onClick={() => setBestSourceFilter('all')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  bestSourceFilter === 'all'
+                    ? 'bg-[#d4a84a] text-black shadow-xs'
+                    : 'bg-[#231c15] text-[#9e907d] hover:text-[#ede3d1]'
+                }`}
+              >
+                Tous ({fullBestiaire.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setBestSourceFilter('drs')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  bestSourceFilter === 'drs'
+                    ? 'bg-[#d4a84a] text-black shadow-xs'
+                    : 'bg-[#231c15] text-[#9e907d] hover:text-[#ede3d1]'
+                }`}
+              >
+                Bestiaire DRS Officiel ({BESTIAIRE.length})
+              </button>
+              {isTharneaActive && (
+                <button
+                  type="button"
+                  onClick={() => setBestSourceFilter('tharnea')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                    bestSourceFilter === 'tharnea'
+                      ? 'bg-[#6b21a8] text-[#f5d0fe] border border-[#a855f7] shadow-xs'
+                      : 'bg-[#22152f]/70 text-[#cca3c7] hover:text-white border border-[#6b21a8]/40'
+                  }`}
+                >
+                  <Sparkles className="w-3 h-3 text-[#ff8fed]" />
+                  <span>Codex de l&apos;Obscure ({THARNEA_MONSTERS.length})</span>
+                </button>
+              )}
+              {customMonsters.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setBestSourceFilter('custom')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    bestSourceFilter === 'custom'
+                      ? 'bg-[#2e5c36] text-[#d5fce0] border border-[#6fa85b] shadow-xs'
+                      : 'bg-[#231c15] text-[#9e907d] hover:text-[#ede3d1]'
+                  }`}
+                >
+                  Créatures ajoutées ({customMonsters.length})
+                </button>
+              )}
+            </div>
 
-                {/* Source filter selector */}
-                {isTharneaActive && (
-                  <div className="flex items-center gap-1 bg-[#120f0c] p-1 rounded-lg border border-[#3d3023]">
-                    <button
-                      type="button"
-                      onClick={() => setBestSourceFilter('all')}
-                      className={`px-3 py-1 rounded text-xs font-bold transition-all ${
-                        bestSourceFilter === 'all'
-                          ? 'bg-[#d4a84a] text-black shadow-xs'
-                          : 'text-[#9e907d] hover:text-[#ede3d1]'
-                      }`}
-                    >
-                      Tous ({fullBestiaire.length})
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setBestSourceFilter('drs')}
-                      className={`px-3 py-1 rounded text-xs font-bold transition-all ${
-                        bestSourceFilter === 'drs'
-                          ? 'bg-[#d4a84a] text-black shadow-xs'
-                          : 'text-[#9e907d] hover:text-[#ede3d1]'
-                      }`}
-                    >
-                      DRS Officiel ({BESTIAIRE.length})
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setBestSourceFilter('tharnea')}
-                      className={`px-3 py-1 rounded text-xs font-bold transition-all flex items-center gap-1.5 ${
-                        bestSourceFilter === 'tharnea'
-                          ? 'bg-[#8a2d75] text-white shadow-xs'
-                          : 'text-[#cca3c7] hover:text-white'
-                      }`}
-                    >
-                      <Sparkles className="w-3 h-3 text-[#ff8fed]" />
-                      <span>Codex de l'Obscure ({THARNEA_MONSTERS.length})</span>
-                    </button>
-                  </div>
-                )}
-              </div>
-
+            <div className="bg-[#181410] border border-[#3d3023] rounded-xl p-3.5 space-y-2.5">
               {/* Filters */}
-              <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-[#30251a]">
+              <div className="flex flex-wrap items-center gap-2">
                 <div className="relative flex-1 min-w-[200px]">
                   <Search className="w-3.5 h-3.5 text-[#9e907d] absolute left-3 top-2.5" />
                   <input
@@ -3876,8 +3997,10 @@ export const MjConsole: React.FC<MjConsoleProps> = ({
               {fullBestiaire
                 .filter((m) => {
                   const isTharneaMob = m.source === 'tharnea' || !!m.source?.toLowerCase().includes('tharnea');
-                  if (bestSourceFilter === 'drs') return !isTharneaMob;
+                  const isCustomMob = !isTharneaMob && !BESTIAIRE.some((b) => (b.n || '').trim().toLowerCase() === (m.n || '').trim().toLowerCase());
+                  if (bestSourceFilter === 'drs') return !isTharneaMob && !isCustomMob;
                   if (bestSourceFilter === 'tharnea') return isTharneaMob;
+                  if (bestSourceFilter === 'custom') return isCustomMob;
                   return true;
                 })
                 .filter((m) => {

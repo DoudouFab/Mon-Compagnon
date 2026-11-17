@@ -12,6 +12,7 @@ import {
   BookOpen,
 } from 'lucide-react';
 import { Character } from '../types/chroniques';
+import { PWAInstallButton } from './common/PWAInstallButton';
 
 interface HeaderProps {
   appMode: 'pj' | 'mj';
@@ -233,6 +234,8 @@ export const Header: React.FC<HeaderProps> = ({
               <span>{liveStatus === 'connected' ? `Direct · ${liveRoomCode}` : 'Table Direct'}</span>
             </button>
           )}
+
+          <PWAInstallButton />
 
           <button
             type="button"

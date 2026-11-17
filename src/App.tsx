@@ -40,6 +40,7 @@ import {
   sanitizeCombatantList,
 } from './utils/characterSanitizer';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
+import { OfflineIndicator } from './components/common/PWAInstallButton';
 
 export default function App() {
   const [isMjAuthorized, setIsMjAuthorized] = useState<boolean>(() => {
@@ -1390,6 +1391,8 @@ export default function App() {
         isLiveConnected={liveStatus === 'connected'}
         liveRoomCode={liveRoomCode}
       />
+
+      <OfflineIndicator />
     </div>
   );
 }
