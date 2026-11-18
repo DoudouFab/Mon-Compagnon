@@ -20,7 +20,7 @@ export default defineConfig(() => {
           'pwa-maskable-512x512.png',
         ],
         manifest: {
-          id: '/',
+          id: '/Mon-Compagnon/',
           name: 'Chroniques Oubliées – Compagnon PJ & Console MJ',
           short_name: 'CO Compagnon',
           description:
@@ -28,8 +28,8 @@ export default defineConfig(() => {
           theme_color: '#17110c',
           background_color: '#0f0d0b',
           display: 'standalone',
-          start_url: '/',
-          scope: '/',
+          start_url: '/Mon-Compagnon/',
+          scope: '/Mon-Compagnon/',
           icons: [
             {
               src: '/Mon-Compagnon/pwa-192x192.png',

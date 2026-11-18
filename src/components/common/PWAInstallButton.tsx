@@ -26,7 +26,12 @@ export const PWAInstallButton: React.FC = () => {
     setShowGuideModal(true);
   };
 
-  const currentUrl = typeof window !== 'undefined' ? window.location.href : '/';
+  const currentUrl =
+    typeof window !== 'undefined'
+      ? window.location.pathname === '/'
+        ? `${window.location.origin}/Mon-Compagnon/${window.location.search}${window.location.hash}`
+        : window.location.href
+      : '/Mon-Compagnon/';
 
   return (
     <>
